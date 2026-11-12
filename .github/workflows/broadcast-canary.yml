@@ -18,7 +18,7 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     env:
       CHECKPOINT: output/broadcast-hosted-state
     steps:
@@ -46,9 +46,9 @@ jobs:
           test -s "$CHECKPOINT/schedule.json"
       - name: Verify broadcast scheduling and playback
         run: node --test scripts/test-broadcast-schedule.mjs scripts/test-broadcast-player.mjs
-      - name: Extend and validate all three schedules
+      - name: Refresh and validate the broadcast lineup
         run: |
-          node scripts/build-broadcast-pilot.mjs "$CHECKPOINT"
+          node scripts/build-broadcast-pilot.mjs "$CHECKPOINT" --all
           node scripts/assemble-broadcast-canary.mjs "$CHECKPOINT" output/broadcast-hosted-site
       - name: Save the catalog and rotation checkpoint
         uses: actions/upload-artifact@v4

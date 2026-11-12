@@ -91,6 +91,18 @@ test('audio-only and portrait decodes never become a visible television picture'
   }
 });
 
+test('an audio broadcast joins at the scheduled offset without a video track', () => {
+  const h = fixture();
+  h.video.videoWidth = 0;
+  h.video.videoHeight = 0;
+  h.player.load({ ...h.a, mediaType: 'audio', url: 'https://archive.org/track.mp3' }, true);
+  h.emit('loadedmetadata');
+  h.emit('playing');
+  assert.equal(h.video.currentTime, 100);
+  assert.deepEqual(h.pictures, ['a']);
+  assert.equal(h.video.paused, false);
+});
+
 test('a slow live start catches up before revealing the picture', () => {
   const h = fixture();
   h.player.load(h.a, true); h.emit('loadedmetadata');

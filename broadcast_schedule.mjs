@@ -1,5 +1,6 @@
 import { qualifyIaFileRecord } from './ia_file_contract.js';
 import { familyId } from './realsignal_api_rotation.js';
+import Sports from './assets/sports-programs.js';
 
 const hour = 3_600_000;
 export const broadcastProofMs = 24 * hour;
@@ -59,7 +60,7 @@ function measureDepth(items) {
   };
 }
 
-function trustedVideo(url) {
+function trustedArchiveMedia(url) {
   try {
     const parsed = new URL(url);
     return parsed.protocol === 'https:' && /(^|\.)archive\.org$/.test(parsed.hostname);
@@ -74,20 +75,20 @@ function containsCommercials(item) {
     [item.title, item.fileName].filter(Boolean).join(' '));
 }
 
-export function buildBroadcastWindow({ rules, candidates, spots = [], now = Date.now(), previous, horizonMs = 6 * hour }) {
+export function collectBroadcastCatalog({ rules, candidates, now = Date.now(), previous }) {
   const channel = String(rules.channel);
-  if (previous && previous.channel !== channel) throw new Error('Schedule belongs to another station');
-  if (!Number.isFinite(now) || !(horizonMs > 0 && horizonMs <= 12 * hour)) throw new Error('Invalid schedule time');
+  const mediaType = rules.mediaTypes?.[0] === 'audio' ? 'audio' : 'video';
   const savedCatalog = previous?.catalog || [];
   const eligibleSaved = savedCatalog.filter(item => programAllowed(item, channel));
-  const baseline = eligibleSaved.length === savedCatalog.length ? previous?.depth : measureDepth(eligibleSaved);
   const qualified = new Map();
   for (const candidate of [...eligibleSaved, ...candidates]) {
     const result = qualifyIaFileRecord(candidate, { ...rules, iaRepair: true, requireTransport: false }, now);
     const item = result.item;
-    if (!result.accepted || item.media.type !== 'video' || !item.fileName || !trustedVideo(item.media.url)) continue;
+    if (!result.accepted || item.media.type !== mediaType || !item.fileName ||
+      !item.runtimeSeconds || !trustedArchiveMedia(item.media.url)) continue;
     if (item.verification !== 'transport' || !(item.verifiedAt > 0 && item.verifiedAt <= now + 60_000)) continue;
     if (!programAllowed(item, channel)) continue;
+    if (Sports.enabled(channel)) item.logicalId = Sports.describe(item, channel).eventId || item.logicalId;
     item.broadcastFamily = item.sourceIdentifier === '1-2-the-clampetts-strike-oil-extended'
       ? 'beverly hillbillies' : familyId(item);
     const saved = qualified.get(item.logicalId);
@@ -97,7 +98,18 @@ export function buildBroadcastWindow({ rules, candidates, spots = [], now = Date
     }
   }
 
-  const catalog = [...qualified.values()].sort((a, b) => a.logicalId.localeCompare(b.logicalId, 'en'));
+  return {
+    catalog: [...qualified.values()].sort((a, b) => a.logicalId.localeCompare(b.logicalId, 'en')),
+    baseline: eligibleSaved.length === savedCatalog.length ? previous?.depth : measureDepth(eligibleSaved)
+  };
+}
+
+export function buildBroadcastWindow({ rules, candidates, spots = [], now = Date.now(), previous, horizonMs = 6 * hour }) {
+  const channel = String(rules.channel);
+  const mediaType = rules.mediaTypes?.[0] === 'audio' ? 'audio' : 'video';
+  if (previous && previous.channel !== channel) throw new Error('Schedule belongs to another station');
+  if (!Number.isFinite(now) || !(horizonMs > 0 && horizonMs <= 12 * hour)) throw new Error('Invalid schedule time');
+  const { catalog, baseline } = collectBroadcastCatalog({ rules, candidates, now, previous });
   const depth = measureDepth(catalog);
   const ready = catalog.filter(item => now - item.verifiedAt <= broadcastProofMs);
   const readyDepth = measureDepth(ready);
@@ -143,16 +155,16 @@ export function buildBroadcastWindow({ rules, candidates, spots = [], now = Date
     cursor += Math.round(item.runtimeSeconds * 1000);
     slots.push({ kind: 'program', id: item.identifier, logicalId: item.logicalId, title: item.title,
       family: item.broadcastFamily, startsAt, endsAt: cursor, year: item.year || null,
-      url: item.media.url, provider: 'Internet Archive' });
+      url: item.media.url, mediaType, provider: 'Internet Archive' });
     used.add(item.logicalId);
     lastId = item.logicalId;
     lastFamily = item.broadcastFamily;
     familyOrder.set(lastFamily, startsAt);
     blockMs += cursor - startsAt;
-    if (containsCommercials(item)) {
+    if (mediaType === 'audio' || containsCommercials(item)) {
       blockMs = 0;
     } else if (channel !== '150' || blockMs >= cartoonBlockMs) {
-      const spot = spots.find(row => trustedVideo(row.url) && row.durationMs >= 10_000 && row.durationMs <= 61_000 &&
+      const spot = spots.find(row => trustedArchiveMedia(row.url) && row.durationMs >= 10_000 && row.durationMs <= 61_000 &&
         cursor - (spotOrder.get(row.id) ?? -Infinity) >= 6 * hour);
       const endsAt = cursor + (spot ? spot.durationMs : breakMs);
       slots.push({ kind: 'break', id: channel + '-break-' + cursor, title: spot?.title || 'Station break',

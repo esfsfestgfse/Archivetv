@@ -38,7 +38,9 @@ export function createBroadcastPlayer({ video, now = Date.now, onCard, onPlaying
     video.addEventListener('loadedmetadata', () => {
       if (!current()) return;
       const offset = live ? Math.max(0, (now() - slot.startsAt) / 1000) : 0;
-      if (!(video.duration > offset) || !(video.videoWidth > 0) || video.videoHeight > video.videoWidth) {
+      const pictureRequired = slot.mediaType !== 'audio';
+      if (!(video.duration > offset) ||
+          (pictureRequired && (!(video.videoWidth > 0) || video.videoHeight > video.videoWidth))) {
         failed();
         return;
       }

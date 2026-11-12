@@ -36,7 +36,12 @@ const context = {
 vm.createContext(context);
 vm.runInContext(source.slice(start, manifestEnd), context, { filename: path.basename(file) });
 vm.runInContext(source.slice(filterStart, filterEnd), context, { filename: path.basename(file) });
-const manifest = vm.runInContext(`CH.filter(function(ch){return !ch.source;}).map(function(ch){
+const manifest = process.argv.includes("--lineup") ? vm.runInContext(`publicLineupChannels()
+  .filter(function(ch){return !isHiddenConsolidatedMember(ch);})
+  .map(function(ch){
+    return {channel:String(ch.num),name:canonicalChannelLabel(ch),category:guideCategoryFor(ch).label,
+      source:ch.source||"archive",profileKey:ch.previewKey||null,audio:!!ch.audio};
+  })`, context) : vm.runInContext(`CH.filter(function(ch){return !ch.source;}).map(function(ch){
   var sl=slotFor(ch,0,{preview:true});
   return {channel:String(ch.num),name:ch.nm,queries:iaQueueQueries(sl),themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),requiredTitleTerms:(sl.program&&sl.program.require&&sl.program.require.title_any)||[],diversity:iaQueueDiversity(sl),mediaTypes:ch.audio?['audio']:['movies'],themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1)),minRuntimeSeconds:Math.max(0,Number(sl&&sl.program&&sl.program.minRuntimeSeconds)||0)};
 })`, context);

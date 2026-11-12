@@ -8655,6 +8655,8 @@ function killMedia(keepYouTube){try{if(window.RealSignalPeerTubeMedia)window.Rea
    channel NUMBER, which silently drifts every time the lineup is reordered or a channel is added.
    Now keyed by NAME (stable across reshuffles), with a one-time migration from old numeric state. */
 let powered=false, curNum=(function(){
+    var requested=Number(new URLSearchParams(location.search).get("channel"));
+    if(requested&&byNum(canonicalTuneNum(requested)))return canonicalTuneNum(requested);
     var storedName=store.get("lastName",null);
     if(storedName){ var m=CH.find(function(c){return c.nm===storedName;}); if(m) return m.num; }
     return byNum(Number(store.get("last",2)))?.num || 2; // fall back if the saved channel was removed

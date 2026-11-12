@@ -6,7 +6,6 @@
   "workers_dev": true,
   "assets": {
     "binding": "ASSETS",
-    "run_worker_first": ["/output/broadcast-pilot-preview/preview.json"],
     "directory": "./output/broadcast-hosted-site",
     "html_handling": "none"
   }

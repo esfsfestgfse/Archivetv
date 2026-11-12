@@ -1,8 +1,9 @@
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname !== '/broadcast-schedule.json') return env.ASSETS.fetch(request);
-    url.pathname = '/output/broadcast-pilot-preview/preview.json';
+    if (!['/broadcast-schedule.json', '/broadcast-schedule-v2.json'].includes(url.pathname)) return env.ASSETS.fetch(request);
+    url.pathname = '/output/broadcast-pilot-preview/' +
+      (url.pathname === '/broadcast-schedule-v2.json' ? 'preview.json' : 'legacy.json');
     const response = await env.ASSETS.fetch(new Request(url, request));
     const headers = new Headers(response.headers);
     headers.set('Access-Control-Allow-Origin', '*');

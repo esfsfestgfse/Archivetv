@@ -1,7 +1,7 @@
 import { qualifyIaFileRecord } from './ia_file_contract.js';
 import { familyId } from './realsignal_api_rotation.js';
 import Sports from './assets/sports-programs.js';
-import { broadcastSourceCooling, broadcastSourceProgramAllowed, broadcastSourceType } from './broadcast_source_catalog.mjs';
+import { broadcastSourceCooling, broadcastSourceProgramAllowed, broadcastSourceType, isMusicVideoProfile } from './broadcast_source_catalog.mjs';
 
 const hour = 3_600_000;
 export const broadcastProofMs = 24 * hour;
@@ -144,7 +144,8 @@ export function collectBroadcastCatalog({ rules, candidates, now = Date.now(), p
       if (candidate.verification !== 'source-admitted' || !broadcastSourceType(candidate) ||
           !broadcastSourceProgramAllowed(rules.profileKey, candidate) ||
           broadcastSourceCooling(candidate, rules.cooledProviders) ||
-          !(candidate.runtimeSeconds >= 900 && candidate.verifiedAt > 0 && candidate.verifiedAt <= now + 60_000)) continue;
+          !(candidate.runtimeSeconds >= (isMusicVideoProfile(rules.profileKey) ? 120 : 900) &&
+            candidate.verifiedAt > 0 && candidate.verifiedAt <= now + 60_000)) continue;
       const saved = qualified.get(candidate.logicalId);
       if (!saved || candidate.verifiedAt >= saved.verifiedAt) {
         const cookingShow = rules.profileKey === 'cooks-table' && /\bthe youtube asshole cooking show\b/i.test(candidate.title || '');
@@ -188,7 +189,7 @@ export function collectBroadcastCatalog({ rules, candidates, now = Date.now(), p
 export function buildBroadcastWindow({ rules, candidates, spots = [], now = Date.now(), previous, horizonMs, limited = false }) {
   const channel = String(rules.channel);
   const mediaType = rules.mediaTypes?.[0] === 'audio' ? 'audio' : 'video';
-  const shortFormat = mediaType === 'audio' || channel === '13' || channel === '501';
+  const shortFormat = mediaType === 'audio' || channel === '13' || channel === '501' || isMusicVideoProfile(rules.profileKey);
   const allowReserve = !limited && shortFormat && horizonMs == null;
   horizonMs ??= (limited ? shortFormat ? 1.5 : 2.5 : shortFormat ? 2 : 6) * hour;
   if (previous && previous.channel !== channel) throw new Error('Schedule belongs to another station');

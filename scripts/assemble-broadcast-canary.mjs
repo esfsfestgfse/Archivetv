@@ -8,6 +8,7 @@ if (!checkpointDirectory || !siteDirectory) {
 }
 
 const scheduleRoute = 'output/broadcast-pilot-preview/preview.json';
+const legacyScheduleRoute = 'output/broadcast-pilot-preview/legacy.json';
 const manifest = await readFile(path.join(checkpointDirectory, 'preview.json'), 'utf8');
 const { stations, lineup } = JSON.parse(manifest);
 const now = Date.now();
@@ -38,6 +39,8 @@ await Promise.all([
   copyFile('assets/broadcast-clock.mjs', path.join(siteDirectory, 'assets/broadcast-clock.mjs')),
   copyFile('assets/broadcast-player.mjs', path.join(siteDirectory, 'assets/broadcast-player.mjs')),
   writeFile(manifestPath, JSON.stringify({ lineup, stations: active })),
+  writeFile(path.join(siteDirectory, legacyScheduleRoute), JSON.stringify({ lineup,
+    stations: active.filter(station => !station.slots.some(slot => ['ok', 'vimeo'].includes(slot.mediaType))) })),
   writeFile(path.join(siteDirectory, '_headers'), '/' + scheduleRoute +
     '\n  Cache-Control: no-cache\n  Access-Control-Allow-Origin: *\n')
 ]);

@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { broadcastProofMs, buildBroadcastWindow, collectBroadcastCatalog, firstRejectedBroadcastSlot } from '../broadcast_schedule.mjs';
 import { normalizeIaFileRecord, qualifyIaFileRecord } from '../ia_file_contract.js';
 import { familyId } from '../realsignal_api_rotation.js';
-import { readSourceBroadcastInventory, verifyBroadcastSource } from '../broadcast_source_catalog.mjs';
+import { isMusicVideoProfile, readSourceBroadcastInventory, verifyBroadcastSource } from '../broadcast_source_catalog.mjs';
 
 const directory = path.resolve(process.argv[2] || 'output/broadcast-pilot-preview');
 const api = 'https://realsignal-api.tdy1990.workers.dev/api/v3/ia/queue';
@@ -128,7 +128,7 @@ async function checkSpot(id, fileName, title) {
 }
 
 async function renewProgram(item) {
-  if (['YouTube', 'PeerTube', 'NASCAR Classics'].includes(item.provider)) return verifyBroadcastSource(item);
+  if (['YouTube', 'PeerTube', 'NASCAR Classics', 'OK.ru', 'Vimeo'].includes(item.provider)) return verifyBroadcastSource(item);
   let url = new URL(item.media.url);
   const signal = AbortSignal.timeout(7000);
   for (let redirect = 0; redirect < 4; redirect++) {
@@ -305,7 +305,8 @@ async function refreshStation([channel, station]) {
       } else if (earlier?.status === 'ready') {
         const known = new Set(earlier.catalog.map(item => item.logicalId));
         const newFiles = candidates.filter(item => !known.has(item.logicalId));
-        renewed = await renewUnseen({ ...earlier, catalog: newFiles }, candidates, rotation / 6, 4);
+        renewed = await renewUnseen({ ...earlier, catalog: newFiles }, candidates, rotation / 6,
+          station.profileKey?.startsWith('ok-') ? 12 : 4);
         candidates.push(...renewed);
       }
       const spots = (channel === '150' ? [toySpot] : pilot ? [carSpot] : []).filter(Boolean);
@@ -320,7 +321,8 @@ async function refreshStation([channel, station]) {
         const saved = collectBroadcastCatalog({ rules, candidates, previous: earlier }).catalog;
         const available = new Map([...candidates, ...saved].map(item => [item.logicalId, item]));
         const verifiedDepth = earlier?.catalog?.length || 0;
-        const budget = channel === '501' ? 48 : selected || station.profileKey === 'nascar-classics' ? 24 : earlier?.status === 'held' && verifiedDepth >= 8
+        const budget = isMusicVideoProfile(station.profileKey) ? 72 : station.profileKey?.startsWith('ok-') ? 32 :
+          channel === '501' ? 48 : selected || station.profileKey === 'nascar-classics' ? 24 : earlier?.status === 'held' && verifiedDepth >= 8
           ? Math.min(24, Math.max(12, 30 - verifiedDepth)) : 12;
         const checked = await renewUnseen({ ...earlier, catalog: [...available.values()] }, candidates, rotation / 6, budget);
         renewed.push(...checked);

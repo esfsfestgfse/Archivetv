@@ -4,7 +4,8 @@ import { nascarMediaProof, nascarReplayAllowed } from './nascar_catalog.js';
 
 // Source Suite keeps its existing editorial filters and provider cooldowns.
 // Only sources with an implemented clock join are admitted to this scheduler.
-const providerKey = { 'NASCAR Classics': 'nascar', YouTube: 'youtube', PeerTube: 'peertube' };
+const providerKey = { 'NASCAR Classics': 'nascar', YouTube: 'youtube', PeerTube: 'peertube', 'OK.ru': 'ok', Vimeo: 'vimeo' };
+export const isMusicVideoProfile = key => /^ok-(?:soul-flow|country-video|video-hits)-channel$/.test(key || '');
 const editorialTitles = {
   'field-notes': /\b(?:field study|field biology|ecology|ecological|wildlife|biodiversity|natural history|field research|ecosystems?)\b/i,
   'legal-record': /\b(?:law|legal|court|courts|judicial|judiciary|constitution|constitutional|justice|rights)\b/i,
@@ -25,6 +26,10 @@ export function broadcastSourceCooling(item, cooledProviders) {
 
 export function broadcastSourceProgramAllowed(profileKey, item) {
   if (!SourcePrograms.allow(profileKey, item)) return false;
+  if (item.provider === 'OK.ru' || item.provider === 'Vimeo') {
+    const expected = item.provider === 'OK.ru' ? 'ok-' : 'vimeo-';
+    return String(profileKey).startsWith(expected) && item.providerAdmitted === true;
+  }
   const title = String(item.title || '');
   if ((editorialTitles[profileKey] && !editorialTitles[profileKey].test(title)) ||
       editorialExclusions[profileKey]?.test(title)) return false;
@@ -45,6 +50,8 @@ export function broadcastSourceType(item) {
         /^\/embed\/[A-Za-z0-9_-]{11}$/.test(url.pathname)) return 'youtube';
     if (item.provider === 'NASCAR Classics' && item.officialReplay === true &&
         url.hostname === 'va.aws.nascar.com' && /\.m3u8$/i.test(url.pathname)) return 'hls';
+    if (item.provider === 'OK.ru' && url.origin === 'https://ok.ru' && /^\/videoembed\/\d+$/.test(url.pathname)) return 'ok';
+    if (item.provider === 'Vimeo' && url.origin === 'https://player.vimeo.com' && /^\/video\/\d+$/.test(url.pathname)) return 'vimeo';
     if (item.provider === 'PeerTube' && new URL(item.sourceUrl).origin === url.origin) {
       if (PeerTubeMedia.fragment(url.href)) return null;
       if (/^\/static\/streaming-playlists\/.+\.m3u8$/i.test(url.pathname)) return 'hls';
@@ -52,6 +59,26 @@ export function broadcastSourceType(item) {
     }
   } catch { /* Unsupported or incomplete media identity. */ }
   return null;
+}
+
+function admittedProvider(profileKey, row, type) {
+  if (!['ok', 'vimeo'].includes(type)) return false;
+  if (!profileKey.startsWith(type + '-') || row.embedAllowed !== true || !(Number(row.aspectRatio) > 1) ||
+      !/^en(?:[-_]|$)/i.test(row.language || '')) return false;
+  if (type === 'vimeo') return row.embedVerified === true && row.publicEmbed === true;
+  if (isMusicVideoProfile(profileKey)) return row.musicVerified === true && row.musicVerificationVersion === 2 && Boolean(row.musicTrackKey);
+  if (/^ok-(?:kids|adult|anime)-channel$/.test(profileKey)) return row.animationVerified === true && row.animationVerificationVersion === 2;
+  return row.curatedVerified === true || /^https:\/\/(?:www\.tvmaze\.com\/shows\/\d+|www\.wikidata\.org\/wiki\/Q\d+)/.test(row.identityReference || '');
+}
+
+function sourceProgramId(row) {
+  if (row.provider === 'OK.ru') {
+    if (row.musicTrackKey) return 'ok:track:' + row.musicTrackKey;
+    if (/^https:\/\/www\.wikidata\.org\/wiki\/Q\d+$/.test(row.identityReference || '')) return 'ok:film:' + row.identityReference.split('/').at(-1);
+    const episode = row.episodeIdentity || row.title.match(/\bs\d{1,2}[ ._-]*e\d{1,3}\b/i)?.[0];
+    if (row.seriesId && episode) return 'ok:episode:' + row.seriesId + ':' + episode.toLowerCase().replace(/[ ._-]+/g, '');
+  }
+  return row.provider + ':' + row.sourceIdentifier;
 }
 
 export async function readSourceBroadcastInventory(profileKey) {
@@ -65,15 +92,17 @@ export async function readSourceBroadcastInventory(profileKey) {
     const mediaUrl = row.media?.url || row.embedUrl || row.url;
     const type = broadcastSourceType(row);
     const runtime = Number(row.runtimeSeconds || row.runtime || row.duration);
+    const providerAdmitted = admittedProvider(profileKey, row, type);
+    const minimum = isMusicVideoProfile(profileKey) ? 120 : /^(?:ok|vimeo)-movie-channel$/.test(profileKey) ? 3600 : 900;
     const resolvePeerTube = row.provider === 'PeerTube' && PeerTubeMedia.fragment(mediaUrl);
     if ((!type && !resolvePeerTube) || broadcastSourceCooling(row, cooledProviders) || !row.title || !row.sourceIdentifier ||
-        !broadcastSourceProgramAllowed(profileKey, row) ||
+        !broadcastSourceProgramAllowed(profileKey, { ...row, providerAdmitted }) ||
         (row.provider === 'NASCAR Classics' && !nascarReplayAllowed(row)) ||
-        row.embedAllowed === false || !Number.isFinite(runtime) || runtime < 900 ||
+        row.embedAllowed === false || !Number.isFinite(runtime) || runtime < minimum ||
         (row.aspectRatio && Number(row.aspectRatio) <= 1)) return [];
     return [{
       identifier: row.identifier || row.id, sourceIdentifier: row.sourceIdentifier,
-      logicalId: row.provider + ':' + row.sourceIdentifier, provider: row.provider,
+      logicalId: sourceProgramId(row), provider: row.provider, providerAdmitted,
       seriesTitle: row.seriesTitle || row.raceTrack || '', seriesId: row.seriesId || '', title: row.title,
       subject: row.subject, description: row.description, account: row.account, channelId: row.channelId,
       defaultAudioLanguage: row.defaultAudioLanguage, language: row.language, defaultLanguage: row.defaultLanguage,
@@ -124,6 +153,24 @@ export async function verifyBroadcastSource(item) {
       return proof ? { ...checked, runtimeSeconds: proof.duration, verifiedAt: proof.verifiedAt } : null;
     }
     return await verifyPeerTubePlaylist(url) ? checked : null;
+  }
+  if (type === 'ok') {
+    const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(7000) });
+    if (!response.ok) return null;
+    const html = await response.text();
+    return /data-options=/.test(html) && /video-player|moviePlayer/.test(html) &&
+      !/video is unavailable|video not found|видеозапись недоступна/i.test(html) ? checked : null;
+  }
+  if (type === 'vimeo') {
+    const id = url.pathname.split('/').pop();
+    const endpoint = new URL('https://vimeo.com/api/oembed.json');
+    endpoint.searchParams.set('url', 'https://vimeo.com/' + id);
+    const response = await fetch(endpoint, { signal: AbortSignal.timeout(7000) });
+    if (!response.ok) return null;
+    const data = await response.json();
+    return String(data.video_id) === id && Number(data.width) > Number(data.height) &&
+      Number(data.duration) >= 900 && data.html?.includes('https://player.vimeo.com/video/' + id)
+      ? { ...checked, runtimeSeconds: Number(data.duration) } : null;
   }
   let response;
   if (type === 'youtube') {

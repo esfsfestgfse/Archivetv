@@ -337,6 +337,26 @@ test('shallow or expired input cannot replace a deep schedule', () => {
     previous: first }), /verified unseen/i);
 });
 
+test('a smaller verified catalog can start a shorter schedule with enough distinct content in reserve', () => {
+  const starter = candidates.slice(0, 12).map(item => ({
+    ...item, media: { ...item.media, runtime: 30 * 60 }
+  }));
+  assert.throws(() => buildBroadcastWindow({ rules, candidates: starter, now }), /depth/);
+  const window = buildBroadcastWindow({ rules, candidates: starter, now, limited: true });
+  assert.equal(window.limited, true);
+  assert.ok(window.slots.at(-1).endsAt >= now + 150 * minute);
+  assert.equal(window.slots.filter(slot => slot.kind === 'program').length, 5);
+  assert.throws(() => buildBroadcastWindow({ rules, candidates: starter.slice(0, 9), now, limited: true }), /depth/);
+  const stale = starter.map(item => ({ ...item, media: { ...item.media, verifiedAt: now - 25 * 60 * minute } }));
+  assert.throws(() => buildBroadcastWindow({ rules, candidates: stale, now, limited: true }), /verified reserve/);
+  const mature = buildBroadcastWindow({ rules, candidates, now });
+  assert.throws(() => buildBroadcastWindow({ rules, candidates: starter, now, previous: mature, limited: true }),
+    /shorten/);
+  const promoted = buildBroadcastWindow({ rules, candidates, previous: window, now });
+  assert.deepEqual(promoted.slots.slice(0, window.slots.length), window.slots);
+  assert.equal(promoted.limited, undefined);
+});
+
 test('a runtime correction keeps a deep station on air with its published programs intact', () => {
   const first = buildBroadcastWindow({ rules, candidates, now });
   const later = now + 2 * 60 * minute;

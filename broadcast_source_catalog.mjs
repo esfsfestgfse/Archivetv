@@ -5,12 +5,32 @@ import { nascarMediaProof, nascarReplayAllowed } from './nascar_catalog.js';
 // Source Suite keeps its existing editorial filters and provider cooldowns.
 // Only sources with an implemented clock join are admitted to this scheduler.
 const providerKey = { 'NASCAR Classics': 'nascar', YouTube: 'youtube', PeerTube: 'peertube' };
+const editorialTitles = {
+  'field-notes': /\b(?:field study|field biology|ecology|ecological|wildlife|biodiversity|natural history|field research|ecosystems?)\b/i,
+  'legal-record': /\b(?:law|legal|court|courts|judicial|judiciary|constitution|constitutional|justice|rights)\b/i,
+  'memory-bank': /\b(?:oral history|community history|public history|local history|historical archives?|memoirs?)\b/i,
+  'cooks-table': /\b(?:cooking|kitchen|chef|recipe|cuisine|baking|cookhouse|cookery)\b/i
+};
+const editorialExclusions = {
+  'field-notes': /\b(?:astrophysique|astrophysics|software|conferenza)\b/i,
+  'storm-lab': /\b(?:instrument flight techniques|flight training|flight simulator)\b/i,
+  'freedom-stories': /\b(?:last week tonight|daily show|stand.up comedy)\b/i,
+  'blueprint': /\b(?:microservices|software architecture|first impressions|computer architecture|sleep history)\b/i,
+  'legal-record': /\b(?:unfiltered talk|law students failing)\b/i,
+  'memory-bank': /\b(?:murder|suspect|manson|prison|confessed|scandal)\b|^X community history$/i
+};
 export function broadcastSourceCooling(item, cooledProviders) {
   return cooledProviders?.has(providerKey[item.provider]);
 }
 
 export function broadcastSourceProgramAllowed(profileKey, item) {
   if (!SourcePrograms.allow(profileKey, item)) return false;
+  const title = String(item.title || '');
+  if ((editorialTitles[profileKey] && !editorialTitles[profileKey].test(title)) ||
+      editorialExclusions[profileKey]?.test(title)) return false;
+  if (/\b(?:minecraft|gameplay|walkthrough|speedrun|let['’]?s play|game modding)\b/i.test(title) &&
+    ['map-room', 'field-notes', 'mission-control', 'backroad-journal', 'storm-lab', 'atomic-age-files', 'rail-archive',
+      'invention-files', 'blueprint', 'animation-desk', 'screen-test', 'lesson-reel'].includes(profileKey)) return false;
   if (profileKey !== 'screen-test') return true;
   const subject = [item.title, item.subject].filter(Boolean).join(' ');
   return /\b(?:cinematography|film[- ]?making|film editing|movie editing|film production|movie production|film studios?|movie studios?|movie cameras?|film cameras?|production design|motion picture technology|cinema technology|camera technology|special effects|film lighting|colour grading|color grading)\b/i.test(subject);

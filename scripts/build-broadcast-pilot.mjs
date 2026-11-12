@@ -325,7 +325,13 @@ async function refreshStation([channel, station]) {
         const checked = await renewUnseen({ ...earlier, catalog: [...available.values()] }, candidates, rotation / 6, budget);
         renewed.push(...checked);
         candidates.push(...checked);
-        schedule = buildBroadcastWindow({ rules, candidates, spots, previous: earlier });
+        const input = { rules, candidates, spots, previous: earlier };
+        try {
+          schedule = buildBroadcastWindow(input);
+        } catch (error) {
+          if ((earlier?.slots?.length && !earlier.limited) || channel === '500') throw error;
+          schedule = buildBroadcastWindow({ ...input, limited: true });
+        }
       }
       break;
     } catch (error) {
@@ -339,7 +345,8 @@ async function refreshStation([channel, station]) {
     const added = schedule.catalog.filter(item => !earlierIds.has(item.logicalId)).length;
     console.log(channel + ' READY: ' + depth.episodes + ' verified episodes, ' + depth.families + ' families, ' +
       depth.hours.toFixed(1) + ' catalog hours, ' + new Set(programs.map(slot => slot.logicalId)).size + '/' +
-      programs.length + ' distinct programs in the window, ' + added + ' new files, ' + renewed.length + ' rechecked');
+      programs.length + ' distinct programs in the window, ' + added + ' new files, ' + renewed.length + ' rechecked' +
+      (schedule.limited ? ', shorter schedule' : ''));
     return { ...schedule, nextRotation: rotation, category: station.category, status: 'ready' };
   }
   const canRetain = earlier && firstRejectedBroadcastSlot(earlier, Date.now(), rules) < 0;

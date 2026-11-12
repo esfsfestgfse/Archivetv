@@ -32,6 +32,7 @@ const excludedCivilRightsUploads = new Set([
   'southern-united-states-films'
 ]);
 const reviewedTrailerSources = new Set(['Vintage-Movie-Trailers', 'MovieTrailerCollection', 'hhv-glv-trailer-reel']);
+const thanksgivingSpecial = /\b(?:charlie brown thanksgiving|winnie the pooh thanksgiving|garfield s thanksgiving|the thanksgiving that almost wasn t)\b/;
 
 function classicTvIdentity(value) {
   return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
@@ -77,6 +78,7 @@ function programAllowed(item, channel) {
   }
   if (channel === '501') return Boolean(theatricalTrailerIdentity(item));
   if (channel === '224') return !excludedCivilRightsUploads.has(String(item.sourceIdentifier).toLowerCase());
+  if (channel === '903') return !/\b(?:relaxing jazz|study music|cafe music|background music|sleep music)\b/i.test(item.title || '');
   if (channel !== '10') return true;
   if (item.sourceIdentifier === '1974-pray-for-the-wildcats') return false;
   const title = String(item.title || '').split(/\s+[·—]\s+/)[0];
@@ -100,7 +102,7 @@ export function firstRejectedBroadcastSlot(previous, now, rules = {}) {
     return previous.slots.findIndex(slot => slot.endsAt > now && slot.kind === 'program' &&
       !eligible.has(slot.logicalId));
   }
-  if (!['10', '13', '63', '224', '501', '921'].includes(previous?.channel)) return -1;
+  if (!['10', '13', '63', '224', '501', '903', '921'].includes(previous?.channel)) return -1;
   const allowed = new Set(previous.catalog.filter(item => programAllowed(item, previous.channel)).map(item => item.logicalId));
   return previous.slots.findIndex(slot => slot.endsAt > now && slot.kind === 'program' && !allowed.has(slot.logicalId));
 }
@@ -145,7 +147,9 @@ export function collectBroadcastCatalog({ rules, candidates, now = Date.now(), p
           !(candidate.runtimeSeconds >= 900 && candidate.verifiedAt > 0 && candidate.verifiedAt <= now + 60_000)) continue;
       const saved = qualified.get(candidate.logicalId);
       if (!saved || candidate.verifiedAt >= saved.verifiedAt) {
-        qualified.set(candidate.logicalId, { ...candidate, broadcastFamily: familyId(candidate) });
+        const cookingShow = rules.profileKey === 'cooks-table' && /\bthe youtube asshole cooking show\b/i.test(candidate.title || '');
+        qualified.set(candidate.logicalId, { ...candidate,
+          broadcastFamily: cookingShow ? 'the youtube asshole cooking show' : familyId(candidate) });
       }
       continue;
     }
@@ -159,9 +163,15 @@ export function collectBroadcastCatalog({ rules, candidates, now = Date.now(), p
       if (!identity) continue;
       item.logicalId = identity;
     } else if (!programAllowed(item, channel)) continue;
+    if (channel === '706' && item.runtimeSeconds <= 3600) {
+      const title = String(item.title || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ');
+      const special = title.match(thanksgivingSpecial)?.[0];
+      if (special) item.logicalId = 'thanksgiving:' + special;
+    }
     if (Sports.enabled(channel)) item.logicalId = Sports.describe(item, channel).eventId || item.logicalId;
     item.broadcastFamily = item.sourceIdentifier === '1-2-the-clampetts-strike-oil-extended'
       ? 'beverly hillbillies' : familyId(item);
+    if (channel === '70' && /\bfranklin rodeo\b/i.test(item.title || '')) item.broadcastFamily = 'franklin rodeo';
     const saved = qualified.get(item.logicalId);
     if (!saved || item.verifiedAt >= saved.verifiedAt) {
       if (item.containsCommercials == null && saved && containsCommercials(saved)) item.containsCommercials = true;
@@ -175,13 +185,14 @@ export function collectBroadcastCatalog({ rules, candidates, now = Date.now(), p
   };
 }
 
-export function buildBroadcastWindow({ rules, candidates, spots = [], now = Date.now(), previous, horizonMs }) {
+export function buildBroadcastWindow({ rules, candidates, spots = [], now = Date.now(), previous, horizonMs, limited = false }) {
   const channel = String(rules.channel);
   const mediaType = rules.mediaTypes?.[0] === 'audio' ? 'audio' : 'video';
   const shortFormat = mediaType === 'audio' || channel === '13' || channel === '501';
-  const allowReserve = shortFormat && horizonMs == null;
-  horizonMs ??= (shortFormat ? 2 : 6) * hour;
+  const allowReserve = !limited && shortFormat && horizonMs == null;
+  horizonMs ??= (limited ? shortFormat ? 1.5 : 2.5 : shortFormat ? 2 : 6) * hour;
   if (previous && previous.channel !== channel) throw new Error('Schedule belongs to another station');
+  if (limited && previous?.slots?.length && !previous.limited) throw new Error('Cannot shorten a published full schedule');
   if (!Number.isFinite(now) || !(horizonMs > 0 && horizonMs <= 12 * hour)) throw new Error('Invalid schedule time');
   const { catalog, baseline } = collectBroadcastCatalog({ rules, candidates, now, previous });
   const depth = measureDepth(catalog);
@@ -193,12 +204,18 @@ export function buildBroadcastWindow({ rules, candidates, spots = [], now = Date
     ? Math.max(requiredUntil, now + Math.min(4, readyDepth.hours / 2) * hour)
     : requiredUntil;
   const floor = {
-    episodes: Math.max(24, baseline?.episodes || 0),
+    episodes: Math.max(limited ? shortFormat ? 12 : 8 : 24, baseline?.episodes || 0),
     families: Math.max(6, baseline?.families || 0),
-    hours: Math.max(shortFormat ? 3 : 8, horizonMs / hour)
+    hours: limited ? 2 * horizonMs / hour : Math.max(shortFormat ? 3 : 8, horizonMs / hour)
   };
   if (depth.episodes < floor.episodes || depth.families < floor.families || depth.hours + 1e-8 < floor.hours) {
     throw new Error('Station ' + channel + ' depth ' + JSON.stringify(depth) + ' below ' + JSON.stringify(floor));
+  }
+  if (limited) {
+    const reserve = measureDepth(ready.filter(item => now + horizonMs - item.verifiedAt <= broadcastProofMs));
+    if (reserve.episodes < (shortFormat ? 12 : 8) || reserve.families < 6 || reserve.hours + 1e-8 < floor.hours) {
+      throw new Error('Station ' + channel + ' needs a verified reserve for a shorter schedule');
+    }
   }
 
   // Keep the announced prefix. Rebuild from the first ineligible program's
@@ -221,7 +238,7 @@ export function buildBroadcastWindow({ rules, candidates, spots = [], now = Date
   let lastId = (rejectedIndex < 0 ? previous?.lastId : lastKept?.logicalId) || '';
   let lastFamily = (rejectedIndex < 0 ? previous?.lastFamily : lastKept?.family) || '';
   let blockMs = previous?.blockMs || 0;
-  while (cursor < reserveUntil) {
+  while (cursor < reserveUntil || (limited && scheduled.size < 2)) {
     const required = cursor < requiredUntil;
     const exhausted = required && catalog.every(item => used.has(item.logicalId));
     if (exhausted) used.clear();
@@ -263,5 +280,5 @@ export function buildBroadcastWindow({ rules, candidates, spots = [], now = Date
     }
   }
   return { channel, name: rules.name, generatedAt: now, depth, readyDepth, slots, catalog, used: [...used],
-    familyOrder: [...familyOrder], spotOrder: [...spotOrder], lastId, lastFamily, blockMs };
+    familyOrder: [...familyOrder], spotOrder: [...spotOrder], lastId, lastFamily, blockMs, ...(limited ? { limited } : {}) };
 }

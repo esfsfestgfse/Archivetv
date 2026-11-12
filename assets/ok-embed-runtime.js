@@ -130,6 +130,7 @@
     stop();
     return new Promise(function (resolve) {
       var frame = document.createElement("iframe"), disposed = false, loaded = false, playing = false, startSuppressed = false, advanced = false, settled = false, timer;
+      var offset = Math.max(0, Math.floor(Number(options.startSeconds?.()) || 0));
       function settle(value) { if (!settled) { settled = true; resolve(value); } }
       function cleanup() {
         disposed = true; clearTimeout(timer); root.removeEventListener("message", message); frame.onload = null;
@@ -156,7 +157,8 @@
         // Explicit pauses, autoplay restrictions and ads are not failed media.
         if (/^(?:paused|autoplaySoundProhibited|adShown|adStarted)$/.test(data.event)) { startSuppressed = true; clearTimeout(timer); return; }
         if (/^(?:resumed|adCompleted)$/.test(data.event)) { startSuppressed = false; if (!playing) armStartTimer(); }
-        if (data.event === "started" || data.event === "timeupdate" && Number(data.time) > 0) {
+        var time = Number(data.time);
+        if (!offset && data.event === "started" || data.event === "timeupdate" && time > 0 && time >= offset - 2) {
           if (!playing) { playing = true; clearTimeout(timer); frame.dataset.playbackState = "playing"; options.onStarted(); }
         }
         if (data.event === "ended" && playing && !advanced) { advanced = true; options.onEnded(); }
@@ -165,6 +167,8 @@
       var url = new URL(options.item.embedUrl || options.item.url);
       if (url.origin !== "https://ok.ru" || !/^\/videoembed\/\d+$/.test(url.pathname)) { settle(false); return; }
       url.searchParams.set("autoplay", "1");
+      if (offset) url.searchParams.set("fromTime", String(offset));
+      else if (options.startSeconds) url.searchParams.delete("fromTime");
       frame.src = url.href;
       frame.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
       frame.allowFullscreen = true; frame.referrerPolicy = "strict-origin-when-cross-origin";

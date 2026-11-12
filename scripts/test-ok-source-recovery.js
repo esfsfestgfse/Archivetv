@@ -92,6 +92,18 @@ const root = path.resolve(__dirname, '..');
   send('paused'); for (const fn of [...timers.values()]) fn(); assert.equal(ended, 0); assert.equal(failed, 0);
   send('ended'); send('ended'); assert.equal(ended, 1, 'real EOF advances exactly once');
   window.RealSignalOKEmbed.stop(); assert.equal(listeners.size, 0); assert.equal(timers.size, 0);
+  const liveReady = window.RealSignalOKEmbed.play({ ...options, startSeconds: () => 125 });
+  const liveFrame = frames.pop();
+  assert.equal(new URL(liveFrame.src).searchParams.get('fromTime'), '125');
+  liveFrame.onload(); await liveReady;
+  const postTime = (event, time) => {
+    for (const listener of listeners) listener({ origin: 'https://ok.ru', source: liveFrame.contentWindow, data: { event, time } });
+  };
+  postTime('started', 0); postTime('timeupdate', 2);
+  assert.equal(started, 1, 'a live join must wait for the requested position');
+  postTime('timeupdate', 126);
+  assert.equal(started, 2);
+  window.RealSignalOKEmbed.stop();
   const nextReady = window.RealSignalOKEmbed.play(options); const nextFrame = frames[1]; nextFrame.onload(); await nextReady;
   send('error', 'https://ok.ru', nextFrame.contentWindow); assert.equal(failed, 1);
   assert.equal(listeners.size, 0);

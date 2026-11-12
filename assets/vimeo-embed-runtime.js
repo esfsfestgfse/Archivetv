@@ -38,6 +38,7 @@
     return new Promise(function (resolve) {
       var frame = document.createElement('iframe'), player = null, disposed = false, ready = false, playing = false, advanced = false, settled = false;
       var state = { player: null, cleanup: cleanup }, handlers = {}, timer;
+      var offset = 0, synchronized = !options.startSeconds;
       function settle(value) { if (!settled) { settled = true; resolve(value); } }
       function current() { return !disposed && active === state && options.isCurrent(); }
       function cleanup() {
@@ -63,7 +64,7 @@
       var url;
       try { url = new URL(options.item.embedUrl || options.item.url); } catch (_) { settle(false); return; }
       if (url.origin !== 'https://player.vimeo.com' || !/^\/video\/\d+$/.test(url.pathname)) { settle(false); return; }
-      url.searchParams.set('autoplay', '1'); url.searchParams.set('muted', '1'); url.searchParams.set('playsinline', '1'); url.searchParams.set('loop', '0');
+      url.searchParams.set('autoplay', options.startSeconds ? '0' : '1'); url.searchParams.set('muted', '1'); url.searchParams.set('playsinline', '1'); url.searchParams.set('loop', '0');
       frame.title = options.item.title || 'Vimeo program'; frame.src = url.href;
       frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen'; frame.allowFullscreen = true;
       frame.referrerPolicy = 'strict-origin-when-cross-origin'; frame.dataset.playbackState = 'loading';
@@ -75,12 +76,20 @@
         player = new Player(frame); state.player = player;
         // A play command/event can precede decoded video. Promote only when
         // the official player reports advancing media time.
-        handlers.timeupdate = function (data) { if (Number(data && data.seconds) > 0) started(); };
+        handlers.timeupdate = function (data) {
+          var time = Number(data && data.seconds);
+          if (synchronized && time > 0 && time >= offset - 2) started();
+        };
         handlers.ended = function () { if (current() && playing && !advanced) { advanced = true; if (options.onEnded) options.onEnded(); } };
         handlers.error = fail;
         Object.keys(handlers).forEach(function (event) { player.on(event, handlers[event]); });
         return player.ready().then(function () {
+          if (!current() || !options.startSeconds) return;
+          offset = Math.max(0, Number(options.startSeconds()) || 0);
+          if (offset > 0) return player.setCurrentTime(offset);
+        }).then(function () {
           if (!current()) { cleanup(); return; }
+          synchronized = true;
           ready = true; clearTimeout(timer); if (!playing) frame.dataset.playbackState = 'ready';
           if (options.onReady) options.onReady(); settle(true);
           // Muted autoplay is permitted on more browsers. User volume/mute

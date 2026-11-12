@@ -1,13 +1,13 @@
 import { retainPublishedSlots, slotAt } from './broadcast-clock.mjs';
-import { createBroadcastPlayer } from './broadcast-player.mjs';
+import { createBroadcastPlayer } from './broadcast-player.mjs?v=7.2.1';
 
-const scheduleUrl = 'https://realsignal-broadcast-canary.tdy1990.workers.dev/broadcast-schedule.json';
+const scheduleUrl = 'https://realsignal-broadcast-canary.tdy1990.workers.dev/broadcast-schedule-v2.json';
 const timeLabel = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });
 
 async function fetchPublishedSchedule() {
-  const response = await fetch(scheduleUrl, {
-    credentials: 'omit', cache: 'no-cache', signal: AbortSignal.timeout(5000)
-  });
+  const options = { credentials: 'omit', cache: 'no-cache', signal: AbortSignal.timeout(5000) };
+  let response = await fetch(scheduleUrl, options);
+  if (response.status === 404) response = await fetch(scheduleUrl.replace('-v2.json', '.json'), options);
   if (!response.ok) throw new Error('Broadcast schedule unavailable');
   return response.json();
 }
@@ -165,18 +165,22 @@ export function mountBroadcastPlayer(container, hooks, { muted, volume, loadHls,
 
   const embed = {
     async play({ slot, current, startSeconds, onPlaying, onEnded, onFailure }) {
-      const sdk = window.RealSignalYouTubeEmbed;
+      const sdk = slot.mediaType === 'ok' ? window.RealSignalOKEmbed
+        : slot.mediaType === 'vimeo' ? window.RealSignalVimeoEmbed : window.RealSignalYouTubeEmbed;
       if (!sdk) { onFailure(); return; }
       embedHost.hidden = false;
       const result = await sdk.play({
         item: { embedUrl: slot.url, title: slot.title }, container: embedHost,
         isCurrent: current, startSeconds, muted: video.muted, volume: video.volume,
-        onStarted: onPlaying, onEnded, onError: onFailure, onPending: onFailure, onMuted
+        onReady() {}, onStarted: onPlaying, onEnded, onError: onFailure, onPending: onFailure, onMuted
       });
-      if (current() && result.status === 'unavailable') onFailure();
+      if (current() && (result === false || result?.status === 'unavailable')) onFailure();
     },
     stop() {
       window.RealSignalYouTubeEmbed?.stop();
+      window.RealSignalOKEmbed?.stop();
+      window.RealSignalVimeoEmbed?.stop();
+      embedHost.replaceChildren();
       embedHost.hidden = true;
     }
   };
@@ -198,7 +202,7 @@ export function mountBroadcastPlayer(container, hooks, { muted, volume, loadHls,
     },
     onCard(message) { video.style.display = 'none'; hooks.onCard(message); },
     onPlaying(slot) {
-      const embedded = slot.mediaType === 'youtube';
+      const embedded = ['youtube', 'ok', 'vimeo'].includes(slot.mediaType);
       video.style.display = embedded || slot.mediaType === 'audio' ? 'none' : '';
       hooks.onPlaying(slot, embedded ? null : video);
     },

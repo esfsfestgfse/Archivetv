@@ -12,6 +12,7 @@ const root = path.resolve(__dirname, '..');
     ready(){return Promise.resolve()} play(){this.paused=false;return Promise.resolve()}
     pause(){this.paused=true;return Promise.resolve()} getPaused(){return Promise.resolve(this.paused)}
     setVolume(value){this.volume=value;return Promise.resolve(value)} destroy(){this.destroyed=true;return Promise.resolve()}
+    setCurrentTime(value){this.seekTo=value;return Promise.resolve(value)}
     emit(event,data){if(this.events[event])this.events[event](data)}
   }
   const window={Vimeo:{Player}},context={window,URL,document:{createElement:()=>({dataset:{},remove(){this.removed=true}})},setTimeout:fn=>{timers.set(++seq,fn);return seq},clearTimeout:id=>timers.delete(id)};
@@ -36,6 +37,11 @@ const root = path.resolve(__dirname, '..');
   const stale=players[0].events.timeupdate;
   window.RealSignalVimeoEmbed.stop();assert.equal(players[0].destroyed,true);assert.equal(frames[0].removed,true);assert.equal(timers.size,0);stale({seconds:2});assert.equal(started,1);
   await window.RealSignalVimeoEmbed.play(options);players[1].emit('error',new Error('Privacy restriction'));assert.equal(failed,1);assert.equal(players[1].destroyed,true);
+  const live=await window.RealSignalVimeoEmbed.play({...options,startSeconds:()=>125});
+  assert.equal(live,true);
+  assert.equal(players[2].seekTo,125);
+  players[2].emit('timeupdate',{seconds:2});assert.equal(started,1);
+  players[2].emit('timeupdate',{seconds:126});assert.equal(started,2);
   assert.equal(await window.RealSignalVimeoEmbed.play({...options,item:{embedUrl:'https://evil.example/video/1234'}}),false);
   for(const file of ['the_dial_desktop.html','the_dial_mobile.html']){
     const source=fs.readFileSync(path.join(root,file),'utf8');

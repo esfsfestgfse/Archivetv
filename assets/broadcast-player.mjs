@@ -23,7 +23,7 @@ export function createBroadcastPlayer({ video, now = Date.now, onCard, onPlaying
     onCard(slot?.kind === 'break' ? 'Commercial break' : slot ? 'Tuning…' : 'Schedule window ended');
     if (!slot?.url) return;
     const current = () => generation === currentGeneration;
-    if (slot.mediaType === 'youtube') {
+    if (['youtube', 'ok', 'vimeo'].includes(slot.mediaType)) {
       if (!embed) {
         onCard('Program temporarily unavailable');
         return;

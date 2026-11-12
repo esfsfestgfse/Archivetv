@@ -10,7 +10,7 @@
       !window.__rsCastIsConnected?.();
   }
 
-  const ready = import('./broadcast-app.mjs?v=7.2.0').then(module => {
+  const ready = import('./broadcast-app.mjs?v=7.2.1').then(module => {
     mount = module.mountBroadcastPlayer;
     app = module.createBroadcastApp({
       onGuideChange() {

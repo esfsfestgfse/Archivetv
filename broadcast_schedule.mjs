@@ -155,6 +155,7 @@ export function buildBroadcastWindow({ rules, candidates, spots = [], now = Date
   const rejectedIndex = firstRejectedBroadcastSlot(previous, now, rules);
   const cutoff = rejectedIndex < 0 ? Infinity : previous.slots[rejectedIndex].startsAt;
   const slots = (previous?.slots || []).filter(slot => slot.endsAt > now && slot.startsAt < cutoff);
+  const scheduled = new Set(slots.filter(slot => slot.kind === 'program').map(slot => slot.logicalId));
   let cursor = slots.at(-1)?.endsAt ?? now;
   const used = new Set(previous?.used || []);
   const familyOrder = new Map((previous?.familyOrder || []).filter(([, startsAt]) => startsAt < cutoff));
@@ -172,7 +173,8 @@ export function buildBroadcastWindow({ rules, candidates, spots = [], now = Date
   while (cursor < now + horizonMs) {
     const exhausted = catalog.every(item => used.has(item.logicalId));
     if (exhausted) used.clear();
-    const unseen = ready.filter(item => !used.has(item.logicalId) && (!exhausted || item.logicalId !== lastId) &&
+    const unseen = ready.filter(item => !used.has(item.logicalId) && !scheduled.has(item.logicalId) &&
+      (!exhausted || item.logicalId !== lastId) &&
       cursor - item.verifiedAt <= broadcastProofMs);
     if (!unseen.length) throw new Error('Station ' + channel + ' needs verified unseen programs to extend its schedule');
     const otherFamilies = unseen.filter(item => item.broadcastFamily !== lastFamily);
@@ -186,6 +188,7 @@ export function buildBroadcastWindow({ rules, candidates, spots = [], now = Date
       url: item.media.url, mediaType: rules.sourceCatalog ? item.media.type : mediaType,
       provider: rules.sourceCatalog ? item.provider : 'Internet Archive' });
     used.add(item.logicalId);
+    scheduled.add(item.logicalId);
     lastId = item.logicalId;
     lastFamily = item.broadcastFamily;
     familyOrder.set(lastFamily, startsAt);

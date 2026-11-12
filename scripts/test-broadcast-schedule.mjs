@@ -114,6 +114,22 @@ test('short-form Archive channels keep enough unique material for their hourly r
     slots: [{ kind: 'program', logicalId: 'recent', endsAt: now + minute }] }, now), 0);
 });
 
+test('catalog exhaustion never repeats a program still published in the current window', () => {
+  const first = buildBroadcastWindow({ rules, candidates, now });
+  const live = first.slots[0];
+  const previous = {
+    ...first,
+    slots: [live],
+    used: first.catalog.map(item => item.logicalId),
+    lastId: 'last-from-an-earlier-window',
+    lastFamily: '',
+    familyOrder: []
+  };
+  const next = buildBroadcastWindow({ rules, candidates, previous, now: now + minute });
+  assert.equal(next.slots[0], live);
+  assert.equal(next.slots.filter(slot => slot.logicalId === live.logicalId).length, 1);
+});
+
 test('window updates preserve published slots and rotate through unseen programs first', () => {
   const first = buildBroadcastWindow({ rules, candidates, now });
   const later = now + 3 * 60 * minute;

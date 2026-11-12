@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { broadcastProofMs, buildBroadcastWindow, collectBroadcastCatalog, firstRejectedBroadcastSlot } from '../broadcast_schedule.mjs';
 import { normalizeIaFileRecord, qualifyIaFileRecord } from '../ia_file_contract.js';
 import { familyId } from '../realsignal_api_rotation.js';
+import { readSourceBroadcastInventory, verifyBroadcastSource } from '../broadcast_source_catalog.mjs';
 
 const directory = path.resolve(process.argv[2] || 'output/broadcast-pilot-preview');
 const api = 'https://realsignal-api.tdy1990.workers.dev/api/v3/ia/queue';
@@ -39,9 +40,11 @@ const previous = await fs.readFile(output, 'utf8').then(JSON.parse).catch(error 
 });
 const selected = process.argv.find(arg => arg.startsWith('--channels='))?.slice(11).split(',');
 const all = !selected && (process.argv.includes('--all') || previous.fullLineup === true);
+const sourceLineup = process.argv.includes('--sources') || previous.sourceLineup === true;
 const lineup = all || selected ? exportRegistry('--lineup') : [];
 const stations = lineup.length
-  ? new Map(lineup.filter(row => row.source === 'archive' && (!selected || selected.includes(row.channel)))
+  ? new Map(lineup.filter(row => (row.source === 'archive' || (row.source === 'v2preview' && (sourceLineup || selected))) &&
+      (!selected || selected.includes(row.channel)))
     .map(row => [row.channel, { ...row, ...pilotStations.get(row.channel) }]))
   : pilotStations;
 
@@ -97,6 +100,7 @@ async function checkSpot(id, fileName, title) {
 }
 
 async function renewProgram(item) {
+  if (item.provider === 'YouTube' || item.provider === 'PeerTube') return verifyBroadcastSource(item);
   let url = new URL(item.media.url);
   const signal = AbortSignal.timeout(7000);
   for (let redirect = 0; redirect < 4; redirect++) {
@@ -191,7 +195,8 @@ const [toySpot, carSpot] = await Promise.all([
   checkSpot('youtube-PChUnynU31c', 'PChUnynU31c.mp4', '1977 Dodge Truck Commercial').catch(() => null)
 ]);
 async function refreshStation([channel, station]) {
-  const rules = { ...registry.get(channel), channel, name: station.name };
+  const sourceCatalog = station.source === 'v2preview';
+  const rules = { ...registry.get(channel), channel, name: station.name, sourceCatalog };
   const earlier = previous.stations.find(row => row.channel === channel);
   const pilot = pilotStations.has(channel);
   const sessionId = 'broadcast-publisher-' + channel;
@@ -202,8 +207,14 @@ async function refreshStation([channel, station]) {
   let renewed = [];
   for (let attempt = 0; attempt < (pilot ? 4 : 1); attempt++) {
     try {
-      candidates.push(...await (pilot ? readCatalog(rules, rotation, sessionId) : readArchiveInventory(rules)));
-      if (!pilot && candidates.length < 12 && (earlier?.catalog?.length || 0) < 24) {
+      if (sourceCatalog) {
+        const inventory = await readSourceBroadcastInventory(station.profileKey);
+        rules.cooledProviders = inventory.cooledProviders;
+        candidates.push(...inventory.candidates);
+      } else {
+        candidates.push(...await (pilot ? readCatalog(rules, rotation, sessionId) : readArchiveInventory(rules)));
+      }
+      if (!pilot && !sourceCatalog && candidates.length < 12 && (earlier?.catalog?.length || 0) < 24) {
         candidates.push(...await readCatalog(rules, rotation, sessionId));
       }
     } catch (error) {
@@ -247,7 +258,7 @@ async function refreshStation([channel, station]) {
       programs.length + ' distinct programs in the window, ' + added + ' new files, ' + renewed.length + ' rechecked');
     return { ...schedule, nextRotation: rotation, category: station.category, status: 'ready' };
   }
-  const canRetain = earlier && firstRejectedBroadcastSlot(earlier, Date.now()) < 0;
+  const canRetain = earlier && firstRejectedBroadcastSlot(earlier, Date.now(), rules.cooledProviders) < 0;
   const { catalog } = collectBroadcastCatalog({ rules, candidates, previous: earlier });
   console.error(channel + ' HELD: ' + reason);
   return { ...(canRetain ? earlier : {}), channel, name: station.name, category: station.category,
@@ -267,7 +278,7 @@ if (!ready || (!all && !selected && ready !== published.length)) process.exitCod
 if (published.length) {
   await fs.mkdir(directory, { recursive: true });
   const temporary = output + '.' + process.pid + '.tmp';
-  await fs.writeFile(temporary, JSON.stringify({ schema: 1, fullLineup: all, stations: published }));
+  await fs.writeFile(temporary, JSON.stringify({ schema: 1, fullLineup: all, sourceLineup, stations: published }));
   await fs.rename(temporary, output);
   const publicSchedule = path.join(directory, 'preview.json');
   await fs.writeFile(temporary, JSON.stringify({ lineup, stations: published.filter(s => s.slots.length)

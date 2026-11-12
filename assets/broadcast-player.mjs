@@ -1,6 +1,6 @@
 /* Each source owns its callbacks, timer and decoded picture. */
 export function createBroadcastPlayer({ video, now = Date.now, onCard, onPlaying, onEnded,
-  setTimer = setTimeout, clearTimer = clearTimeout }) {
+  setTimer = setTimeout, clearTimer = clearTimeout, embed }) {
   let loaded;
   let generation = 0;
   let events;
@@ -16,14 +16,27 @@ export function createBroadcastPlayer({ video, now = Date.now, onCard, onPlaying
     loaded = slot;
     const currentGeneration = ++generation;
     cleanup();
+    embed?.stop();
     video.pause();
     video.removeAttribute('src');
     video.load();
     onCard(slot?.kind === 'break' ? 'Commercial break' : slot ? 'Tuning…' : 'Schedule window ended');
     if (!slot?.url) return;
+    const current = () => generation === currentGeneration;
+    if (slot.mediaType === 'youtube') {
+      if (!embed) {
+        onCard('Program temporarily unavailable');
+        return;
+      }
+      const showFailure = () => { if (current()) onCard('Program temporarily unavailable'); };
+      embed.play({ slot, current, startSeconds: () => live ? Math.max(0, (now() - slot.startsAt) / 1000) : 0,
+        onPlaying: () => { if (current()) onPlaying(slot); },
+        onEnded: () => { if (current()) onEnded(slot, live); },
+        onFailure: showFailure }).catch(showFailure);
+      return;
+    }
     events = new AbortController();
     const { signal } = events;
-    const current = () => generation === currentGeneration;
     let playing = false;
     function failed() {
       if (!current()) return;
@@ -85,6 +98,7 @@ export function createBroadcastPlayer({ video, now = Date.now, onCard, onPlaying
   function dispose() {
     generation++;
     cleanup();
+    embed?.stop();
     video.pause();
   }
   return { load, dispose };

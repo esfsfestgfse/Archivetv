@@ -13,7 +13,12 @@ function harness(withSDK = true) {
     constructor(frame, options) { this.frame = frame; this.events = options.events;this.listeners=new Map(); this.state = -1; this.time = 0;this.videoId=''; players.push(this); }
     addEventListener(name,fn){this.listeners.set(name,fn);}
     removeEventListener(name,fn){if(this.listeners.get(name)===fn)this.listeners.delete(name);}
-    loadVideoById(id) {this.videoId=id;this.time=0;this.state=-1;this.loads=(this.loads||[]).concat(id);}
+    loadVideoById(request) {
+      this.videoId = typeof request === 'string' ? request : request.videoId;
+      this.time = typeof request === 'string' ? 0 : request.startSeconds;
+      this.state = -1;
+      this.loads = (this.loads || []).concat(request);
+    }
     getVideoData() {return {video_id:this.videoId};}
     stopVideo() {this.state=-1;this.stopped=true;}
     playVideo() { this.playRequests = (this.playRequests || 0) + 1; }
@@ -118,6 +123,20 @@ function handler(player,name){return player.listeners&&player.listeners.get(name
   assert.equal(p.destroyed,undefined);p.emit('onReady');p.emit('onStateChange',1);p.time=1;h.tick();p.time=1.4;h.tick();assert.equal((await promise).status,'playing');h.api.stop();
   h=harness(false);promise=h.api.play(h.options);await flush();h.nodes.find(n=>n.tagName==='SCRIPT').onerror();assert.equal((await promise).status,'pending');assert.equal(h.counts().failures.length,0);h.api.stop();
   assert.equal((await h.api.play({...h.options,item:{url:'https://evil.example/embed/RQinquBq338'}})).status,'unavailable');
+  h = harness();
+  let offset = 120;
+  promise = h.api.play({ ...h.options, startSeconds: () => offset });
+  offset = 123;
+  p = h.players[0];
+  p.emit('onReady');
+  assert.equal(p.loads[0].videoId, 'RQinquBq338');
+  assert.equal(p.loads[0].startSeconds, 123, 'a live tune measures the offset when the SDK is ready');
+  p.emit('onStateChange', 1);
+  h.tick();
+  p.time += 0.2;
+  h.tick();
+  assert.equal((await promise).status, 'playing');
+  h.api.stop();
   console.log('YouTube lifecycle: ready/clock distinction, late Play, EOF once, controls, cancellation, provider-vs-transient errors and SDK failure passed.');
   completed = true;
 })().catch(error=>{console.error(error);process.exitCode=1;});

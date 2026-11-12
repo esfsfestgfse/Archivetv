@@ -121,7 +121,9 @@
     };
     Object.keys(job.handlers).forEach(function(name){player.addEventListener(name,job.handlers[name]);});
     if(job.options.onReady)job.options.onReady();
-    player.loadVideoById(job.videoId);
+    var start = typeof job.options.startSeconds === 'function' ? Number(job.options.startSeconds()) : 0;
+    if (start > 0) player.loadVideoById({videoId:job.videoId,startSeconds:start});
+    else player.loadVideoById(job.videoId);
   }
   function prepare(options) {
     var state=transport;

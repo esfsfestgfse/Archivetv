@@ -38,7 +38,8 @@ await Promise.all([
   copyFile('assets/broadcast-clock.mjs', path.join(siteDirectory, 'assets/broadcast-clock.mjs')),
   copyFile('assets/broadcast-player.mjs', path.join(siteDirectory, 'assets/broadcast-player.mjs')),
   writeFile(manifestPath, JSON.stringify({ lineup, stations: active })),
-  writeFile(path.join(siteDirectory, '_headers'), '/' + scheduleRoute + '\n  Cache-Control: no-cache\n')
+  writeFile(path.join(siteDirectory, '_headers'), '/' + scheduleRoute +
+    '\n  Cache-Control: no-cache\n  Access-Control-Allow-Origin: *\n')
 ]);
 if (lineup?.length) {
   await cp('assets', path.join(siteDirectory, 'assets'), { recursive: true });

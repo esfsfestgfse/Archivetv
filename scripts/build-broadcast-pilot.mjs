@@ -39,6 +39,15 @@ const episodeCollections = {
   ]
 };
 const reviewedVideo = {
+  '508': [
+    ['the-fantom-furytm-story-vacuum-cleaner-infomercial-1996', 'The FANTOM FURYTM Story - Vacuum Cleaner Infomercial (1996).mp4', 'The Fantom Fury Story — Infomercial', 1996],
+    ['vhs_Commercials_Infomercial_Discover-The_Helsinki_Formula', 'Commercials_Infomercial_Discover-The_Helsinki_Formula.ia.mp4', 'Discover the Helsinki Formula — Infomercial', 1990],
+    ['y-2mate.com-cmt-08132003-07-ab-swing-infomercial-480p', 'y2mate.com - CMT 08132003  07 AbSwing Infomercial_480p.ia.mp4', 'Ab Swing — Infomercial', 2003],
+    ['vegas-after-dark-infomercial-2002', 'Vegas After Dark - Infomercial - 2002.ia.mp4', 'Vegas After Dark — Infomercial', 2002],
+    ['ultimate-rock-ballads-collection', 'ultimate rock ballads collection.ia.mp4', 'Ultimate Rock Ballads — Infomercial', 2000],
+    ['sharper-image-ionic-breeze-infomercial-february-2004', 'Sharper Image Ionic Breeze Infomercial (February 2004).ia.mp4', 'Sharper Image Ionic Breeze — Infomercial', 2004],
+    ['billy-mays_202505', '2000 Orange Glo (30-minute Infomercial).ia.mp4', 'Billy Mays — Orange Glo Infomercial', 2000]
+  ],
   '224': [
     ['aapb-cpb-aacip-45d7e6841d7', 'cpb-aacip-45d7e6841d7_Eyes on the Prize II.mp4', 'Eyes on the Prize II · Interview with Ossie Davis', 1989],
     ['aapb-cpb-aacip-b93947ebbb8', 'cpb-aacip-b93947ebbb8_Eyes on the Prize II.mp4', 'Eyes on the Prize II · Interview with Ben Chavis', 1989],

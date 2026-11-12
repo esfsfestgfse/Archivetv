@@ -99,6 +99,22 @@ test('a saved PeerTube fragment cannot survive as a scheduled program', () => {
   assert.equal(firstRejectedBroadcastSlot(saved, now, { sourceCatalog: true, cooledProviders: new Set(['peertube']) }), 0);
 });
 
+test('The Pitch keeps other match recordings when dropping a file that failed to start', () => {
+  const rejected = '07.9-catar-2022-argentina-francia-final-cable-6kkbps';
+  const previous = {
+    channel: '63',
+    catalog: [
+      { logicalId: 'broadcast-copy', sourceIdentifier: 'argentina-vs-france-fifa-world-cup-2022-final' },
+      { logicalId: 'slow-copy', sourceIdentifier: rejected }
+    ],
+    slots: [
+      { logicalId: 'broadcast-copy', kind: 'program', endsAt: now + minute },
+      { logicalId: 'slow-copy', kind: 'program', endsAt: now + 2 * minute }
+    ]
+  };
+  assert.equal(firstRejectedBroadcastSlot(previous, now), 1);
+});
+
 test('Classic Reruns schedules episodes and rerun blocks, rejecting incidental show and actor mentions', () => {
   const block = { ...candidates[0], title: '1994 Nick@Nite I Love Lucy Block' };
   const unknownSeriesEpisode = { ...candidates[1], title: 'The New Neighbors · Season 1 Episode 3',

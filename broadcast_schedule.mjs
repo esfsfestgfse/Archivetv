@@ -32,6 +32,9 @@ function classicTvIdentity(value) {
 }
 
 function programAllowed(item, channel) {
+  // This single-file Archive item repeatedly passed the range probe but
+  // failed to start in Chrome. Other recordings of the match remain eligible.
+  if (channel === '63' && item.sourceIdentifier === '07.9-catar-2022-argentina-francia-final-cable-6kkbps') return false;
   if (channel === '13') {
     const identity = [item.title, item.fileName].filter(Boolean).join(' ');
     const years = [...identity.matchAll(/\b(?:19\d{2}|20[0-2]\d)\b/g)].map(match => Number(match[0]));
@@ -61,7 +64,7 @@ export function firstRejectedBroadcastSlot(previous, now, rules = {}) {
     return previous.slots.findIndex(slot => slot.endsAt > now && slot.kind === 'program' &&
       !eligible.has(slot.logicalId));
   }
-  if (!['10', '13'].includes(previous?.channel)) return -1;
+  if (!['10', '13', '63'].includes(previous?.channel)) return -1;
   const allowed = new Set(previous.catalog.filter(item => programAllowed(item, previous.channel)).map(item => item.logicalId));
   return previous.slots.findIndex(slot => slot.endsAt > now && slot.kind === 'program' && !allowed.has(slot.logicalId));
 }

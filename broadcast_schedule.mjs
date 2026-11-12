@@ -206,7 +206,7 @@ export function buildBroadcastWindow({ rules, candidates, spots = [], now = Date
     : requiredUntil;
   const floor = {
     episodes: Math.max(limited ? shortFormat ? 12 : 8 : 24, baseline?.episodes || 0),
-    families: Math.max(6, baseline?.families || 0),
+    families: 6,
     hours: limited ? 2 * horizonMs / hour : Math.max(shortFormat ? 3 : 8, horizonMs / hour)
   };
   if (depth.episodes < floor.episodes || depth.families < floor.families || depth.hours + 1e-8 < floor.hours) {

@@ -373,6 +373,14 @@ test('a runtime correction keeps a deep station on air with its published progra
   assert.ok(next.slots.at(-1).endsAt > first.slots.at(-1).endsAt);
 });
 
+test('a corrected family count cannot take a deep station off air', () => {
+  const first = buildBroadcastWindow({ rules, candidates, now });
+  const previous = { ...first, depth: { ...first.depth, families: first.depth.families + 1 } };
+  const next = buildBroadcastWindow({ rules, candidates: [], previous, now });
+  assert.equal(next.depth.families, first.depth.families);
+  assert.deepEqual(next.slots, first.slots);
+});
+
 test('expired playback checks retain the deep catalog while rechecked unseen episodes extend the schedule', () => {
   const first = buildBroadcastWindow({ rules, candidates, now, horizonMs: 60 * minute });
   const later = now + 25 * 60 * minute;

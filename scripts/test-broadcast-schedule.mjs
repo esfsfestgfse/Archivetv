@@ -101,12 +101,17 @@ test('short-form Archive channels keep enough unique material for their hourly r
       fileName: 'spot.mp4', title: 'Vintage Television Commercial ' + index,
       media: { ...item.media, runtime: 4 * 60, url: 'https://archive.org/download/' + sourceIdentifier + '/spot.mp4' } };
   });
-  const window = buildBroadcastWindow({ rules: { channel: '13', name: 'Vintage Commercials' }, candidates: spots, now });
+  const modern = { ...spots[0], title: 'Campaign Commercial (2026)', year: 2026,
+    sourceIdentifier: 'current-campaign', identifier: 'current-campaign::spot.mp4' };
+  const window = buildBroadcastWindow({ rules: { channel: '13', name: 'Vintage Commercials' },
+    candidates: [...spots, modern], now });
   assert.equal(window.depth.episodes, 48);
   assert.equal(window.slots.at(-1).endsAt, now + 120 * minute);
   assert.equal(window.slots.length, 30);
   assert.equal(new Set(window.slots.map(slot => slot.logicalId)).size, 30);
   assert.ok(window.slots.every(slot => slot.kind === 'program'));
+  assert.equal(firstRejectedBroadcastSlot({ channel: '13', catalog: [{ ...modern, logicalId: 'recent' }],
+    slots: [{ kind: 'program', logicalId: 'recent', endsAt: now + minute }] }, now), 0);
 });
 
 test('window updates preserve published slots and rotate through unseen programs first', () => {

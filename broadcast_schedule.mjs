@@ -32,6 +32,13 @@ function classicTvIdentity(value) {
 }
 
 function programAllowed(item, channel) {
+  if (channel === '13') {
+    const identity = [item.title, item.fileName].filter(Boolean).join(' ');
+    const years = [...identity.matchAll(/\b(?:19\d{2}|20[0-2]\d)\b/g)].map(match => Number(match[0]));
+    if (years.some(year => year >= 2010)) return false;
+    if (years.some(year => year >= 1930) || /\b(?:vintage|classic|old)\b/i.test(identity)) return true;
+    return Number(item.year) >= 1930 && Number(item.year) < 2010;
+  }
   if (channel !== '10') return true;
   if (item.sourceIdentifier === '1974-pray-for-the-wildcats') return false;
   const title = String(item.title || '').split(/\s+[·—]\s+/)[0];
@@ -54,8 +61,8 @@ export function firstRejectedBroadcastSlot(previous, now, rules = {}) {
     return previous.slots.findIndex(slot => slot.endsAt > now && slot.kind === 'program' &&
       !eligible.has(slot.logicalId));
   }
-  if (previous?.channel !== '10') return -1;
-  const allowed = new Set(previous.catalog.filter(item => programAllowed(item, '10')).map(item => item.logicalId));
+  if (!['10', '13'].includes(previous?.channel)) return -1;
+  const allowed = new Set(previous.catalog.filter(item => programAllowed(item, previous.channel)).map(item => item.logicalId));
   return previous.slots.findIndex(slot => slot.endsAt > now && slot.kind === 'program' && !allowed.has(slot.logicalId));
 }
 

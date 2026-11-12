@@ -62,6 +62,7 @@
     element('div', 'rsV6Brand', 'REALSIGNAL / RETRO CABLE', copy);
     element('div', 'rsV6Title', 'Television is off', copy);
     element('div', 'rsV6Status', 'STANDBY', copy);
+    button('Live', 'Back to Live', 'broadcast-live', null, readout).hidden = true;
     var clock = element('div', 'rsV6Clock', '', readout);
     element('time', 'rsV6Time', '', clock);
     element('div', 'rsV6Date', '', clock);
@@ -123,6 +124,7 @@
     text('rsV6Date', now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase());
     refs.rsV6Power.setAttribute('aria-pressed', state.state !== 'standby');
     refs.rsV6Mute.setAttribute('aria-pressed', typeof muted !== 'undefined' && !!muted);
+    refs.rsV6Live.hidden = !window.RealSignalBroadcast?.watchingAhead();
     var guideOpen = !!visiblePanel('gwrap');
     refs.rsV6Guide.setAttribute('aria-expanded', guideOpen);
     if (guideOpen && more && !more.hidden) showMore(false);

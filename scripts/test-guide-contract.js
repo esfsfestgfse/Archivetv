@@ -121,7 +121,7 @@ test('an empty or missing channel returns a usable pending/standby result', () =
 
 function browserAdapter(file, search = '?v6=1') {
   const html = fs.readFileSync(path.join(root, file), 'utf8').replace(/\r\n/g, '\n');
-  const match = html.match(/function guidePlaybackSnapshot\(ch\)\{[\s\S]*?\n\}\n/);
+  const match = html.match(/function guidePlaybackSnapshot\(ch(?:,viewing)?\)\{[\s\S]*?\n\}\n/);
   assert.ok(match, 'HTML must expose its real read-only playback adapter');
   const calls = [];
   const context = {

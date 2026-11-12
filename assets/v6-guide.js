@@ -35,6 +35,10 @@
     var minutes = Math.max(1, Math.round(seconds / 60));
     return minutes < 60 ? minutes + ' min' : Math.floor(minutes / 60) + ' hr' + (minutes % 60 ? ' ' + minutes % 60 + ' min' : '');
   }
+  function airTime(program) {
+    return Number(program && program.startsAt) > 0
+      ? new Date(program.startsAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+  }
   function programs(s) {
     return { first: s.current || s.next || null, second: s.current ? s.next : s.later,
       label: s.live ? 'Live' : s.current ? (s.current.isAd ? 'Commercial break' : 'Playing') : 'Coming up' };
@@ -45,7 +49,7 @@
     put(row.now, p.first ? p.first.title : preview ? 'Pending' : 'Program information pending');
     put(row.next, p.second ? p.second.title : preview ? '—' : s.live ? 'Program information unavailable' : 'Next program pending');
     put(row.meta, preview && !p.first ? '' : [p.label, runtime(p.first)].filter(Boolean).join(' · '));
-    put(row.nextMeta, runtime(p.second));
+    put(row.nextMeta, [airTime(p.second), runtime(p.second)].filter(Boolean).join(' · '));
   }
   function markTuned(row, on) {
     row.button.setAttribute('aria-current', on ? 'true' : 'false');
@@ -96,7 +100,7 @@
     var s = entry ? currentSnapshot || (preview && entry.number === tuned ? active : snapshot(entry.number)) : {}, p = programs(s);
     put(refs.rsV6GuideProgram, p.first ? p.first.title : 'Program information pending');
     put(refs.rsV6GuideRuntime, [p.label, preview && p.first && p.first.year, runtime(p.first), p.first && p.first.provider].filter(Boolean).join(' · '));
-    put(refs.rsV6GuideFollowing, p.second ? 'Next · ' + p.second.title + (runtime(p.second) ? ' · ' + runtime(p.second) : '') : s.live ? 'Program information unavailable' : 'Next program pending');
+    put(refs.rsV6GuideFollowing, p.second ? ['Next', airTime(p.second), p.second.title, runtime(p.second)].filter(Boolean).join(' · ') : s.live ? 'Program information unavailable' : 'Next program pending');
     var remaining = s.remainingSeconds;
     put(refs.rsV6GuideRemaining, remaining != null && Number.isFinite(Number(remaining)) ?
       preview ? remaining === 0 ? 'Ending now' : runtime({ durationSeconds: remaining }) + ' remaining' :
@@ -256,7 +260,7 @@
       return rect.bottom >= bounds.top && rect.top <= bounds.bottom;
     });
     visible.forEach(function (entry) {
-      var s = preview && entry.number === tuned ? active : snapshot(entry.number);
+      var s = snapshot(entry.number);
       if (entry.number === selected) selectedSnapshot = s;
       updateRow(rowRefs[entry.number], s);
     });

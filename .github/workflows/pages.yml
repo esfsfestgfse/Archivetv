@@ -39,6 +39,9 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: '22'
+
+      - name: Verify the shared broadcast tuner
+        run: node --test scripts/test-broadcast-app.mjs scripts/test-broadcast-player.mjs scripts/test-youtube-embed-runtime.js
           package-manager-cache: false
 
       # A fast release gate for first-play availability across representative

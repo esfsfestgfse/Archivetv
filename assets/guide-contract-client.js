@@ -5,7 +5,7 @@
   function enabled() {
     return optedIn && !(typeof window.__rsCastIsConnected === 'function' && window.__rsCastIsConnected());
   }
-  var commands = { tune: 'tuneNum', favorite: 'toggleFav', next: 'skipOne', 'guide-open': 'openGuide', 'guide-close': 'closeGuide', power: 'togglePower', info: 'toggleInfo', menu: 'toggleOsd', 'channel-step': 'step', 'volume-step': 'setVol', mute: 'toggleMute', cast: '__rsCastRequest' };
+  var commands = { tune: 'tuneNum', favorite: 'toggleFav', next: 'skipOne', 'broadcast-live': 'backToSharedBroadcast', 'guide-open': 'openGuide', 'guide-close': 'closeGuide', power: 'togglePower', info: 'toggleInfo', menu: 'toggleOsd', 'channel-step': 'step', 'volume-step': 'setVol', mute: 'toggleMute', cast: '__rsCastRequest' };
   var api = {
     available: optedIn,
     categories: function () {
@@ -31,7 +31,7 @@
     },
     snapshot: function (channel) {
       var ch = channel && typeof channel === 'object' ? channel : byNum(Number(channel == null ? curNum : channel));
-      return guidePlaybackSnapshot(ch);
+      return guidePlaybackSnapshot(ch, channel == null);
     },
     command: function (name, value) {
       if (!enabled() || !Object.prototype.hasOwnProperty.call(commands, name)) return false;

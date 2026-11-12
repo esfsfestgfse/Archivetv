@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 7.1.0</title>
+<title>REALSIGNAL · Retro Cable 7.2.0</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
@@ -18,7 +18,7 @@
 <script src="assets/ia-playback-shelf.js?v=5.6.29"></script>
 <script src="assets/sports-programs.js?v=7.0.0"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
-<script src="assets/youtube-embed-runtime.js?v=7.0.0"></script>
+<script src="assets/youtube-embed-runtime.js?v=7.2.0"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
 <link rel="preconnect" href="https://www.googleapis.com" crossorigin>
@@ -1702,8 +1702,8 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
 @media(prefers-reduced-motion:reduce){.sports-screen *,.wx-screen *,.wr-cabinet *{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 </style>
 <link rel="stylesheet" href="assets/guide-overhaul.css">
-<link rel="stylesheet" href="assets/v6-watching-shell.css?v=7.1.0">
-<link rel="stylesheet" href="assets/v6-guide.css?v=7.1.0">
+<link rel="stylesheet" href="assets/v6-watching-shell.css?v=7.2.0">
+<link rel="stylesheet" href="assets/v6-guide.css?v=7.2.0">
 <script src="assets/commercial-scheduler.js?v=7.0.0"></script>
 <script src="assets/fast-catalog.js?v=7.0.0"></script>
 <link rel="stylesheet" href="assets/weather-networks.css?v=7.0.0">
@@ -1723,7 +1723,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="7.1.0-desktop-retro-cable";
+window.__ATV_BUILD="7.2.0-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -8648,13 +8648,15 @@ function rtInterval(fn,ms){var id=setInterval(fn,ms);chanRT.timers.push(id);retu
 function rtTeardown(){chanRT.timers.forEach(clearInterval);chanRT.timers.length=0;var clean=chanRT.teardowns.splice(0);clean.forEach(function(fn){try{fn();}catch(e){}});}
 /* ---- CYCLE-1 FIX (real leak): a playing media element removed from the DOM keeps playing
    audio and downloading until GC. Every removal now pauses and detaches the source first. */
-function killMedia(keepYouTube){try{if(window.RealSignalPeerTubeMedia)window.RealSignalPeerTubeMedia.stopAll();}catch(e){}try{if(!keepYouTube&&window.RealSignalYouTubeEmbed)window.RealSignalYouTubeEmbed.stop();}catch(e){}try{stopTVPlayback();}catch(e){}try{if(window.RealSignalVimeoEmbed)window.RealSignalVimeoEmbed.stop();}catch(e){}try{if(window.RealSignalOKEmbed)window.RealSignalOKEmbed.stop();}catch(e){}try{if(typeof stopRadioHls==="function")stopRadioHls();}catch(e){}if(!screenArea)return;
+function killMedia(keepYouTube){window.RealSignalBroadcast?.stop();try{if(window.RealSignalPeerTubeMedia)window.RealSignalPeerTubeMedia.stopAll();}catch(e){}try{if(!keepYouTube&&window.RealSignalYouTubeEmbed)window.RealSignalYouTubeEmbed.stop();}catch(e){}try{stopTVPlayback();}catch(e){}try{if(window.RealSignalVimeoEmbed)window.RealSignalVimeoEmbed.stop();}catch(e){}try{if(window.RealSignalOKEmbed)window.RealSignalOKEmbed.stop();}catch(e){}try{if(typeof stopRadioHls==="function")stopRadioHls();}catch(e){}if(!screenArea)return;
   screenArea.querySelectorAll("video,audio").forEach(function(el){
     try{el.pause();el.removeAttribute("src");el.load();}catch(e){}});}
 /* FIX (structural, flagged many times): favorites and "last channel" used to be keyed by raw
    channel NUMBER, which silently drifts every time the lineup is reordered or a channel is added.
    Now keyed by NAME (stable across reshuffles), with a one-time migration from old numeric state. */
 let powered=false, curNum=(function(){
+    var requested=Number(new URLSearchParams(location.search).get("channel"));
+    if(requested&&byNum(canonicalTuneNum(requested)))return canonicalTuneNum(requested);
     var storedName=store.get("lastName",null);
     if(storedName){ var m=CH.find(function(c){return c.nm===storedName;}); if(m) return m.num; }
     return byNum(Number(store.get("last",2)))?.num || 2; // fall back if the saved channel was removed
@@ -8796,7 +8798,8 @@ function guideOKMusicListing(ch,verified){
   var unseen=candidates.filter(function(item){return heard.indexOf(String(item.id||""))<0&&programs.indexOf(window.RealSignalOKEmbed.programKey(item))<0;}).length;
   return {now:"NOW · "+guideItemTitle(current),next:next?("NEXT · "+guideItemTitle(next)+" · "+guideItemRuntime(next)):"NEXT · VERIFIED QUEUE REFRESHING",detail:(Number(verified&&verified.catalogDepth)||state.items.length)+" VERIFIED PROGRAMS · "+unseen+" UNSEEN · "+(current.provider||state.provider||"OK.ru"),state:"playing",live:false,ready:Math.min(5,state.items.length),capacity:5};
 }
-function guidePlaybackSnapshot(ch){
+function guidePlaybackSnapshot(ch,viewing){
+  var scheduled=window.RealSignalBroadcast?.snapshot(ch,viewing);if(scheduled)return scheduled;
   var current=ch&&ch.num===curNum&&curItem&&Number(curItem.ch)===Number(ch.num)?curItem:null;
   var queue=[],position=current&&curVideo?{currentTime:curVideo.currentTime,duration:curVideo.duration}:null;
   if(ch&&ch.source==="v2preview"){
@@ -8821,6 +8824,7 @@ function guidePlaybackSnapshot(ch){
   return window.RealSignalGuideContract.select({channel:ch,current:current,queue:queue,live:ch&&liveGuideState[ch.num],position:position,capacity:IA_READY_TARGET,powered:powered});
 }
 function guideListing(ch){
+  var scheduled=window.RealSignalBroadcast?.listing(ch);if(scheduled)return scheduled;
   if(window.RealSignalPresentation&&window.RealSignalPresentation.enabled)return window.RealSignalGuideContract.listing(guidePlaybackSnapshot(ch));
   if(!ch)return {now:"OFF AIR",next:"TUNE A CHANNEL",detail:"STANDBY",state:"standby",live:false,ready:0,capacity:5};
   var verifiedGuide=(window.__rsVerifiedGuide||{})[String(ch.previewKey||ch.num)];
@@ -9322,7 +9326,7 @@ while(state.items.length&&attempts<Math.min(V2_SOURCE_READY_BUFFER+3,state.items
 function v2TuneRefreshed(ch,state,profile,currentId,my){var key=profile.name;if(v2PreviewAdvance[key])return v2PreviewAdvance[key];var load=v2LoadProfile(ch,profile,my,true),settled=v2PreviewInflight[key]||load,run=settled.then(function(){if(my!==token||!powered||curNum!==ch.num)return;var recent=v2Recent(profile.name),next=typeof v2NextFreshIndex==="function"?v2NextFreshIndex(profile,state,currentId):state.items.findIndex(function(item){var id=String(item&&item.id||"");return id&&id!==currentId&&recent.indexOf(id)<0;});if(next<0&&window.RealSignalOKEmbed.musicProfile(profile)&&state.items.some(function(item){return String(item&&item.id||"")!==currentId;})){window.__v2PreviewNext(true);return;}if(next<0){quickBanner("SOURCE SUITE · STILL FINDING NEXT PROGRAM");clearTimeout(retryTimer);retryTimer=setTimeout(function(){if(my===token&&powered&&curNum===ch.num)v2TuneRefreshed(ch,state,profile,currentId,my).catch(function(){});},2500);return;}state.cursor=next;state.currentTitle="";quickBanner("SOURCE SUITE · NEXT");tuneNum(curNum);});v2PreviewAdvance[key]=run.finally(function(){delete v2PreviewAdvance[key];});return v2PreviewAdvance[key];}
 window.__v2PreviewNext=function(manual){var ch=byNum(curNum),state=ch&&v2PreviewState[ch.num],profile=ch&&V2_PREVIEW_PROFILES[ch.previewKey];if(!ch||ch.source!=="v2preview")return false;if(profile&&state)v2PruneSourcePrograms(profile,state);if(!state||!state.items.length){quickBanner("SOURCE SUITE · QUEUE WARMING");if(profile)v2LoadProfile(ch,profile,token,true).catch(function(){});return true;}var currentId=String(state.pendingId||state.currentId||state.items[Number(state.cursor||0)%state.items.length].id||""),recent=profile?v2Recent(profile.name):[],next=profile&&typeof v2NextFreshIndex==="function"?v2NextFreshIndex(profile,state,currentId):state.items.findIndex(function(item){var id=String(item&&item.id||"");return id&&id!==currentId&&recent.indexOf(id)<0;});if(next<0&&manual){var oldestRank=-1;next=state.items.reduce(function(best,item,index){var id=String(item&&item.id||"");if(!id||id===currentId)return best;var rank=recent.indexOf(id);if(rank>oldestRank){oldestRank=rank;return index;}return best;},-1);if(next>=0){state.cursor=next;state.currentTitle="";if(profile)v2LoadProfile(ch,profile,token,true).catch(function(){});quickBanner("SOURCE SUITE · NEXT AVAILABLE PROGRAM");tuneNum(curNum);return true;}}if(next>=0){state.cursor=next;state.currentTitle="";if(profile&&(state.items.length<=V2_SOURCE_READY_BUFFER||state.catalogExhausted===true))v2LoadProfile(ch,profile,token,true).catch(function(){});quickBanner("SOURCE SUITE · NEXT");tuneNum(curNum);return true;}if(profile){quickBanner("SOURCE SUITE · FINDING NEXT PROGRAM");v2TuneRefreshed(ch,state,profile,currentId,token).catch(function(){});}return true;};
 
-async function tuneNum(n){
+async function tuneNum(n,forceRegular){
   if(!powered)return;
   if(n===-1 && customSlot){ return tuneCustomExec(); }
   const requestedNum=Number(n),canonicalNum=canonicalTuneNum(requestedNum),ch=byNum(canonicalNum); if(!ch)return;
@@ -9333,7 +9337,8 @@ async function tuneNum(n){
   renderRail(); chNum.textContent=String(canonicalNum);
   const sl=slotFor(ch,0);
   if(marathonLock[ch.num] && sl.source==="ia"){ sl.queries=marathonQueryFor(marathonLock[ch.num],ch); sl.show="\ud83d\udd12 "+marathonLock[ch.num].label; } // NEW: marathon lock
-  if(!ch.source)primeIACompanions(ch,sl);
+  const scheduled=forceRegular!==true&&(!ch.source||ch.source==="v2preview")?window.RealSignalBroadcast:null;
+  if(!ch.source&&!scheduled)primeIACompanions(ch,sl);
   nowName.textContent=canonicalChannelLabel(ch); nowMeta.textContent=sl.show; showBanner(ch,sl);
   /* Clear stale lower-third metadata as soon as a channel handoff begins. */
   if(changedChannel){
@@ -9346,7 +9351,7 @@ async function tuneNum(n){
   volHint.classList.remove("show");
   setSig("tuning","TUNING"); sfxStatic();
   try{ var fxs=document.getElementById("fxStatic"); if(fxs){ fxs.classList.remove("burst"); void fxs.offsetWidth; fxs.classList.add("burst"); } }catch(e){}
-  const holdPicture=!!(!sl.source&&curVideo&&curVideo.tagName==="VIDEO"&&!curVideo.paused&&curVideo.parentNode===screenArea);
+  const holdPicture=!!(!window.RealSignalBroadcast?.active()&&!sl.source&&curVideo&&curVideo.tagName==="VIDEO"&&!curVideo.paused&&curVideo.parentNode===screenArea);
   if(changedChannel&&!holdPicture){ // Keep the outgoing picture up while the new station resolves.
     var identLine=(CATNAME[ch.cat]||"")+" \u00b7 "+sl.show;
     if(ch.cat==="NET" && Math.random()<0.5){ var RI=regionalIdents(); identLine=RI[Math.floor(Math.random()*RI.length)]; }
@@ -9359,6 +9364,9 @@ async function tuneNum(n){
   /* QA FIX: data channels (source-based) never set lastMeta, so it retained whatever the last
      content channel wrote — contaminating every subsequent soak sample with stale metadata. */
   if(sl.source){ lastMeta=null; if(ch.cat==="LDATA")startLiveDataBed(ch,sl); }
+  if(scheduled&&await scheduled.tune(ch,sl,my))return;
+  if(my!==token||!powered)return;
+  if(!ch.source&&scheduled)primeIACompanions(ch,sl);
   if(sl.source==="v2preview"){ if(my!==token)return; return tuneV2Preview(ch,sl,my); }
   if(sl.source==="weather"){ if(my!==token)return; return tuneWeather(ch,sl,my); }
   if(sl.source==="space"){ if(my!==token)return; return tuneSpaceHub(ch,sl,my); }
@@ -10088,7 +10096,7 @@ function powerOn(){powered=true;document.body.classList.add("atv-powered");justP
   var mBtn=$("rMute"); if(mBtn) mBtn.classList.remove("mute-on"); /* mute cleared on power-on */
   showShortcutHint(); /* audit-fix Ship B 2026-08-09: fade-in-and-out shortcut strip on power-on */
 }
-function powerOff(){powered=false;if(typeof window.__rsCastSync==="function")window.__rsCastSync();document.body.classList.remove("atv-powered");++token;stopClock();clearTimeout(retryTimer);releaseWake();tube.classList.add("off");
+function powerOff(){powered=false;window.RealSignalBroadcast?.stop();if(typeof window.__rsCastSync==="function")window.__rsCastSync();document.body.classList.remove("atv-powered");++token;stopClock();clearTimeout(retryTimer);releaseWake();tube.classList.add("off");
   setTimeout(()=>{clearScreen();showOv("REALSIGNAL","PRESS POWER","Grab the remote and hit the red button.");tube.classList.remove("off");},470);
   bug.classList.add("hide");lower.classList.add("fade");volHint.classList.remove("show");
   var pLed=$("rPowLed"); if(pLed) pLed.classList.remove("on"); /* PWR LED off */
@@ -18832,6 +18840,7 @@ async function playBumper(ch,sl,my){
 
 /* ===== v10.1: skip — next item on the same channel, on demand ===== */
 async function skipOne(){ if(!powered){quickBanner("TURN THE TV ON FIRST");return;}if(typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected()&&typeof window.__rsCastCommand==="function")window.__rsCastCommand("NEXT");
+  if(window.RealSignalBroadcast?.next())return;
   var sc=byNum(curNum);
   if(iaRepairEnabled(sc)){if(curItem&&!curItem.isAd)iaRepairEvent(sc,curItem,"skipped");adQueue=0;fastTuneDrop(sc.num);resetProgress();tuneNum(curNum);return;}
   if(sc&&sc.source==="v2preview"&&typeof window.__v2PreviewNext==="function"){window.__v2PreviewNext(true);return;}
@@ -19910,9 +19919,10 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
 <script src="assets/release2-runtime.js?v=7.0.0"></script>
 <script src="assets/release3-runtime.js"></script>
 <script src="assets/release31-runtime.js"></script>
-<script src="assets/guide-contract.js?v=7.1.0"></script>
-<script src="assets/guide-contract-client.js?v=7.0.0"></script>
-<script src="assets/v6-watching-shell.js?v=7.1.0"></script>
-<script src="assets/v6-guide.js?v=7.1.0"></script>
+<script src="assets/guide-contract.js?v=7.2.0"></script>
+<script src="assets/guide-contract-client.js?v=7.2.0"></script>
+<script src="assets/v6-watching-shell.js?v=7.2.0"></script>
+<script src="assets/v6-guide.js?v=7.2.0"></script>
+<script src="assets/broadcast-native.js?v=7.2.0"></script>
 </body>
 </html>

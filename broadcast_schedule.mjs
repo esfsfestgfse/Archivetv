@@ -147,7 +147,7 @@ export function buildBroadcastWindow({ rules, candidates, spots = [], now = Date
   const floor = {
     episodes: Math.max(24, baseline?.episodes || 0),
     families: Math.max(6, baseline?.families || 0),
-    hours: Math.max(shortFormat ? 3 : 8, horizonMs / hour, baseline?.hours || 0)
+    hours: Math.max(shortFormat ? 3 : 8, horizonMs / hour)
   };
   if (depth.episodes < floor.episodes || depth.families < floor.families || depth.hours + 1e-8 < floor.hours) {
     throw new Error('Station ' + channel + ' depth ' + JSON.stringify(depth) + ' below ' + JSON.stringify(floor));

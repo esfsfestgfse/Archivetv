@@ -226,6 +226,22 @@ test('shallow or expired input cannot replace a deep schedule', () => {
     previous: first }), /verified unseen/i);
 });
 
+test('a runtime correction keeps a deep station on air with its published programs intact', () => {
+  const first = buildBroadcastWindow({ rules, candidates, now });
+  const later = now + 2 * 60 * minute;
+  const corrected = candidates.map(item => ({
+    ...item,
+    media: { ...item.media, runtime: 20 * 60, verifiedAt: later }
+  }));
+  const next = buildBroadcastWindow({ rules, candidates: corrected, now: later, previous: first });
+  const published = first.slots.filter(slot => slot.endsAt > later);
+  assert.deepEqual(next.slots.slice(0, published.length), published);
+  assert.equal(next.depth.episodes, first.depth.episodes);
+  assert.equal(next.depth.families, first.depth.families);
+  assert.ok(next.depth.hours < first.depth.hours);
+  assert.ok(next.slots.at(-1).endsAt > first.slots.at(-1).endsAt);
+});
+
 test('expired playback checks retain the deep catalog while rechecked unseen episodes extend the schedule', () => {
   const first = buildBroadcastWindow({ rules, candidates, now, horizonMs: 60 * minute });
   const later = now + 25 * 60 * minute;

@@ -27,6 +27,8 @@
   .station[aria-pressed="true"] { background:#332b20; border-color:#ae8b50; }
   .station strong { color:#ffd681; } .station span { overflow-wrap:anywhere; }
   #watching { margin-top:10px; }
+  #nativeLink { color:#ffd681; display:inline-block; margin-top:8px; }
+  #nativeLink[hidden] { display:none; }
   @media(max-width:740px) { main { grid-template-columns:1fr; } #stations { max-height:58vh; } }
 </style>
 </head>
@@ -36,6 +38,7 @@
   <section aria-label="Television">
     <div id="screen"><p id="status" role="status">Choose a station to tune in.</p><video id="video" playsinline muted hidden></video></div>
     <p id="watching"></p>
+    <a id="nativeLink" hidden>Open this channel in RealSignal</a>
     <div id="controls">
       <button id="sound" type="button">Unmute</button>
       <button id="next" type="button" disabled>Next</button>
@@ -61,6 +64,7 @@ const watching = document.querySelector('#watching');
 const guide = document.querySelector('#stations');
 const nextButton = document.querySelector('#next');
 const liveButton = document.querySelector('#live');
+const nativeLink = document.querySelector('#nativeLink');
 const time = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit' });
 const stations = new Map();
 const search = document.querySelector('#channelSearch');
@@ -70,6 +74,7 @@ const player = createBroadcastPlayer({
   video,
   onCard: showCard,
   onPlaying(slot) {
+    nativeLink.hidden = true;
     video.hidden = slot.mediaType === 'audio';
     status.hidden = !video.hidden;
     if (video.hidden) write(status, 'Audio broadcast');
@@ -89,6 +94,8 @@ function showCard(message) {
   video.pause();
   video.hidden = true;
   status.hidden = false;
+  nativeLink.hidden = !(tuned?.source && /unavailable|window ended/i.test(message));
+  if (!nativeLink.hidden) nativeLink.href = nativeChannelUrl(tuned);
   write(status, message);
 }
 
@@ -117,10 +124,14 @@ function render(force = false) {
     (selected?.kind === 'program' ? ' · ' + selected.title : ''));
 }
 
+function nativeChannelUrl(station) {
+  const layout = matchMedia('(max-width:740px)').matches ? 'mobile' : 'desktop';
+  return './the_dial_' + layout + '.html?channel=' + encodeURIComponent(station.channel);
+}
+
 function tune(station) {
   if (station.source && !slotAt(station, Date.now())) {
-    const layout = matchMedia('(max-width:740px)').matches ? 'mobile' : 'desktop';
-    location.href = './the_dial_' + layout + '.html?channel=' + encodeURIComponent(station.channel);
+    location.href = nativeChannelUrl(station);
     return;
   }
   tuned = station;
@@ -174,7 +185,7 @@ function updateStation(row) {
     stations.set(station.channel, station);
   }
   if (row.depth) {
-    write(station.info, row.category + ' · ' + row.depth.episodes + ' episodes · ' + Math.floor(row.depth.hours) + ' hours');
+    write(station.info, station.category + ' · ' + row.depth.episodes + ' episodes · ' + Math.floor(row.depth.hours) + ' hours');
   } else if (!station.slots.length) {
     write(station.info, row.category);
   }

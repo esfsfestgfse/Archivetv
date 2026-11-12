@@ -203,6 +203,9 @@ async function refreshStation([channel, station]) {
   for (let attempt = 0; attempt < (pilot ? 4 : 1); attempt++) {
     try {
       candidates.push(...await (pilot ? readCatalog(rules, rotation, sessionId) : readArchiveInventory(rules)));
+      if (!pilot && candidates.length < 12 && (earlier?.catalog?.length || 0) < 24) {
+        candidates.push(...await readCatalog(rules, rotation, sessionId));
+      }
     } catch (error) {
       reason = error.message;
     }
@@ -222,8 +225,10 @@ async function refreshStation([channel, station]) {
         if (pilot) throw error;
         const saved = collectBroadcastCatalog({ rules, candidates, previous: earlier }).catalog;
         const available = new Map([...candidates, ...saved].map(item => [item.logicalId, item]));
-        renewed = await renewUnseen({ ...earlier, catalog: [...available.values()] }, candidates,
-          rotation / 6, selected ? 24 : 12);
+        const verifiedDepth = earlier?.catalog?.length || 0;
+        const budget = selected ? 24 : earlier?.status === 'held' && verifiedDepth >= 8
+          ? Math.min(24, Math.max(12, 30 - verifiedDepth)) : 12;
+        renewed = await renewUnseen({ ...earlier, catalog: [...available.values()] }, candidates, rotation / 6, budget);
         candidates.push(...renewed);
         schedule = buildBroadcastWindow({ rules, candidates, spots, previous: earlier });
       }

@@ -213,6 +213,33 @@ test('catalog exhaustion never repeats a program still published in the current 
   assert.equal(next.slots.filter(slot => slot.logicalId === live.logicalId).length, 1);
 });
 
+test('deep short-form stations bank four hours without reusing programs or moving the live slot', () => {
+  const shortRules = { channel: '13', name: 'Vintage Commercials' };
+  const spots = Array.from({ length: 120 }, (_, index) => {
+    const sourceIdentifier = 'vintage-reserve-' + index;
+    return { ...candidates[index % candidates.length], sourceIdentifier, identifier: sourceIdentifier + '::spot.mp4',
+      fileName: 'spot.mp4', title: 'Vintage Television Commercial ' + index,
+      media: { ...candidates[0].media, runtime: 4 * 60,
+        url: 'https://archive.org/download/' + sourceIdentifier + '/spot.mp4' } };
+  });
+  const previous = buildBroadcastWindow({ rules: shortRules, candidates: spots, now, horizonMs: 120 * minute });
+  const later = now + 4 * minute;
+  const next = buildBroadcastWindow({ rules: shortRules, candidates: [], now: later, previous });
+  assert.deepEqual(next.slots.slice(0, 29), previous.slots.slice(1));
+  assert.equal(next.slots.at(-1).endsAt, later + 240 * minute);
+  assert.equal(new Set(next.slots.map(slot => slot.logicalId)).size, next.slots.length);
+
+  const staleSoon = spots.map(item => ({ ...item, media: { ...item.media,
+    verifiedAt: now - (24 * 60 - 120) * minute - 1 } }));
+  const withoutReserve = buildBroadcastWindow({ rules: shortRules, candidates: staleSoon, now });
+  assert.equal(withoutReserve.slots.at(-1).endsAt, now + 120 * minute);
+
+  const nearlyExhausted = { ...previous, used: previous.catalog.map(item => item.logicalId) };
+  const noPadding = buildBroadcastWindow({ rules: shortRules, candidates: [], now, previous: nearlyExhausted });
+  assert.deepEqual(noPadding.slots, previous.slots);
+  assert.deepEqual(noPadding.used, nearlyExhausted.used);
+});
+
 test('window updates preserve published slots and rotate through unseen programs first', () => {
   const first = buildBroadcastWindow({ rules, candidates, now });
   const later = now + 3 * 60 * minute;

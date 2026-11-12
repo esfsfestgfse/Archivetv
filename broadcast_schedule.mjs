@@ -140,6 +140,7 @@ export function buildBroadcastWindow({ rules, candidates, spots = [], now = Date
   const channel = String(rules.channel);
   const mediaType = rules.mediaTypes?.[0] === 'audio' ? 'audio' : 'video';
   const shortFormat = mediaType === 'audio' || channel === '13';
+  const allowReserve = shortFormat && horizonMs == null;
   horizonMs ??= (shortFormat ? 2 : 6) * hour;
   if (previous && previous.channel !== channel) throw new Error('Schedule belongs to another station');
   if (!Number.isFinite(now) || !(horizonMs > 0 && horizonMs <= 12 * hour)) throw new Error('Invalid schedule time');
@@ -147,6 +148,11 @@ export function buildBroadcastWindow({ rules, candidates, spots = [], now = Date
   const depth = measureDepth(catalog);
   const ready = catalog.filter(item => now - item.verifiedAt <= broadcastProofMs);
   const readyDepth = measureDepth(ready);
+  const requiredUntil = now + horizonMs;
+  // Limit advance scheduling so it does not consume the verified inventory.
+  const reserveUntil = allowReserve
+    ? Math.max(requiredUntil, now + Math.min(4, readyDepth.hours / 2) * hour)
+    : requiredUntil;
   const floor = {
     episodes: Math.max(24, baseline?.episodes || 0),
     families: Math.max(6, baseline?.families || 0),
@@ -176,13 +182,18 @@ export function buildBroadcastWindow({ rules, candidates, spots = [], now = Date
   let lastId = (rejectedIndex < 0 ? previous?.lastId : lastKept?.logicalId) || '';
   let lastFamily = (rejectedIndex < 0 ? previous?.lastFamily : lastKept?.family) || '';
   let blockMs = previous?.blockMs || 0;
-  while (cursor < now + horizonMs) {
-    const exhausted = catalog.every(item => used.has(item.logicalId));
+  while (cursor < reserveUntil) {
+    const required = cursor < requiredUntil;
+    const exhausted = required && catalog.every(item => used.has(item.logicalId));
     if (exhausted) used.clear();
     const unseen = ready.filter(item => !used.has(item.logicalId) && !scheduled.has(item.logicalId) &&
       (!exhausted || item.logicalId !== lastId) &&
-      cursor - item.verifiedAt <= broadcastProofMs);
-    if (!unseen.length) throw new Error('Station ' + channel + ' needs verified unseen programs to extend its schedule');
+      cursor - item.verifiedAt <= broadcastProofMs &&
+      (required || cursor + Math.round(item.runtimeSeconds * 1000) <= reserveUntil));
+    if (!unseen.length) {
+      if (!required) break;
+      throw new Error('Station ' + channel + ' needs verified unseen programs to extend its schedule');
+    }
     const otherFamilies = unseen.filter(item => item.broadcastFamily !== lastFamily);
     const pool = otherFamilies.length ? otherFamilies : unseen;
     const item = pool.reduce((best, row) =>

@@ -3,10 +3,5 @@
   "name": "realsignal-broadcast-canary",
   "main": "broadcast_manifest_worker.mjs",
   "compatibility_date": "2026-11-11",
-  "workers_dev": true,
-  "assets": {
-    "binding": "ASSETS",
-    "directory": "./output/broadcast-hosted-site",
-    "html_handling": "none"
-  }
+  "workers_dev": true
 }

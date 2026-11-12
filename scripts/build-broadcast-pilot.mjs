@@ -38,6 +38,25 @@ const episodeCollections = {
     ['OTRR_Inner_Sanctum_Mysteries_Singles', 'Inner Sanctum', 1941, originalRadioDate]
   ]
 };
+const reviewedVideo = {
+  '224': [
+    ['aapb-cpb-aacip-45d7e6841d7', 'cpb-aacip-45d7e6841d7_Eyes on the Prize II.mp4', 'Eyes on the Prize II · Interview with Ossie Davis', 1989],
+    ['aapb-cpb-aacip-b93947ebbb8', 'cpb-aacip-b93947ebbb8_Eyes on the Prize II.mp4', 'Eyes on the Prize II · Interview with Ben Chavis', 1989],
+    ['aapb-cpb-aacip-55296e0bf55', 'cpb-aacip-55296e0bf55_Eyes on the Prize II.mp4', 'Eyes on the Prize II · Interview with Stokely Carmichael', 1988],
+    ['aapb-cpb-aacip-151-fn10p0xm13', 'cpb-aacip-151-fn10p0xm13_Eyes on the Prize.mp4', 'Eyes on the Prize · Interview with Tom Hayden', 1985],
+    ['aapb-cpb-aacip-677a7b88fd6', 'cpb-aacip-677a7b88fd6_Eyes on the Prize II.mp4', 'Eyes on the Prize II · Interview with Linda Bryant Hall', 1989],
+    ['aapb-cpb-aacip-151-8k74t6fv60', 'cpb-aacip-151-8k74t6fv60_Eyes on the Prize.mp4', 'Eyes on the Prize · Interview with John Lewis', 1985],
+    ['aapb-cpb-aacip-36ce9d09241', 'cpb-aacip-36ce9d09241_Eyes on the Prize II.mp4', 'Eyes on the Prize II · Interview with Betty Shabazz', 1988],
+    ['aapb-cpb-aacip-19d114174e1', 'cpb-aacip-19d114174e1_Eyes on the Prize II.mp4', 'Eyes on the Prize II · Interview with Ralph Abernathy', 1988],
+    ['aapb-cpb-aacip-6136e70bc0f', 'cpb-aacip-6136e70bc0f_Eyes on the Prize II.mp4', 'Eyes on the Prize II · Interview with Marian Wright Edelman', 1988],
+    ['aapb-cpb-aacip-d86edbd54d7', 'cpb-aacip-d86edbd54d7_Eyes on the Prize II.mp4', 'Eyes on the Prize II · Interview with Emory Douglas', 1988],
+    ['aapb-cpb-aacip-151-p55db7wm4v', 'cpb-aacip-151-p55db7wm4v_Eyes on the Prize.mp4', 'Eyes on the Prize · Interview with Curtis Jones', 1985]
+  ],
+  '501': [
+    ['MovieTrailerCollection', 'MovieTrailer-Collection.mp4', 'Parker 16mm Movie Trailer Collection', 1960],
+    ['hhv-glv-trailer-reel', 'HHV-GLV-TrailerReel.mp4', 'Hollywood House Video Trailer Reel', 1982]
+  ]
+};
 const exportRegistry = (...flags) => JSON.parse(execFileSync(process.execPath,
   ['scripts/export-ia-manifest.js', 'the_dial_desktop.html', ...flags],
   { encoding: 'utf8', maxBuffer: 16e6 }));
@@ -136,12 +155,26 @@ async function probePrograms(items) {
   return verified;
 }
 
-async function expandCollection([sourceIdentifier, seriesTitle, firstYear, episodeName], rules, known, round) {
+async function archiveMetadata(sourceIdentifier) {
   const response = await fetch('https://archive.org/metadata/' + encodeURIComponent(sourceIdentifier), {
     signal: AbortSignal.timeout(8000)
   });
-  if (!response.ok) return [];
-  const { files, metadata } = await response.json();
+  return response.ok ? response.json() : {};
+}
+
+function archiveFileRecord(sourceIdentifier, file, metadata, { title, year, seriesTitle, type = 'video' }) {
+  const fileName = file.name;
+  return normalizeIaFileRecord({
+    identifier: sourceIdentifier + '::' + fileName, sourceIdentifier, fileName, seriesTitle,
+    title, year, provider: 'Internet Archive', rights: metadata?.licenseurl || metadata?.rights,
+    media: { type, runtime: file.length, width: file.width, height: file.height,
+      language: metadata?.language, metadataVerifiedAt: Date.now(),
+      url: 'https://archive.org/download/' + encodeURIComponent(sourceIdentifier) + '/' + fileName.split('/').map(encodeURIComponent).join('/') }
+  });
+}
+
+async function expandCollection([sourceIdentifier, seriesTitle, firstYear, episodeName], rules, known, round) {
+  const { files, metadata } = await archiveMetadata(sourceIdentifier);
   const audio = rules.mediaTypes?.[0] === 'audio';
   const episodes = new Map();
   for (const file of files || []) {
@@ -157,14 +190,8 @@ async function expandCollection([sourceIdentifier, seriesTitle, firstYear, episo
       ? leaf.slice(episode.index + episode[0].length).replace(/\.mp3$/i, '')
         .replace(/^[-_ (]*(?:ep)?\d*[-_ )]*/i, '').replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').trim()
       : leaf.replace(/(?:\.ia)?\.mp4$/i, '').replace(/_/g, ' ');
-    const item = normalizeIaFileRecord({
-      identifier: sourceIdentifier + '::' + fileName, sourceIdentifier, fileName, seriesTitle,
-      title: seriesTitle + ' · ' + episodeTitle, year: episodeYear || firstYear, provider: 'Internet Archive',
-      rights: metadata?.licenseurl,
-      media: { type: audio ? 'audio' : 'video', runtime: file.length, width: file.width, height: file.height,
-        language: metadata?.language, metadataVerifiedAt: Date.now(),
-        url: 'https://archive.org/download/' + encodeURIComponent(sourceIdentifier) + '/' + fileName.split('/').map(encodeURIComponent).join('/') }
-    });
+    const item = archiveFileRecord(sourceIdentifier, file, metadata, { seriesTitle,
+      title: seriesTitle + ' · ' + episodeTitle, year: episodeYear || firstYear, type: audio ? 'audio' : 'video' });
     if ((audio && (item.runtimeSeconds < 720 || !episodeTitle ||
       /\b(?:afrs|audition|excerpt|incomplete|fragment)\b/i.test(episodeTitle))) ||
       !qualifyIaFileRecord(item, { ...rules, requireTransport: false }).accepted) continue;
@@ -181,6 +208,32 @@ async function collectNewEpisodes(rules, earlier, incoming, round) {
   const known = new Set([...(earlier?.catalog || []), ...incoming].map(item => normalizeIaFileRecord(item).logicalId));
   const selected = await Promise.allSettled(collections.map(collection => expandCollection(collection, rules, known, round)));
   return probePrograms(selected.flatMap(result => result.status === 'fulfilled' ? result.value : []));
+}
+
+async function collectReviewedVideo(rules, earlier, round) {
+  const known = new Set((earlier?.catalog || []).map(item => item.identifier));
+  const pending = (reviewedVideo[rules.channel] || []).filter(([id, name]) => !known.has(id + '::' + name));
+  const reviewed = await Promise.allSettled(pending.map(async ([id, name, title, year]) => {
+    const { files, metadata } = await archiveMetadata(id);
+    const file = files?.find(row => row.name === name && !row.private);
+    return file ? archiveFileRecord(id, file, metadata, { title, year }) : null;
+  }));
+  const candidates = reviewed.flatMap(result => result.status === 'fulfilled' && result.value ? [result.value] : []);
+  if (rules.channel === '501') {
+    const id = 'Vintage-Movie-Trailers';
+    const { files, metadata } = await archiveMetadata(id).catch(() => ({}));
+    const trailers = (files || []).flatMap(file => {
+      const title = String(file.name || '').match(/^Trailers\/([^/]+\(((?:19|20)\d{2})\))\.mp4$/i);
+      if (!title || file.private || file.source !== 'original' || known.has(id + '::' + file.name)) return [];
+      return [archiveFileRecord(id, file, metadata, {
+        title: title[1] + ' — Theatrical Trailer', year: Number(title[2]), seriesTitle: title[1]
+      })];
+    });
+    const limit = earlier?.status === 'ready' ? 16 : 64;
+    const start = trailers.length ? round % trailers.length : 0;
+    candidates.push(...trailers.slice(start).concat(trailers.slice(0, start)).slice(0, limit));
+  }
+  return probePrograms(candidates.filter(item => qualifyIaFileRecord(item, { ...rules, requireTransport: false }).accepted));
 }
 
 async function renewUnseen(previous, incoming, rotation, budget) {
@@ -241,6 +294,7 @@ async function refreshStation([channel, station]) {
     // A full current window is no reason to skip the next discovery page.
     if (pilot && attempt === 0) continue;
     try {
+      if (reviewedVideo[channel]) candidates.push(...await collectReviewedVideo(rules, earlier, rotation / 6));
       if (channel === '921' && (earlier?.catalog?.length || 0) < 180) {
         candidates.push(...await collectNewEpisodes(rules, earlier, candidates, rotation / 6));
       }
@@ -266,7 +320,7 @@ async function refreshStation([channel, station]) {
         const saved = collectBroadcastCatalog({ rules, candidates, previous: earlier }).catalog;
         const available = new Map([...candidates, ...saved].map(item => [item.logicalId, item]));
         const verifiedDepth = earlier?.catalog?.length || 0;
-        const budget = selected || station.profileKey === 'nascar-classics' ? 24 : earlier?.status === 'held' && verifiedDepth >= 8
+        const budget = channel === '501' ? 48 : selected || station.profileKey === 'nascar-classics' ? 24 : earlier?.status === 'held' && verifiedDepth >= 8
           ? Math.min(24, Math.max(12, 30 - verifiedDepth)) : 12;
         const checked = await renewUnseen({ ...earlier, catalog: [...available.values()] }, candidates, rotation / 6, budget);
         renewed.push(...checked);

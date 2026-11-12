@@ -25,10 +25,35 @@ const classicFilesBySource = new Map([
   ['19660912S5Ep01LucyWithGeorgeBurns', /^1966-09-12-s5-ep01-Lucy-with-George-Burns\.mp4$/i],
   ['1973-01-17-jack.-benny-rich.-little-dylana.-jenson-dick.-barlow-roger.-pida', /^1973-01-17_Jack\.Benny_Rich\.Little_Dylana\.Jenson_Dick\.Barlow_Roger\.Pida(?:\.ia)?\.mp4$/i]
 ]);
+const excludedCivilRightsUploads = new Set([
+  '201379_201380_anarchy_usa',
+  'attack-on-terror-the-fbi-vs.-the-ku-klux-klan',
+  'i-am-not-your-negro-james-baldwin-arte-de-2015',
+  'southern-united-states-films'
+]);
+const reviewedTrailerSources = new Set(['Vintage-Movie-Trailers', 'MovieTrailerCollection', 'hhv-glv-trailer-reel']);
 
 function classicTvIdentity(value) {
   return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
     .replace(/^(?:(?:19\d{2}|\d{2})(?: \d{1,2} \d{1,2})? |(?:episode of|episode \d+|tv episode) )+/, '');
+}
+
+function theatricalTrailerIdentity(item) {
+  const original = String(item.title || '');
+  const date = /\(((?:19|20)\d{2})\)/;
+  const release = original.match(date);
+  const year = Number(release?.[1]) || Number(item.year);
+  if (!release && !reviewedTrailerSources.has(item.sourceIdentifier)) return '';
+  const title = original.replace(date, ' ').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  if (!(year >= 1920 && year <= 2010) || item.runtimeSeconds < 20) return '';
+  const markers = /\b(?:trailers?|coming attractions?|(?:film|movie) previews?)\b/;
+  const offGenre = /\b(?:fan (?:made|edit|trailers?)|concept trailers?|unproduced|parod(?:y|ies)|video games?|gamespot|gameplay|pokemon stadium|stupid invaders|theme park|episode teaser|season teaser|pilot trailers?|teaser promo|videos and dvds collection|tv (?:trailers?|spots?)|home cinema|commentary|reaction|podcasts?|full movie|how to)\b/;
+  if (!markers.test(title) || offGenre.test(title)) return '';
+  const reel = /\b(?:reels?|compilations?|collections?)\b/.test(title);
+  if (item.runtimeSeconds > 8 * 60 && !reel) return '';
+  const film = title.replace(/\b(?:(?:official|original|theatrical|movie|film) )?trailers?(?: \d+)?(?: (?:hd|4k|dvd quality|english subtitles))*$/, '')
+    .trim();
+  return film ? (reel ? 'vintage-reel:' : 'trailer:') + film : '';
 }
 
 function programAllowed(item, channel) {
@@ -50,6 +75,8 @@ function programAllowed(item, channel) {
     const civilDefense = /\b(?:civil defen[cs]e|conelrad|duck and cover|fallout shelters?|atomic bomb|atomic attack|nuclear power plant)\b/;
     return drama.test(identity) || civilDefense.test(identity);
   }
+  if (channel === '501') return Boolean(theatricalTrailerIdentity(item));
+  if (channel === '224') return !excludedCivilRightsUploads.has(String(item.sourceIdentifier).toLowerCase());
   if (channel !== '10') return true;
   if (item.sourceIdentifier === '1974-pray-for-the-wildcats') return false;
   const title = String(item.title || '').split(/\s+[·—]\s+/)[0];
@@ -73,7 +100,7 @@ export function firstRejectedBroadcastSlot(previous, now, rules = {}) {
     return previous.slots.findIndex(slot => slot.endsAt > now && slot.kind === 'program' &&
       !eligible.has(slot.logicalId));
   }
-  if (!['10', '13', '63', '921'].includes(previous?.channel)) return -1;
+  if (!['10', '13', '63', '224', '501', '921'].includes(previous?.channel)) return -1;
   const allowed = new Set(previous.catalog.filter(item => programAllowed(item, previous.channel)).map(item => item.logicalId));
   return previous.slots.findIndex(slot => slot.endsAt > now && slot.kind === 'program' && !allowed.has(slot.logicalId));
 }
@@ -127,7 +154,11 @@ export function collectBroadcastCatalog({ rules, candidates, now = Date.now(), p
     if (!result.accepted || item.media.type !== mediaType || !item.fileName ||
       !item.runtimeSeconds || !trustedArchiveMedia(item.media.url)) continue;
     if (item.verification !== 'transport' || !(item.verifiedAt > 0 && item.verifiedAt <= now + 60_000)) continue;
-    if (!programAllowed(item, channel)) continue;
+    if (channel === '501') {
+      const identity = theatricalTrailerIdentity(item);
+      if (!identity) continue;
+      item.logicalId = identity;
+    } else if (!programAllowed(item, channel)) continue;
     if (Sports.enabled(channel)) item.logicalId = Sports.describe(item, channel).eventId || item.logicalId;
     item.broadcastFamily = item.sourceIdentifier === '1-2-the-clampetts-strike-oil-extended'
       ? 'beverly hillbillies' : familyId(item);
@@ -147,7 +178,7 @@ export function collectBroadcastCatalog({ rules, candidates, now = Date.now(), p
 export function buildBroadcastWindow({ rules, candidates, spots = [], now = Date.now(), previous, horizonMs }) {
   const channel = String(rules.channel);
   const mediaType = rules.mediaTypes?.[0] === 'audio' ? 'audio' : 'video';
-  const shortFormat = mediaType === 'audio' || channel === '13';
+  const shortFormat = mediaType === 'audio' || channel === '13' || channel === '501';
   const allowReserve = shortFormat && horizonMs == null;
   horizonMs ??= (shortFormat ? 2 : 6) * hour;
   if (previous && previous.channel !== channel) throw new Error('Schedule belongs to another station');

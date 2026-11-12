@@ -197,6 +197,44 @@ test('short-form Archive channels keep enough unique material for their hourly r
     slots: [{ kind: 'program', logicalId: 'recent', endsAt: now + minute }] }, now), 0);
 });
 
+test('Trailer Park airs original theatrical trailers back to back and counts alternate uploads once', () => {
+  const trailerRules = { channel: '501', name: 'Trailer Park', mediaTypes: ['movies'] };
+  const trailers = Array.from({ length: 60 }, (_, index) => {
+    const item = candidates[index % candidates.length];
+    const sourceIdentifier = 'movie-preview-' + index;
+    return { ...item, identifier: sourceIdentifier + '::trailer.mp4', sourceIdentifier, seriesId: sourceIdentifier,
+      fileName: 'trailer.mp4', title: 'Movie ' + index + ' (1963) — Theatrical Trailer', year: 1963,
+      media: { ...item.media, runtime: 4 * 60, url: 'https://archive.org/download/' + sourceIdentifier + '/trailer.mp4' } };
+  });
+  const alternate = { ...trailers[0], sourceIdentifier: 'alt', identifier: 'alt::trailer.mp4',
+    title: 'Movie 0 (1964) Trailer', media: { ...trailers[0].media, url: 'https://archive.org/download/alt/trailer.mp4' } };
+  const fake = { ...trailers[1], sourceIdentifier: 'fake', identifier: 'fake::trailer.mp4',
+    title: 'Movie 1 (1963) — Fan Trailer', media: { ...trailers[1].media, url: 'https://archive.org/download/fake/trailer.mp4' } };
+  const game = { ...trailers[2], sourceIdentifier: 'game', identifier: 'game::trailer.mp4',
+    title: 'Pokemon Stadium 2 Video Game Trailer', year: 2000,
+    media: { ...trailers[2].media, url: 'https://archive.org/download/game/trailer.mp4' } };
+  const undated = { ...game, title: 'RoboCop: Rogue City Video Trailer', year: null };
+  const mislabeled = { ...game, title: '(2010-10-13) Sonic Colors Gamespot Trailer', year: 2010 };
+  const tv = { ...game, title: 'An Episode (1998) TV Trailer', year: 1998 };
+  const window = buildBroadcastWindow({ rules: trailerRules, candidates: [...trailers, alternate, fake, game, undated, mislabeled, tv], now });
+  assert.equal(window.depth.episodes, 60);
+  assert.equal(window.slots.at(-1).endsAt, now + 120 * minute);
+  assert.equal(window.slots.length, 30);
+  assert.ok(window.slots.every(slot => slot.kind === 'program'));
+});
+
+test('Eyes on the Prize accepts original oral history and drops the dramatized and alternate-language uploads', () => {
+  const archiveRules = { channel: '224', name: 'Eyes on the Prize', mediaTypes: ['movies'] };
+  const records = [
+    ['aapb-cpb-aacip-151-8k74t6fv60', 'Eyes on the Prize · Interview with John Lewis'],
+    ['attack-on-terror-the-fbi-vs.-the-ku-klux-klan', 'Attack on Terror'],
+    ['i-am-not-your-negro-james-baldwin-arte-de-2015', 'I Am Not Your Negro (FR, NL, EN subtitles, DE vo)']
+  ].map(([id, title]) => ({ ...candidates[0], identifier: id + '::video.mp4', sourceIdentifier: id, title,
+    fileName: 'video.mp4', media: { ...candidates[0].media, url: 'https://archive.org/download/' + id + '/video.mp4' } }));
+  const { catalog } = collectBroadcastCatalog({ rules: archiveRules, candidates: records, now });
+  assert.deepEqual(catalog.map(item => item.title), [records[0].title]);
+});
+
 test('catalog exhaustion never repeats a program still published in the current window', () => {
   const first = buildBroadcastWindow({ rules, candidates, now });
   const live = first.slots[0];

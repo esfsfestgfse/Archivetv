@@ -14,6 +14,7 @@ const pilotStations = new Map([
   ['150', { name: 'Classic Cartoons', category: 'Animation' }]
 ]);
 // Single-series Archive parents with file names that identify full episodes.
+const originalRadioDate = /(?:19)?([456]\d)-(\d{2})-(\d{2})/;
 const episodeCollections = {
   '10': [
     ['the-dick-van-dyke-show-the-complete-series-1961-1966', 'The Dick Van Dyke Show', 1961, /\bs\d+e\d+/i],
@@ -27,6 +28,14 @@ const episodeCollections = {
     ['wheelnbc-7581-bmp', 'Wheel of Fortune', 1975, /^s\d+e\d+/i],
     ['the-hollywood-squares-1972', 'The Hollywood Squares', 1972, /^The Hollywood Squares \(1972\)/i],
     ['WML-1791-122172-01', "What's My Line?", 1972, /^BUZZR-WML-1791-/i]
+  ],
+  '921': [
+    ['OTRR_X_Minus_One_Singles', 'X Minus One', 1955, originalRadioDate],
+    ['OTRR_Dimension_X_Singles', 'Dimension X', 1950, originalRadioDate],
+    ['OTRR_CBS_Radio_Workshop_Singles', 'CBS Radio Workshop', 1956, originalRadioDate],
+    ['OTRR_Escape_Singles', 'Escape', 1947, originalRadioDate],
+    ['OTRR_2000_Plus_Singles', '2000 Plus', 1950, originalRadioDate],
+    ['OTRR_Inner_Sanctum_Mysteries_Singles', 'Inner Sanctum', 1941, originalRadioDate]
   ]
 };
 const exportRegistry = (...flags) => JSON.parse(execFileSync(process.execPath,
@@ -133,26 +142,36 @@ async function expandCollection([sourceIdentifier, seriesTitle, firstYear, episo
   });
   if (!response.ok) return [];
   const { files, metadata } = await response.json();
+  const audio = rules.mediaTypes?.[0] === 'audio';
   const episodes = new Map();
   for (const file of files || []) {
     const fileName = String(file.name || '');
     const leaf = fileName.split('/').at(-1);
-    if (!/\.mp4$/i.test(leaf) || file.private || !episodeName.test(leaf) ||
+    const episode = leaf.match(episodeName);
+    if (!(audio ? /\.mp3$/i.test(leaf) && file.source === 'original' : /\.mp4$/i.test(leaf)) ||
+      file.private || !episode ||
       /\b(?:clips?|promo|trailer|preview|bonus|credits only|opening only)\b/i.test(leaf.replace(/_/g, ' '))) continue;
-    const episodeYear = Number(leaf.match(/(?:^|\D)(19\d{2})(?=\D|$)/)?.[1]);
+    const episodeYear = audio ? 1900 + Number(episode[1]) : Number(leaf.match(/(?:^|\D)(19\d{2})(?=\D|$)/)?.[1]);
     if (seriesTitle === 'Wheel of Fortune' && !episodeYear) continue;
+    const episodeTitle = audio
+      ? leaf.slice(episode.index + episode[0].length).replace(/\.mp3$/i, '')
+        .replace(/^[-_ (]*(?:ep)?\d*[-_ )]*/i, '').replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').trim()
+      : leaf.replace(/(?:\.ia)?\.mp4$/i, '').replace(/_/g, ' ');
     const item = normalizeIaFileRecord({
       identifier: sourceIdentifier + '::' + fileName, sourceIdentifier, fileName, seriesTitle,
-      title: seriesTitle + ' · ' + leaf.replace(/(?:\.ia)?\.mp4$/i, '').replace(/_/g, ' '),
-      year: episodeYear || firstYear, provider: 'Internet Archive',
-      media: { type: 'video', runtime: file.length, width: file.width, height: file.height,
+      title: seriesTitle + ' · ' + episodeTitle, year: episodeYear || firstYear, provider: 'Internet Archive',
+      rights: metadata?.licenseurl,
+      media: { type: audio ? 'audio' : 'video', runtime: file.length, width: file.width, height: file.height,
         language: metadata?.language, metadataVerifiedAt: Date.now(),
         url: 'https://archive.org/download/' + encodeURIComponent(sourceIdentifier) + '/' + fileName.split('/').map(encodeURIComponent).join('/') }
     });
-    if (known.has(item.logicalId) || !qualifyIaFileRecord(item, { ...rules, requireTransport: false }).accepted) continue;
-    if (!episodes.has(item.logicalId)) episodes.set(item.logicalId, item);
+    if ((audio && (item.runtimeSeconds < 720 || !episodeTitle ||
+      /\b(?:afrs|audition|excerpt|incomplete|fragment)\b/i.test(episodeTitle))) ||
+      !qualifyIaFileRecord(item, { ...rules, requireTransport: false }).accepted) continue;
+    const episodeKey = audio ? [episodeYear, episode[2], episode[3]].join('-') : item.logicalId;
+    if (!episodes.has(episodeKey)) episodes.set(episodeKey, item);
   }
-  const rows = [...episodes.values()];
+  const rows = [...episodes.values()].filter(item => !known.has(item.logicalId));
   const start = rows.length ? round % rows.length : 0;
   return rows.slice(start).concat(rows.slice(0, start)).slice(0, 6);
 }
@@ -222,6 +241,9 @@ async function refreshStation([channel, station]) {
     // A full current window is no reason to skip the next discovery page.
     if (pilot && attempt === 0) continue;
     try {
+      if (channel === '921' && (earlier?.catalog?.length || 0) < 180) {
+        candidates.push(...await collectNewEpisodes(rules, earlier, candidates, rotation / 6));
+      }
       if (pilot && attempt === 1) {
         renewed = await renewUnseen(earlier, candidates, rotation / 6, 24);
         candidates.push(...renewed);

@@ -213,6 +213,34 @@ test('catalog exhaustion never repeats a program still published in the current 
   assert.equal(next.slots.filter(slot => slot.logicalId === live.logicalId).length, 1);
 });
 
+test('Fallout Radio replaces contemporary commentary with vintage drama and civil defense recordings', () => {
+  const radioRules = { channel: '921', name: 'Fallout Radio', mediaTypes: ['audio'] };
+  const series = ['X Minus One', 'Dimension X', 'Suspense', 'CBS Radio Workshop', 'Space Patrol', 'Inner Sanctum'];
+  const audio = (index, title, year) => {
+    const sourceIdentifier = 'atomic-era-' + index;
+    return { sourceIdentifier, identifier: sourceIdentifier + '::radio.mp3', title, year,
+      media: { type: 'audio', runtime: 1500, verification: 'transport', verifiedAt: now,
+        url: 'https://archive.org/download/' + sourceIdentifier + '/radio.mp3' } };
+  };
+  const period = Array.from({ length: 30 }, (_, index) =>
+    audio(index, series[index % series.length] + ' · Episode ' + index + ' (1955)', 1955));
+  period.push(audio(30, 'Program on Civil Defense and Fallout Shelters, c1960', 1960));
+  const modern = audio(31, 'Alan Watt on The Secret Truth with George Butler July 19, 2008', 2008);
+  const spoof = audio(32, 'Dimension X podcast: discussing episodes from 1950', 1950);
+  const unrelated = audio(33, 'Ordinary municipal election coverage', 1959);
+  const prior = buildBroadcastWindow({ rules: { ...radioRules, channel: '926' },
+    candidates: [...period, modern, spoof, unrelated], now });
+  const wrong = prior.catalog.find(item => item.title === modern.title);
+  const live = prior.slots[0];
+  const previous = { ...prior, channel: '921', slots: [live,
+    { ...live, logicalId: wrong.logicalId, title: wrong.title, startsAt: live.endsAt, endsAt: live.endsAt + 25 * minute }] };
+  const schedule = buildBroadcastWindow({ rules: radioRules, candidates: [], now: now + minute, previous });
+  assert.equal(schedule.depth.episodes, period.length);
+  assert.deepEqual(schedule.slots[0], live);
+  assert.equal(schedule.slots[1].startsAt, live.endsAt);
+  assert.ok(schedule.slots.every(slot => slot.title !== modern.title));
+});
+
 test('deep short-form stations bank four hours without reusing programs or moving the live slot', () => {
   const shortRules = { channel: '13', name: 'Vintage Commercials' };
   const spots = Array.from({ length: 120 }, (_, index) => {

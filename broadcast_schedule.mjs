@@ -42,6 +42,14 @@ function programAllowed(item, channel) {
     if (years.some(year => year >= 1930) || /\b(?:vintage|classic|old)\b/i.test(identity)) return true;
     return Number(item.year) >= 1930 && Number(item.year) < 2010;
   }
+  if (channel === '921') {
+    const identity = String(item.title || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const year = Number(item.year) || Number(identity.match(/\bc?(19[45]\d|196[0-5])\b/)?.[1]);
+    if (!(year >= 1940 && year <= 1965) || /\b(?:podcasts?|retrospective|reaction|reenactment|recreation)\b/.test(identity)) return false;
+    const drama = /^(?:otr |old time radio )?(?:x minus one|dimension x|suspense|escape|inner sanctum|lights out|quiet please|beyond tomorrow|2000 plus|(?:the )?cbs radio workshop|space patrol|tom corbett)\b/;
+    const civilDefense = /\b(?:civil defen[cs]e|conelrad|duck and cover|fallout shelters?|atomic bomb|atomic attack|nuclear power plant)\b/;
+    return drama.test(identity) || civilDefense.test(identity);
+  }
   if (channel !== '10') return true;
   if (item.sourceIdentifier === '1974-pray-for-the-wildcats') return false;
   const title = String(item.title || '').split(/\s+[·—]\s+/)[0];
@@ -65,7 +73,7 @@ export function firstRejectedBroadcastSlot(previous, now, rules = {}) {
     return previous.slots.findIndex(slot => slot.endsAt > now && slot.kind === 'program' &&
       !eligible.has(slot.logicalId));
   }
-  if (!['10', '13', '63'].includes(previous?.channel)) return -1;
+  if (!['10', '13', '63', '921'].includes(previous?.channel)) return -1;
   const allowed = new Set(previous.catalog.filter(item => programAllowed(item, previous.channel)).map(item => item.logicalId));
   return previous.slots.findIndex(slot => slot.endsAt > now && slot.kind === 'program' && !allowed.has(slot.logicalId));
 }

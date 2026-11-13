@@ -24,6 +24,13 @@ const vm = require('node:vm');
       vm.runInNewContext(tuneSource,playback);
       await playback.tuneV2Preview({num:599,previewKey:profileKey},{},9,'ok:next');
       assert.equal(playback.started,'ok:next',file+' must start the program selected by Next even when the old one has not started');
+      const rapid = {
+        window: {RealSignalOKEmbed: {musicProfile: () => true, programKey: item => item.id}},
+        store: {get: (_, fallback) => fallback}, v2Recent: () => [],
+      };
+      for (const name of ['v2NextFreshIndex','v2FreshCursor']) vm.runInNewContext(html.split(/\r?\n/).find(line=>line.startsWith('function '+name+'(')),rapid);
+      const pending = {items:[{id:'ok:a'},{id:'ok:b'},{id:'ok:c'}],cursor:1,nextSkipped:['ok:a']};
+      assert.equal(rapid.v2NextFreshIndex({profileKey},pending,'ok:b'),2,file+' must move past earlier skipped tracks even when playback never started');
       for (const scenario of ['exhausted','new-discovery','cancelled','manual']) {
         const profile={profileKey,name:profileKey}, ch={num:599,source:'v2preview',previewKey:profileKey};
         const a={id:'ok:a'},b={id:'ok:b'},fresh={id:'ok:c'};

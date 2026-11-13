@@ -31,7 +31,6 @@ on:
       - 'source_suite_profile_registry.js'
       - 'wrangler.api.jsonc'
       - 'migrations/**'
-      - 'assets/source-catalog-client.js'
       - 'assets/source-program-policy.js'
       - 'assets/peertube-media.js'
       - 'assets/guide-contract*.js'

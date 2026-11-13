@@ -12,17 +12,9 @@ const root = path.join(__dirname, '..');
 async function run(file) {
   const source = fs.readFileSync(path.join(root, file), 'utf8');
   assert.equal(/youtube\/v3|YOUTUBE_KEY/.test(source), false, `${file}: browser contains a direct YouTube API path`);
-  const serverStart = source.indexOf('async function v2YouTube(');
-  const serverEnd = source.indexOf('\nfunction v2IsoDuration', serverStart);
-  assert.ok(serverStart >= 0 && serverEnd > serverStart, `${file}: could not extract server-only YouTube adapter`);
-  const serverContext = {};
-  vm.createContext(serverContext);
-  vm.runInContext(source.slice(serverStart, serverEnd), serverContext);
-  const serverResult = await serverContext.v2YouTube({ name: 'Server-Owned Unit' });
-  assert.equal(serverResult.items.length, 0);
-  assert.equal(serverResult.health.reason, 'server catalog required');
-  console.log(`${file}: browser YouTube adapter is server-only`);
-  return;
+  assert.match(source, /v2ServerSourceCatalog\(profile,v2NextRotation\(key\)/, file + ': load via the canonical server adapter');
+  assert.doesNotMatch(source, /async function v2YouTube\(/, file + ': viewer must not discover programs directly from providers');
+  console.log(file + ': browser Source Suite discovery is server-only');
 }
 
 async function darkroomAdmission() {

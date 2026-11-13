@@ -36,7 +36,6 @@ check(runtime.includes('statusLabel') && runtime.includes('__rsCastIsConnected')
 check(runtime.includes("addEventListener('online'"), 'Online recovery hook exists');
 check(guide.includes('realsignal:guide-recent') && guide.includes('rsGuideRecentOnly'), 'Guide recently-watched view exists');
 check(guide.includes('rsGuideRecentSort') && guide.includes('CHANNEL ORDER'), 'Guide order control exists');
-check(fs.existsSync(path.join(repo, 'assets', 'source-catalog-client.js')), 'Server catalog bridge asset exists');
 const verifiedGuide = fs.readFileSync(path.join(repo, 'assets', 'verified-guide-client.js'), 'utf8');
 check(verifiedGuide.includes('/guide?channel=') && verifiedGuide.includes('__rsVerifiedGuide'), 'Verified current/next guide bridge exists');
 check(verifiedGuide.includes('prefetchVisibleRows') && verifiedGuide.includes('remaining = 4'), 'Verified guide prefetches only a bounded visible Source Suite window');

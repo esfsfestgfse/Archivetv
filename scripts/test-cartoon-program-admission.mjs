@@ -204,7 +204,7 @@ test('cartoon-only policy rejects explainers without poisoning unrelated documen
  assert.equal(policy.allow(key,{...item('Classic Cartoon Full Episode'),description:'Our channel also discusses facts about animation.'}),true);
 });
 function legacyRelevance(source,scope,profile,initialized=false){
- scope.V2_PREVIEW_PROFILES={[profile.profileKey||key]:profile};scope.V2_SOURCE_TOPIC_OVERRIDES={};scope.V2_SOURCE_QUERY_SUFFIXES={};scope.V2_SOURCE_COMMON_DENY=[];scope.v2DiscoveryQueries=()=>[];
+ scope.V2_PREVIEW_PROFILES={[profile.profileKey||key]:profile};scope.V2_SOURCE_TOPIC_OVERRIDES={};scope.V2_SOURCE_COMMON_DENY=[];
  for(const name of ['v2Text','v2TextUnique','v2SourceTokens','v2QueryTokens','v2TermHit','v2ProgramTopics','v2ProgramDeny','v2ProgramTitleDeny','v2ProgramCategoryOkay','v2ProgramFormats','v2StrictProgramFallback','v2Relevant','v2SourceProgramAllowed','v2CandidateRelevant']){
   const line=source.match(new RegExp('^ ?function '+name+'\\([^\\n]+','m'));
   if(line)vm.runInContext(line[0],scope);
@@ -212,19 +212,20 @@ function legacyRelevance(source,scope,profile,initialized=false){
  for(const marker of ['/* SOURCE SUITE PLAYBACK RECOVERY:','/* CARTOON TIME MACHINE ERA PROGRAMMING:']){
   const start=source.indexOf(marker),end=source.indexOf('</script>',start);vm.runInContext(source.slice(start,end),scope);
  }
- const final=source.indexOf('var baseDiscovery=v2DiscoveryQueries,baseRelevant=v2Relevant;'),start=source.lastIndexOf('(function(){',final),end=source.indexOf('</script>',final);
+ const final=source.indexOf('var baseRelevant=v2Relevant;'),start=source.lastIndexOf('(function(){',final),end=source.indexOf('</script>',final);
  vm.runInContext(source.slice(start,end),scope);
  if(initialized)vm.runInContext(source.slice(source.indexOf('const V2_SOURCE_MODE_GROUPS='),source.indexOf('function v2ProgramTopics(')),scope);
 }
 function client(file,programs,options={}){
  const source=fs.readFileSync(new URL('../'+file,import.meta.url),'utf8').replace(/\r\n/g,'\n'),start=source.indexOf('async function v2LoadProfile('),end=source.indexOf('\nfunction v2RejectEmbed(',start),saved=[];
  let lane,providerCalls=0;
+ const server=async()=>{providerCalls++;return options.serverPending||lane;};
  const profile={...sourceProfile({profileKey:key}),name:'Cartoon Time Machine',intent:'animation',providers:['youtube'],serverOnly:true,...options.profile},state={items:options.active||[],cursor:0};
- const scope={window:{RealSignalSourcePrograms:policy},v2PreviewState:{555:state},v2PreviewInflight:{},v2PreviewFirstReady:{},V2_SOURCE_CACHE_VERSION:50,V2_SOURCE_MIN_CATALOG:12,V2_SOURCE_CACHE_TTL:60000,V2_SOURCE_CATALOG_SIZE:96,
- store:{get:k=>k==='v2source:'+profile.name?options.cached||null:null,set:(_key,value)=>saved.push(value)},v2NextRotation:()=>0,v2Provider:async(_n,_p,_r,onFirst)=>{providerCalls++;onFirst(lane);return lane;},
- v2RoundRobin:rows=>rows.flat(),v2Unique:xs=>[...new Map(xs.map(x=>[x.id,x])).values()],v2MergeCatalog:(_p,a,b)=>[...new Map(a.concat(b).map(x=>[x.id,x])).values()],v2CatalogOrder:(_k,x)=>x,v2Landscape:()=>true,v2ProfileRuntimeOkay:()=>true,v2SourceHealth:()=>({}),refreshGuideData(){},nlog(){},setTimeout:()=>0,Date,Promise};
+ const scope={window:{RealSignalSourcePrograms:policy},v2PreviewState:{555:state},v2PreviewInflight:{},V2_SOURCE_CACHE_VERSION:50,V2_SOURCE_MIN_CATALOG:12,V2_SOURCE_CACHE_TTL:60000,V2_SOURCE_CATALOG_SIZE:96,
+ store:{get:k=>k==='v2source:'+profile.name?options.cached||null:null,set:(_key,value)=>saved.push(value)},v2NextRotation:()=>0,v2ServerSourceCatalog:server,v2Recent:()=>options.recent||[],
+ v2Unique:xs=>[...new Map(xs.map(x=>[x.id,x])).values()],v2MergeCatalog:(_p,a,b)=>[...new Map(a.concat(b).map(x=>[x.id,x])).values()],v2CatalogOrder:(_k,x)=>x,v2Landscape:()=>true,v2ProfileRuntimeOkay:()=>true,v2SourceHealth:()=>({}),refreshGuideData(){},nlog(){},setTimeout:()=>0,Date,Promise};
  vm.createContext(scope);legacyRelevance(source,scope,profile,options.initialized);const prune=source.match(/^function v2PruneSourcePrograms\([^\n]+/m);if(prune)vm.runInContext(prune[0],scope);vm.runInContext(source.slice(start,end),scope);
- return {state,saved,get providerCalls(){return providerCalls;},async load(){lane={provider:'Server Catalog',items:programs||[item(bad,'bad'),item('Classic Cartoon Full Episode','good')]};await scope.v2LoadProfile({num:555},profile,1);await new Promise(r=>setImmediate(r));}};
+ return {state,saved,get providerCalls(){return providerCalls;},start(){lane={provider:'Server Catalog',items:programs||[item(bad,'bad'),item('Classic Cartoon Full Episode','good')]};return scope.v2LoadProfile({num:555},profile,1);},async load(){await this.start();await new Promise(r=>setImmediate(r));}};
 }
 for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': AI rows are removed from fresh server replies, saved caches and active shelves',async()=>{
  const good=item('Classic Cartoon Full Episode','good'),badRow={...synthetic[5],id:'ai'};
@@ -248,6 +249,50 @@ for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': 
 for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': both early and final server shelves are requalified before cache/guide publication',async()=>{
  const h=client(file);await h.load();assert.deepEqual(Array.from(h.state.items,x=>x.id),['good']);assert.ok(h.saved.length);assert.ok(h.saved.every(x=>x.items.every(i=>i.id==='good')));
 });
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
+  test(file + ': one catalog response publishes and persists once', async () => {
+    const h = client(file);
+    await h.load();
+    assert.equal(h.providerCalls, 1);
+    assert.equal(h.saved.length, 1);
+  });
+
+  test(file + ': a qualified unseen program in a shallow cache is ready while the server refills', async () => {
+    const available = item('Classic Cartoon Full Episode', 'unseen');
+    const cached = { version: 50, at: Date.now(), items: [available] };
+    const h = client(file, [], { cached, serverPending: new Promise(() => {}) });
+    h.start();
+    assert.deepEqual(Array.from(h.state.items, row => row.id), ['unseen']);
+  });
+
+  test(file + ': concurrent loads share a single request and keep previously qualified programs', async () => {
+    const retained = item('Classic Cartoon Full Episode', 'retained');
+    const discovered = item('Classic Cartoon Full Episode', 'discovered');
+    let finish;
+    const serverPending = new Promise(resolve => { finish = resolve; });
+    const h = client(file, [], {
+      cached: { version: 50, at: Date.now(), items: [retained] },
+      serverPending, recent: ['retained'],
+    });
+    const first = h.start(), second = h.start();
+    assert.equal(h.providerCalls, 1);
+    finish({ provider: 'Server Catalog', items: [discovered] });
+    await Promise.all([first, second]);
+    assert.deepEqual(Array.from(h.state.items, row => row.id).sort(), ['discovered', 'retained']);
+    assert.equal(h.saved.length, 1);
+  });
+
+  test(file + ': a shallow cache with only watched programs waits for the server catalog', async () => {
+    const watched = item('Classic Cartoon Full Episode', 'seen');
+    const unseen = item('Another Classic Cartoon Full Episode', 'unseen');
+    const h = client(file, [unseen], { cached: { version: 50, at: Date.now(), items: [watched] }, recent: ['seen'] });
+    const loading = h.start();
+    assert.equal(h.state.items.length, 0);
+    await loading;
+    assert(h.state.items.some(row => row.id === 'unseen'));
+  });
+}
+
 for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': fresh server-approved episodes survive the actual stricter legacy relevance wrappers',async()=>{
  const programs=[{...item('Recess First Full Episode | The Break In / The New Kid | S1 E1','recess'),description:'Full episode of Recess.',account:'Disney Channel Animation'},item('Looney Tunes | Wile E. Coyote vs Road Runner Full Episodes | Warner Classics','looney')];
  const h=client(file,programs);await h.load();assert.deepEqual(Array.from(h.state.items,x=>x.id),['recess','looney']);

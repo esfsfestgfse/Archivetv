@@ -7,10 +7,6 @@ const path = require('node:path');
 const repo = path.resolve(__dirname, '..');
 const files = ['the_dial_desktop.html', 'the_dial_mobile.html'];
 const issues = [];
-const bridge = fs.readFileSync(path.join(repo, 'assets', 'source-catalog-client.js'), 'utf8');
-if (!bridge.includes('IA_API_BASE + "/source/catalog"') || !bridge.includes('serverCatalog')) issues.push('server catalog bridge must be present and marked as the preferred Source Suite path');
-if (!bridge.includes('realsignal:source-freshness:v3') || !bridge.includes('playedIds: recentFor(profileKey).slice(0, 1)') || !bridge.includes('__rsRecordSourcePlay') || bridge.includes('remember(profileKey, fresh.items)')) issues.push('Source Suite freshness must be newest-first and record actual plays, not catalog fetches');
-if (!bridge.includes('Source Suite discovery is server-only') || !bridge.includes('skipped: "server-catalog-unavailable"') || bridge.includes('return originalProvider.apply(this, arguments);\n  };')) issues.push('Source Suite must not fall back to browser-side provider discovery when the server catalog is unavailable');
 const serverCatalog = fs.readFileSync(path.join(repo, 'realsignal_source_catalog.js'), 'utf8');
 if (!serverCatalog.includes('raw.length < SOURCE_MIN_READY') || !serverCatalog.includes('SOURCE_QUERY_WINDOW = 4') || !serverCatalog.includes('SOURCE_MAX_QUERY_WINDOW = 6') || !serverCatalog.includes('profile.queryWindow || SOURCE_QUERY_WINDOW') || !serverCatalog.includes('profile.peerTubeQueryWindow || profile.queryWindow') || !serverCatalog.includes('profile.peerTubeQueries.length ? profile.peerTubeQueries') || !serverCatalog.includes('curatedRemainder = rotate(peerTubePool') || !serverCatalog.includes('peerTubeFallbackQueryWindow') || !serverCatalog.includes('peerTubeInstances(env, profile)') || !serverCatalog.includes('peerTubeInstanceLimit') || !serverCatalog.includes('peerTubeDetailLimit') || !serverCatalog.includes('profile.peerTubeInstances') || !serverCatalog.includes('SOURCE_DETAIL_TIMEOUT_MS = 3500') || !serverCatalog.includes('withTimeout(fetchJson(`${item.instance}/api/v1/videos/') || !serverCatalog.includes('youtubeSearchDuration(profile, rotation)') || !serverCatalog.includes('Full television/film/performance lanes are') || !serverCatalog.includes('SOURCE_YOUTUBE_QUERY_CONCURRENCY = 2') || !serverCatalog.includes('Math.ceil(ids.length / 50)') || !serverCatalog.includes('SOURCE_PROVIDER_BUDGET_MS = 4500') || !serverCatalog.includes('withTimeout(task, SOURCE_PROVIDER_BUDGET_MS)') || !serverCatalog.includes('profile.fallbackProfiles') || !serverCatalog.includes('function sourceTasks(profile, env, rotation, options = {})') || !serverCatalog.includes('const firstLane = options.firstLane === true') || !serverCatalog.includes('firstLane ? 1') || !serverCatalog.includes('OK_VIDEO_SITEMAP_INDEX') || !serverCatalog.includes('export function sourceRefreshTasks') || !serverCatalog.includes('maintenance-only sitemap discovery')) issues.push('Source discovery must rotate a bounded query window, keep full-program lanes in the long-form bucket, bound PeerTube fan-out and per-item detail latency, enforce a provider admission budget, chunk detail hydration to 50 IDs, support explicit family fallbacks, release a narrow first playable lane before full refresh, and keep OK sitemap indexing off the foreground path');
 if (!serverCatalog.includes('profile.formats') || !serverCatalog.includes('strictTopicTerms') || !serverCatalog.includes('identityHaystack') || !serverCatalog.includes('program-form signal in the actual title') || !serverCatalog.includes('formatRelaxed === true && duration >= 20 * 60') || !serverCatalog.includes('approved.formatRelaxed === true')) issues.push('Entertainment Source Suite lanes must require an actual full-program form, with only explicitly relaxed long-form profiles allowed to use duration as the form signal and strict lanes must have title-level topic evidence');
@@ -129,38 +125,24 @@ for (const file of files) {
   const name = file;
   const required = [
     [/V2_SOURCE_CACHE_VERSION=(?:4[1-9]|[5-9][0-9]|[1-9][0-9]{2,})(?:,|;)/, 'source catalog cache version must invalidate strict-catalog shelves'],
-    [/retainedItems=Array\.isArray\(cached&&cached\.items\)\?cached\.items[^\n]{0,250}\.filter/, 'previously verified source items must survive provider outages after requalification'],
     [/cacheValid=!!cached&&Number\(cached\.version\|\|0\)===V2_SOURCE_CACHE_VERSION/, 'only a current source catalog cache may be treated as fresh'],
     [/item\.account,item\.channelTitle/, 'YouTube language screening must inspect channel identity'],
     [/V2_SOURCE_CACHE_TTL=12\*60\*1000/, 'source catalog cache must expire quickly enough to rotate'],
-    [/function v2MapLimit\(/, 'provider fan-out must be concurrency bounded'],
-    [/if\(name===\"peertube\"\)return v2PeerTubeCold\(profile,rotation,onFirst\)/, 'PeerTube must receive the early verified-results callback'],
-    [/async function v2PeerTubeCold\(/, 'PeerTube must have a dedicated cold-start lane'],
-    [/function publishFirst\(index,result\)/, 'the catalog loader must release the early verified lane to playback'],
-    [/install\(results\.filter\(Boolean\),true,false\)/, 'partial cold-start catalogs must not replace the persisted full catalog'],
     [/href="https:\/\/www\.youtube-nocookie\.com"/, 'the YouTube embed origin must be preconnected for cold starts'],
     [/function v2Verified\(/, 'items must carry a common verification envelope'],
     [/V2_SOURCE_MIN_RUNTIME=15\*60/, 'Source Suite programming must require television-length programs'],
     [/function v2ProgramRuntimeOkay\(/, 'every source item must pass the shared television-runtime gate'],
-    [/merged[^\n]+\.filter\(function\(item\)\{return [^;]*v2Landscape\(item\)&&v2ProfileRuntimeOkay\(item,profile\);\}\)/, 'the final source catalog merge must re-enforce the profile-specific runtime floor'],
     [/!v2Landscape\(item\)\|\|\(!musicOkay&&!v2ProgramRuntimeOkay\(item\)\)/, 'runtime qualification must be enforced at verification time'],
     [/musicOkay=window\.RealSignalOKEmbed\.musicProfile\(profile\)&&window\.RealSignalOKEmbed\.qualify\(profile,item\)/, 'the music runtime exception must be bound to an approved and verified music profile'],
     [/Number\(data\.info\)===0\)advance\(\)|onEnded:function\(\)\{if\(current\(\)&&typeof window\.__v2PreviewNext==="function"\)window\.__v2PreviewNext\(\)/, 'YouTube embeds must advance on their ended signal (shared SDK EOF lifecycle is behavior-tested separately)'],
     [/function v2SourceHealth\(/, 'provider health must be persisted'],
-    [/function v2Loc\(/, 'Library of Congress must have a runtime lane'],
-    [/p==="youtube"\|\|p==="peertube"/, 'source-suite runtime must restrict providers to YouTube and PeerTube'],
     [/v2LoadProfile\(ch,profile,token,true\)/, 'near-exhausted catalogs must force a rolling refresh'],
     [/V2_SOURCE_READY_BUFFER=5/, 'the source suite must keep a five-program target buffer'],
     [/V2_SOURCE_MIN_CATALOG=12/, 'a twelve-program catalog must be required before a source shelf is treated as healthy'],
     [/function v2Shelf\(/, 'catalog ordering must persist the last on-air shelf'],
-    [/function v2Hash\(/, 'source rotation must have a stable per-lane hash'],
     [/function v2NextRotation\(/, 'source refreshes must advance a persisted rotation counter'],
-    [/function v2QueryWindow\(/, 'provider queries must rotate through the full lane query pool'],
-    [/function v2DiscoveryQueries\(/, 'each provider pass must combine a permanent channel anchor with rotating discovery'],
     [/const V2_SOURCE_MODE_GROUPS=/, 'every source channel must declare a programming intent'],
     [/const V2_SOURCE_TOPIC_OVERRIDES=/, 'every source channel must declare strict topic anchors'],
-    [/function v2ProgramQueries\(/, 'source discovery must generate program-form queries'],
-    [/suffixes\.forEach\(function\(suffix\)\{topics\.forEach/, 'each provider pass must stripe queries across channel topics'],
     [/function v2ProgramDeny\(/, 'source discovery must reject commentary and seminar filler'],
     [/profileDeny=Array\.isArray\(profile&&profile\.deny\)\?profile\.deny:\[\]/, 'each Source Suite channel must enforce its declared deny list'],
     [/function v2ProgramTitleDeny\(/, 'animation discovery must reject production-talk titles without poisoning film descriptions'],
@@ -173,19 +155,11 @@ for (const file of files) {
     [/playlistRatio=v2AspectRatio\(value\.streamingPlaylists\)/, 'PeerTube landscape checks must understand playlist renditions'],
     [/function v2Landscape\(/, 'source items must be landscape-only'],
     [/function v2SourceTokens\(/, 'genre qualification must share a tokenized focus vocabulary'],
-    [/sortModes=\["-match","-publishedAt","-views","-likes"\]/, 'PeerTube discovery must rotate result ordering'],
     [/function v2TuneRefreshed\(/, 'sparse queues must wait for a genuinely different next item'],
-    [/prior=v2Unique\(cachedItems\.concat\(state\.items\|\|\[\]\)\),merged=v2MergeCatalog\(profile,prior,discovered\)/, 'rolling refreshes must retain and extend verified programs instead of replacing the shelf'],
     [/function v2MergeCatalog\(profile,prior,discovered\)\{return v2Unique\(.*discovered\.concat\(prior\):prior\.concat\(discovered\)\);\}/, 'OK refreshes prioritize fresh server results while other profiles retain their merge order'],
     [/state\.items\.length<=V2_SOURCE_READY_BUFFER/, 'small queues must refresh before replaying a program'],
     [/cachedItems\.length>=V2_SOURCE_MIN_CATALOG/, 'verified cached catalogs must be retained while a refresh expands them'],
-    [/\.slice\(0,[45]\),queries=v2DiscoveryQueries\(profile,"peertube"/, 'PeerTube discovery must use all approved instances and anchored rotating query lanes'],
-    [/V2_SOURCE_MAX_CONCURRENCY=8/, 'PeerTube discovery must complete its first pass with bounded parallel fan-out'],
-    [/queries=v2DiscoveryQueries\(profile,"peertube",rotation,Math\.min\(4,/, 'browser PeerTube fallback must retain its bounded first pass'],
     [/19\[3-9\]\\d\|20\\d\\d\|classic\|vintage\|retro\|golden age\|saturday morning/, 'Cartoon Time Machine must reject modern animation bleed without an era signal'],
-    [/Math\.min\(24,V2_SOURCE_MAX_DETAIL\)/, 'PeerTube detail hydration must retain a deeper catalog'],
-    [/aspect=v2AspectRatio\(d\)\|\|v2AspectRatio\(x\)\|\|v2AspectRatio\(file\)/, 'PeerTube must verify the source aspect ratio'],
-    [/!v2CandidateRelevant\(profile,candidate\)/, 'PeerTube candidates must pass strict qualification after full metadata hydration'],
     [/item\.account,item\.query/, 'hydrated qualification must retain the provider search query as editorial evidence'],
     [/1990s cartoon full episode/, 'Cartoon Time Machine must include 1990s full-episode discovery'],
     [/2000s cartoon full episode/, 'Cartoon Time Machine must include 2000s full-episode discovery'],
@@ -196,22 +170,13 @@ for (const file of files) {
     [/seconds&&\(isTelevision\?seconds<600/, 'Cartoon Time Machine must reject undersized TV results without capping long cartoon blocks'],
     [/verification:\{metadata:true,rights:true,landscape:true/, 'verified source items must record landscape proof'],
     [/runtime:true/, 'verified source items must record runtime proof'],
-    [/store\.set\("v2source:"\+key,\{version:V2_SOURCE_CACHE_VERSION,at:Date\.now\(\),items:items,health:state\.health\}\)/, 'catalog cache must retain provider health'],
     [/fl\[\]=license.*fl\[\]=rights/, 'Archive discovery must request rights metadata'],
-    [/assets\/source-catalog-client\.js/, 'the browser must prefer the server-side Source Suite catalog bridge'],
   ];
   for (const [pattern, message] of required) if (!pattern.test(source)) issues.push(`${name}: ${message}`);
 
-  const peerStart = source.indexOf('async function v2PeerTube(');
-  const peerEnd = source.indexOf('async function v2YouTube(', peerStart);
-  const peer = peerStart >= 0 && peerEnd > peerStart ? source.slice(peerStart, peerEnd) : '';
-  if (/Promise\.all\(raw\.map|type:"embed"/.test(peer)) issues.push(`${name}: PeerTube detail lane must not use unbounded work or unverifiable embed fallbacks`);
-  if (!/return \{provider:"PeerTube",items:/.test(peer)) issues.push(`${name}: PeerTube must return normalized provider results and health`);
-
-  const youtubeStart = source.indexOf('async function v2YouTube(');
-  const archiveStart = source.indexOf('async function v2Archive(', youtubeStart);
-  const youtube = youtubeStart >= 0 && archiveStart > youtubeStart ? source.slice(youtubeStart, archiveStart) : '';
-  if (!/server catalog required/.test(youtube) || /YOUTUBE_KEY|youtube\/v3/.test(youtube)) issues.push(`${name}: browser YouTube discovery must be disabled in favor of the server catalog`);
+  if (!source.includes('v2ServerSourceCatalog(profile,v2NextRotation(key)') || /function v2(?:Provider|Archive|Loc|PeerTubeCold)\(/.test(source)) {
+    issues.push(name + ': Source Suite catalog reads must use one server adapter');
+  }
   if (!/function v2YouTubeBlocked\(/.test(source) || !/function v2YouTubeEnglish\(/.test(source) || !/function v2ProgramRuntimeOkay\(/.test(source)) issues.push(`${name}: server-returned YouTube items must retain Shorts, language, how-to, and runtime gates`);
   if (!/tags:metadata\.tags,category:metadata\.category,account:metadata\.account/.test(source) && !/verification:\{metadata:true,rights:true,landscape:true/.test(source)) issues.push(`${name}: YouTube catalogs must preserve qualification metadata across cache restores`);
   if (/YOUTUBE_KEY|https:\/\/www\.googleapis\.com\/youtube\/v3/.test(source)) issues.push(`${name}: browser must not contain a direct YouTube API credential or endpoint`);

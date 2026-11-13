@@ -282,6 +282,15 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     assert.equal(h.saved.length, 1);
   });
 
+  test(file + ': a verified program is available after server-confirmed exhaustion', async () => {
+    const watched = item('Classic Cartoon Full Episode', 'seen');
+    const serverPending = Promise.resolve({ provider: 'Server Catalog', items: [watched], health: { catalogExhausted: true } });
+    const h = client(file, [], { recent: ['seen'], serverPending });
+    await h.load();
+    assert.deepEqual(Array.from(h.state.items, row => row.id), ['seen']);
+    assert.equal(h.state.catalogExhausted, true);
+  });
+
   test(file + ': a shallow cache with only watched programs waits for the server catalog', async () => {
     const watched = item('Classic Cartoon Full Episode', 'seen');
     const unseen = item('Another Classic Cartoon Full Episode', 'unseen');

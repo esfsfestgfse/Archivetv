@@ -9253,8 +9253,8 @@ async function v2LoadProfile(ch,profile,my,force=false){
   var key=profile.name,state=v2PreviewState[ch.num]||(v2PreviewState[ch.num]={items:[],cursor:0,currentTitle:"",provider:"SOURCE PILOT"});
   var sourceAudit=window.__rsPlaybackAudit&&window.__rsPlaybackAudit.source(ch.num);
   if(sourceAudit)sourceAudit("load-enter",{items:state.items.length,inflight:!!v2PreviewInflight[key]});
-  v2PruneSourcePrograms(profile,state);
   if(v2PreviewInflight[key])return v2PreviewInflight[key];
+  v2PruneSourcePrograms(profile,state);
 
   var isOK=/^ok-/.test(profile.profileKey),isVimeo=/^vimeo-/.test(profile.profileKey);
   function qualify(items,fromCache){
@@ -9304,8 +9304,9 @@ async function v2LoadProfile(ch,profile,my,force=false){
     var prior=v2Unique(cachedItems.concat(state.items)),merged=v2MergeCatalog(profile,prior,discovered);
     var items=v2CatalogOrder(key,merged).slice(0,V2_SOURCE_CATALOG_SIZE);
     state.health=v2SourceHealth(key,[result]);
-    if(!isOK&&!isVimeo&&!result?.health?.error)state.catalogExhausted=result?.health?.catalogExhausted===true;
-    if(items.length&&(state.items.length||unseen(items)||state.catalogExhausted)){
+    var catalogExhausted=!result?.health?.error&&result?.health?.catalogExhausted===true;
+    if(!isOK&&!isVimeo&&!result?.health?.error)state.catalogExhausted=catalogExhausted;
+    if(items.length&&(state.items.length||unseen(items)||catalogExhausted)){
       install(items);
       if(discovered.length)store.set("v2source:"+key,{version:V2_SOURCE_CACHE_VERSION,at:Date.now(),items:state.items,health:state.health});
       refreshGuideData();

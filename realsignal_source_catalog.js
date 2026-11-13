@@ -17,7 +17,7 @@ import { okSearchRows, okSearchResultRows, okSearchPageRequest, okQueryOffset, o
 import { OK_VERIFIED_SEARCH_SEED } from "./ok_verified_search_seed.js";
 import { okAnimationFamily, okAnimationQueries, okAnimationIdentity, okAnimationPrecheck, okAnimationVerified } from "./ok_animation_catalog.js";
 import { okCuratedChannel, okCuratedQueries, okCuratedIdentity, okCuratedPrecheck, okCuratedVerified } from "./ok_curated_tv_catalog.js";
-import { okMusicChannel, okMusicQueries, okMusicPrecheck, okMusicVerified, okMusicIdentities } from "./ok_music_catalog.js";
+import { okMusicChannel, okMusicProfileKey, okMusicYears, okMusicQueries, okMusicPrecheck, okMusicVerified, okMusicIdentities } from "./ok_music_catalog.js";
 import { OK_ANIMATION_VERIFIED_SEED } from "./ok_animation_verified_seed.js";
 import { SOURCE_PROFILE_REGISTRY } from "./source_suite_profile_registry.js";
 import { nascarCatalog, nascarReplayAllowed } from "./nascar_catalog.js";
@@ -482,7 +482,7 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
   const curated = okCuratedChannel(profile);
   const music = okMusicChannel(profile);
   // Music metadata work belongs exclusively to background ingestion.
-  if (music && options.maintenance !== true) return { provider: "OK.ru", items: okBalancedCandidates([(OK_VERIFIED_SEARCH_SEED[profile.profileKey] || []).map(item => qualifySourceItem(profile,item)).filter(Boolean)],"music",SOURCE_MAX_ITEMS), health: { skipped: true, reason: "verified-music-catalog-only" } };
+  if (music && options.maintenance !== true) return { provider: "OK.ru", items: okBalancedCandidates([okVerifiedSeed(profile)],"music",SOURCE_MAX_ITEMS), health: { skipped: true, reason: "verified-music-catalog-only" } };
   const errors = [];
   const cursor = firstLane ? rotation : await okDiscoveryCursor(env.realsignal_catalog, profile.profileKey, rotation);
   let seriesTitles = [];
@@ -629,7 +629,7 @@ export function isOKSourceProfile(value) {
 
 export function qualifySourceItem(profile, item) {
   if (!profile || !item) return null;
-  if (profile.derivedCatalogOnly === true && Number(item.seriesDecade) !== Number(profile.seriesDecade)) return null;
+  if (profile.derivedCatalogOnly === true && !profile.musicYears && Number(item.seriesDecade) !== Number(profile.seriesDecade)) return null;
   if (okAnimationFamily(profile) && !okAnimationVerified(profile,item)) return null;
   if (okCuratedChannel(profile) && !okCuratedVerified(profile,item)) return null;
   if (okMusicChannel(profile) && !okMusicVerified(profile,item)) return null;
@@ -658,10 +658,11 @@ function normalizedProfile(body) {
   const derivedCatalogOnly = registered.derivedCatalogOnly === true;
   const parentProfileKey = derivedCatalogOnly ? text(registered.parentProfileKey, 120).toLowerCase() : "";
   const parent = derivedCatalogOnly ? SOURCE_PROFILE_REGISTRY[parentProfileKey] : null;
-  const seriesDecade = derivedCatalogOnly ? Number(registered.seriesDecade) : 0;
-  if (derivedCatalogOnly && (!parent || parent.intent !== "television" || !Array.isArray(parent.providers)
-      || !parent.providers.some((provider) => /^ok-(?:search|manifest|api)$/.test(provider))
-      || !OK_TV_INDEX_DECADES.includes(seriesDecade))) return null;
+  const musicYears = derivedCatalogOnly && parent?.intent === "music" && okMusicProfileKey({ profileKey }) === parentProfileKey
+    ? okMusicYears({ profileKey }) : null;
+  const seriesDecade = derivedCatalogOnly ? Number(registered.seriesDecade) || 0 : 0;
+  if (derivedCatalogOnly && (!parent || !isOKSourceProfile(parent)
+      || !(musicYears || parent.intent === "television" && OK_TV_INDEX_DECADES.includes(seriesDecade)))) return null;
   const approved = derivedCatalogOnly ? { ...parent, ...registered } : registered;
   const queryLimit = Math.max(SOURCE_MAX_QUERIES, Math.min(32, Number(approved.queryLimit) || SOURCE_MAX_QUERIES));
   return {
@@ -669,6 +670,7 @@ function normalizedProfile(body) {
     parentProfileKey,
     derivedCatalogOnly,
     seriesDecade,
+    musicYears,
     name: approved.name,
     queries: list(approved.queries, queryLimit),
     okApiQueries: list(approved.okApiQueries, queryLimit),
@@ -1467,14 +1469,20 @@ async function okApi(profile, rotation, env, options = {}) {
   };
 }
 
+export function okVerifiedSeed(profile) {
+  if (!profile || !(okMusicChannel(profile) || okCuratedChannel(profile))) return [];
+  return (OK_VERIFIED_SEARCH_SEED[okMusicProfileKey(profile)] || []).map(item => qualifySourceItem(profile, item)).filter(Boolean);
+}
+
 function okPublicManifest(profile, rotation, options = {}) {
   const firstLane = options.firstLane === true;
   const candidates = [...(OK_PUBLIC_EMBED_MANIFEST[profile.profileKey] || []), ...(OK_VERIFIED_SEARCH_SEED[profile.profileKey] || []), ...(OK_ANIMATION_VERIFIED_SEED[profile.profileKey] || [])];
   const qualified = rotate(unique(candidates), rotation).map((item) => qualifySourceItem(profile, item)).filter(Boolean);
-  const items = okMusicChannel(profile) ? okBalancedCandidates([qualified],"music",SOURCE_MAX_ITEMS) : qualified;
+  const kind = okMusicChannel(profile) ? "music" : okCuratedChannel(profile) ? "tv" : "";
+  const items = kind ? okBalancedCandidates([qualified], kind, SOURCE_MAX_ITEMS) : qualified;
   return {
     provider: "OK.ru",
-    items: items.slice(0, firstLane && !okMusicChannel(profile) ? 8 : SOURCE_MAX_ITEMS).map((item) => normalized(item, "OK.ru", item.query)),
+    items: items.slice(0, firstLane && !kind ? 8 : SOURCE_MAX_ITEMS).map((item) => normalized(item, "OK.ru", item.query)),
     health: { manifest: true, searched: 0, candidates: candidates.length, details: items.length, errors: [], firstLane, constrained: items.length < SOURCE_MIN_READY },
   };
 }

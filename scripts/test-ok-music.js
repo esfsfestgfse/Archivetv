@@ -18,7 +18,7 @@ const { pathToFileURL } = require('node:url');
   assert.equal(identity.musicArtist, 'Janet Jackson');
   assert.equal(music.okMusicIdentityFromResults(item, { recordings: [{ ...recording, title: 'Control' }] }), null);
   assert.equal(music.okMusicIdentityFromResults(item, { recordings: [{ ...recording, 'artist-credit': [{ name: 'Other Artist', artist: { id: recording.id, name: 'Other Artist' } }] }] }), null);
-  for (const date of ['1979-12-31', '2010-01-01', '']) assert.equal(music.okMusicIdentityFromResults(item, { recordings: [{ ...recording, 'first-release-date': date }] }), null);
+  for (const date of ['1979-12-31', '2020-01-01', '']) assert.equal(music.okMusicIdentityFromResults(item, { recordings: [{ ...recording, 'first-release-date': date }] }), null);
   const verified = { ...item, ...identity };
   assert.ok(source.qualifySourceItem(profile, verified));
   assert.equal(source.qualifySourceItem(profile, { ...verified, musicVerified: false }), null);
@@ -40,6 +40,40 @@ const { pathToFileURL } = require('node:url');
   const status = await (await worker.default.fetch(new Request('https://api.example/api/v3/source/status?profileKey='+profile.profileKey),{realsignal_catalog:db},{waitUntil(){}})).json();
   assert.equal(status.items.length,1,'verified music must survive the D1 read path and appear in guide/status');
   assert.equal(status.items[0].musicReleaseYear,1989);
+  // Exercise each derived station with its own history against both startup paths.
+  const stations = [
+    ['soul-flow',597,605], ['country-video',598,606], ['video-hits',599,607],
+  ];
+  for (const [family,earlyChannel,laterChannel] of stations) for (const [era,channel] of [['1980-1999',earlyChannel],['2000-2019',laterChannel]]) {
+    const key = 'ok-'+family+'-channel-'+era;
+    const eraProfile = source.sourceProfile({profileKey:key});
+    const [start,end] = era.split('-').map(Number);
+    assert.deepEqual(eraProfile.musicYears,[start,end]);
+    for(const file of ['the_dial_desktop.html','the_dial_mobile.html']){
+      const html=fs.readFileSync(path.join(root,file),'utf8');
+      const row=html.split(/\\r?\\n/).find(line=>line.includes('num:'+channel+',')&&line.includes('previewKey:"'+key+'"'));
+      assert.ok(row, file+' is missing channel '+channel);
+    }
+    for(const env of [{},{realsignal_catalog:db}]){
+      const seen=new Set(),recentIds=[];
+      for(let rotation=0;rotation<4;rotation++){
+        const response=await worker.default.fetch(new Request('https://api.example/api/v3/source/catalog',{
+          method:'POST',headers:{'content-type':'application/json'},
+          body:JSON.stringify({profileKey:key,count:5,rotation,recentIds}),
+        }),env,{waitUntil(){}});
+        assert.equal(response.status,200);
+        const result=await response.json();
+        assert.ok(result.catalogDepth>=20,key+' should not have a five-track catalog');
+        assert.equal(result.items.length,5);
+        assert.equal(new Set(result.items.map(item=>Math.floor(item.musicReleaseYear/10))).size,2,key+' should offer both decades');
+        for(const item of result.items){
+          assert.ok(item.musicReleaseYear>=start&&item.musicReleaseYear<=end);
+          assert.ok(!seen.has(item.musicTrackKey),key+' repeated '+item.musicTrackKey);
+          seen.add(item.musicTrackKey); recentIds.unshift(item.id);
+        }
+      }
+    }
+  }
   sql.close();
   const window = {};
   vm.runInNewContext(fs.readFileSync(path.join(root, 'assets/ok-embed-runtime.js'), 'utf8'), { window, URL });
@@ -50,11 +84,11 @@ const { pathToFileURL } = require('node:url');
     assert.equal(source.qualifySourceItem(profile,rejected),null,'server rejection: '+JSON.stringify(change));
     assert.equal(window.RealSignalOKEmbed.qualify(profile,rejected),false,'browser admission must match server: '+JSON.stringify(change));
   }
-  assert.equal(window.RealSignalOKEmbed.programKey(verified), identity.identityReference);
+  assert.equal(window.RealSignalOKEmbed.programKey(verified), identity.musicTrackKey);
   const copy = { ...verified, id: 'ok:copy' };
   assert.equal(window.RealSignalOKEmbed.order(profile, [verified, copy]).length, 1, 'alternate uploads of a song are one program');
   const helpers = await import(pathToFileURL(path.join(root, 'ok_public_search.js')));
-  assert.equal(helpers.okPlaybackIdentity(verified, 'music'), identity.identityReference);
+  assert.equal(helpers.okPlaybackIdentity(verified, 'music'), identity.musicTrackKey);
   const coldPlan = source.sourceCatalogTasks({profileKey:profile.profileKey},{},0,{firstLane:true});
   const coldLanes = await Promise.all(coldPlan.tasks);
   for (const lane of coldLanes) assert.equal(new Set(lane.items.map(x=>x.identityReference)).size,lane.items.length,'each no-D1 startup rail must deduplicate songs before returning');
@@ -66,7 +100,7 @@ const { pathToFileURL } = require('node:url');
   assert.equal(coldResponse.status,200);
   assert.ok(coldResult.items.length>=5,'no-D1 API starts from verified bootstrap without provider discovery');
   assert.equal(new Set(coldResult.items.map(x=>x.identityReference)).size,coldResult.items.length,'the public no-D1 response is canonical before persistence finishes');
-  const songs = Array.from({ length: 12 }, (_, i) => ({ ...verified, id: 'ok:' + i, musicArtistId: 'artist-' + i, seriesId: 'artist-' + i, identityReference: 'track-' + i }));
+  const songs = Array.from({ length: 12 }, (_, i) => ({ ...verified, id: 'ok:' + i, musicArtistId: 'artist-' + i, seriesId: 'artist-' + i, identityReference: 'track-' + i, musicTrackKey: 'track-' + i }));
   const ordered = window.RealSignalOKEmbed.order(profile, songs, ['artist-0','artist-1','artist-2','artist-3','artist-4','artist-5','artist-6','artist-7']);
   assert.ok(!['artist-0','artist-1','artist-2','artist-3','artist-4','artist-5','artist-6','artist-7'].includes(ordered[0].musicArtistId), 'last eight artists are avoided when alternatives exist');
   for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
@@ -86,15 +120,15 @@ const { pathToFileURL } = require('node:url');
     assert.equal(context.v2ProfileRuntimeOkay(verified,profile),true);
     assert.equal(context.v2ProfileRuntimeOkay(verified,{profileKey:'ok-tv-channel',minRuntimeSeconds:900}),false);
     context.v2Remember(profile.name,verified);
-    const next = {...verified,id:'ok:next',musicArtistId:'another-artist',identityReference:'another-track'};
+    const next = {...verified,id:'ok:next',musicArtistId:'another-artist',identityReference:'another-track',musicTrackKey:'another-track'};
     const state = {items:[{...verified,id:'ok:other-song'},next],cursor:0};
     assert.equal(context.v2FreshCursor(profile,state),1,'Next avoids an artist just watched when another artist is available');
     saved.set('v2recent:'+profile.name,[verified.id,next.id]);
-    saved.set('v2recentPrograms:'+profile.name,[verified.identityReference,next.identityReference]);
+    saved.set('v2recentPrograms:'+profile.name,[verified.musicTrackKey,next.musicTrackKey]);
     const exhausted = {items:[verified,next],cursor:0};
     assert.equal(context.v2FreshCursor(profile,exhausted),1,'artist spacing must survive catalog exhaustion');
     const alternate = {...verified,id:'ok:alternate'};
-    const sameArtistNewSong = {...verified,id:'ok:new-song',identityReference:'new-song'};
+    const sameArtistNewSong = {...verified,id:'ok:new-song',identityReference:'new-song',musicTrackKey:'new-song'};
     const unseen = {items:[alternate,next,sameArtistNewSong],cursor:0};
     assert.equal(context.v2FreshCursor(profile,unseen),2,'a genuinely unseen song wins over both a watched alternate upload and an artist-spaced repeat');
   }

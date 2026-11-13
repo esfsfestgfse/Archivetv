@@ -35,7 +35,7 @@ const { pathToFileURL } = require('node:url');
   const seed=OK_VERIFIED_SEARCH_SEED[country.profileKey];
   assert.ok(new Set(seed.map(x=>x.identityReference)).size>=80,'country launches with depth behind its ready shelf');
   assert.ok(new Set(seed.map(x=>x.musicArtistId)).size>=30,'country launches with artist variety');
-  assert.deepEqual([...new Set(seed.map(x=>Math.floor(x.musicReleaseYear/10)*10))].sort(),[1980,1990,2000]);
+  assert.deepEqual([...new Set(seed.map(x=>Math.floor(x.musicReleaseYear/10)*10))].sort(),[1980,1990,2000,2010]);
   for(const row of seed){assert.ok(source.qualifySourceItem(country,row),row.title);assert.ok(window.RealSignalOKEmbed.qualify(country,row),row.title);}
   const cold=await (await worker.default.fetch(new Request('https://api.example/api/v3/source/catalog',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({profileKey:country.profileKey,count:5})}),{},{waitUntil(){}})).json();
   assert.ok(cold.items.length>=5,'empty D1 starts without foreground discovery');
@@ -56,7 +56,7 @@ const { pathToFileURL } = require('node:url');
     assert.ok(context.v2ProfileRuntimeOkay(verified,country));
     assert.equal(context.v2ProfileRuntimeOkay(verified,{profileKey:'ok-tv-channel'}),false);
     context.v2Remember(country.name,verified);
-    const next={...verified,id:'ok:988',musicArtistId:'new-artist',identityReference:'new-song'};
+    const next={...verified,id:'ok:988',musicArtistId:'new-artist',identityReference:'new-song',musicTrackKey:'new-song'};
     assert.equal(context.v2FreshCursor(country,{items:[verified,next],cursor:0}),1,'Next uses the independent country history');
     assert.equal(context.v2Recent(soul.name).length,0,'country listening does not mutate soul history');
   }

@@ -28,7 +28,7 @@ const { pathToFileURL } = require('node:url');
     assert.equal(source.qualifySourceItem(other,verified),null,'music families stay separate');
     assert.equal(window.RealSignalOKEmbed.qualify(other,verified),false);
   }
-  for(const bad of [{musicFamily:'country'},{musicVerified:false},{duration:40},{duration:3600},{aspectRatio:.56},{musicReleaseYear:1979},{musicReleaseYear:2010},...['live concert','lyrics','fan film','reaction','audio only','official audio','audio version','podcast','music city tonight'].map(x=>({title:item.title+' '+x}))]){
+  for(const bad of [{musicFamily:'country'},{musicVerified:false},{duration:40},{duration:3600},{aspectRatio:.56},{musicReleaseYear:1979},{musicReleaseYear:2020},...['live concert','lyrics','fan film','reaction','audio only','official audio','audio version','podcast','music city tonight'].map(x=>({title:item.title+' '+x}))]){
     assert.equal(source.qualifySourceItem(profile,{...verified,...bad}),null);
     assert.equal(window.RealSignalOKEmbed.qualify(profile,{...verified,...bad}),false);
   }
@@ -36,7 +36,7 @@ const { pathToFileURL } = require('node:url');
   const seed=OK_VERIFIED_SEARCH_SEED[profile.profileKey]||[];
   assert.ok(new Set(seed.map(x=>x.identityReference)).size>=80,'launch has a deep canonical catalog, not five videos');
   assert.ok(new Set(seed.map(x=>x.musicArtistId)).size>=30,'artist diversity survives admission');
-  assert.deepEqual([...new Set(seed.map(x=>Math.floor(x.musicReleaseYear/10)*10))].sort(),[1980,1990,2000]);
+  assert.deepEqual([...new Set(seed.map(x=>Math.floor(x.musicReleaseYear/10)*10))].sort(),[1980,1990,2000,2010]);
   for(const row of seed){assert.ok(source.qualifySourceItem(profile,row),row.title);assert.ok(window.RealSignalOKEmbed.qualify(profile,row),row.title);}
   const worker=await import(pathToFileURL(path.join(root,'realsignal_api_v2_worker.js')));
   assert.equal(worker.compactCatalogItem(verified).musicFamily,'video-hits');
@@ -74,13 +74,13 @@ const { pathToFileURL } = require('node:url');
     assert.ok(context.v2Verified({...verified,url:verified.embedUrl},'OK.ru','music video','server-verified',profile),'legacy wrapper forwards the music station profile');
     assert.ok(context.v2ProfileRuntimeOkay(verified,profile));
     context.v2Remember(profile.name,verified);
-    assert.equal(context.v2FreshCursor(profile,{items:[verified,{...verified,id:'ok:988',musicArtistId:'new-artist',identityReference:'new-song'}],cursor:0}),1,'Next advances past the seen canonical song');
+    assert.equal(context.v2FreshCursor(profile,{items:[verified,{...verified,id:'ok:988',musicArtistId:'new-artist',identityReference:'new-song',musicTrackKey:'new-song'}],cursor:0}),1,'Next advances past the seen canonical song');
     for(const key of ['ok-soul-flow-channel','ok-country-video-channel'])assert.equal(context.v2Recent(source.sourceProfile({profileKey:key}).name).length,0,'histories are independent');
     // The guide must use the same artist/canonical-song policy as the player,
     // rather than naming the first upload that differs from the current ID.
-    const blocked={...verified,id:'ok:madonna',title:'Madonna - Frozen',musicArtistId:'recent-artist',identityReference:'madonna-song'};
-    const alternate={...verified,id:'ok:alternate',title:'A heard song, another upload',musicArtistId:'other-artist',identityReference:'already-heard-song'};
-    const fresh={...verified,id:'ok:journey',title:'Journey - When You Love a Woman',musicArtistId:'fresh-artist',identityReference:'journey-song'};
+    const blocked={...verified,id:'ok:madonna',title:'Madonna - Frozen',musicArtistId:'recent-artist',identityReference:'madonna-song',musicTrackKey:'madonna-song'};
+    const alternate={...verified,id:'ok:alternate',title:'A heard song, another upload',musicArtistId:'other-artist',identityReference:'already-heard-song',musicTrackKey:'already-heard-song'};
+    const fresh={...verified,id:'ok:journey',title:'Journey - When You Love a Woman',musicArtistId:'fresh-artist',identityReference:'journey-song',musicTrackKey:'journey-song'};
     const shelf={items:[blocked,verified,alternate,fresh],cursor:1,currentId:verified.id,currentTitle:verified.title,provider:'OK.ru'};
     context.curNum=599;context.curItem=verified;context.V2_PREVIEW_PROFILES={[profile.profileKey]:profile};
     context.window.__v2PreviewState={599:shelf};

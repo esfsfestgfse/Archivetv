@@ -11,6 +11,11 @@ const { pathToFileURL } = require('node:url');
     ['ok-history-vault-channel', 'The World at War S01E02 1080p', 'The World at War'],
     ['ok-factory-floor-channel', "How It's Made S04E11 DVDRip", "How It's Made"],
     ['ok-black-tv-channel', 'Martin S02E04 DVDRip', 'Martin'],
+    ['ok-factory-floor-channel', 'Mega Manufacturing S01E05 Volvo Truck Manufacturer', 'Mega Manufacturing'],
+    ['ok-factory-floor-channel', 'Inside the Spitfire Factory S01E01 Making of an Icon', 'Inside the Spitfire Factory'],
+    ['ok-cookhouse-channel', 'The French Chef with Julia Child Season 1', 'The French Chef'],
+    ['ok-science-lab-channel', 'NOVA | PBS The Case of ESP S11E01', 'PBS NOVA'],
+    ['ok-gearhead-channel', "1966 Buick Riviera - Jay Leno's Garage", "Jay Leno's Garage"],
   ];
   for (const [profileKey, title, seriesTitle] of profiles) {
     const profile = { profileKey };
@@ -34,6 +39,30 @@ const { pathToFileURL } = require('node:url');
       { title, duration: 1800, aspectRatio: 0.56 },
       { title: `${title} VOSTFR`, duration: 1800 },
     ]) assert.equal(catalog.okCuratedPrecheck(profile, { ...item, ...bad }), false, `${profileKey} rejects contaminated/short/portrait material`);
+  }
+  for (const [key,title,duration] of [
+    ['factory-floor','Inside the Factory: A Leapfrog Story',1800],
+    ['factory-floor','Inside the Factory S01E01 AI Generated Future Cars',1800],
+    ['gearhead','The Wheeler Dealers (1963)',6333],
+    ['gearhead',"The Tonight Show with Jay Leno's Garage",1800],
+    ['science-lab','Bill Nye the Science Guy - Stop The Rock (PC Game)',5515],
+    ['cookhouse','Great British Bake Off: An Extra Slice S02E01',1700],
+  ]) assert.equal(catalog.okCuratedPrecheck({profileKey:'ok-'+key+'-channel'},{
+    id:'ok:1', title, duration, aspectRatio:16/9
+  }),false,title);
+  const source=await import(pathToFileURL(path.join(__dirname,'..','realsignal_source_catalog.js')));
+  const shared=await import(pathToFileURL(path.join(__dirname,'..','ok_public_search.js')));
+  for(const family of ['factory-floor','cookhouse','science-lab','gearhead']){
+    const profileKey='ok-'+family+'-channel', profile=source.sourceProfile({profileKey});
+    const seeds=source.okVerifiedSeed(profile);
+    assert.ok(seeds.length>=25,profileKey+' cold-start catalog is shallow');
+    assert.ok(new Set(seeds.map(item=>item.seriesId)).size>=4,profileKey+' should have multiple shows');
+    const ordered=shared.okBalancedCandidates([seeds],'tv',100);
+    assert.equal(ordered.length,seeds.length,profileKey+' includes alternate copies');
+    for(let offset=0;offset<15;offset+=5){
+      const shelf=ordered.slice(offset,offset+5);
+      assert.ok(new Set(shelf.map(item=>item.seriesId)).size>=4,profileKey+' repeats the same series in the first three shelves');
+    }
   }
   const black = { profileKey: 'ok-black-tv-channel' };
   for (const title of ['Dean Martin Show S02E04', 'Doc Martin S02E04', 'Steve Martin S02E04', 'Martin Scorsese S02E04', 'Martin Lawrence Stand Up S02E04', 'Martin Mystery S02E04']) {

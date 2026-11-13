@@ -311,9 +311,9 @@ export function okEpisodeIdentity(title) {
 }
 
 export function okPlaybackIdentity(item, kind = "tv") {
-  if (item.musicVerified && item.identityReference) return item.identityReference;
+  if (item.musicVerified) return item.musicTrackKey || item.identityReference || item.id;
   const series = item.seriesId || item.seriesTitle || okProgramName(item.title, kind).toLowerCase();
-  const episode = okEpisodeIdentity(item.title) || item.episodeIdentity;
+  const episode = item.episodeIdentity || okEpisodeIdentity(item.title);
   return kind === "tv" && episode ? `${series}:${episode}`
     : kind === "movie" && item.identityReference ? item.identityReference : item.id;
 }

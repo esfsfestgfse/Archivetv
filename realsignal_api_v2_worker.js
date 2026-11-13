@@ -10,10 +10,10 @@ import { normalizeIaFileRecord, qualifyIaFileRecord, iaMinimumFileRuntimeSeconds
 import { EdgeRateLimiter } from "./realsignal_api_rate_limit.js";
 import { RokuSession } from "./realsignal_roku_session.js";
 import { okBalancedCandidates, okPlaybackIdentity, okPreferUnseenSeries, okSeriesIdentity } from "./ok_public_search.js";
-import { okMusicChannel } from "./ok_music_catalog.js";
+import { okMusicBalanceDecades, okMusicChannel, okMusicProfileKey } from "./ok_music_catalog.js";
 import { OK_VERIFIED_SEARCH_SEED } from "./ok_verified_search_seed.js";
 import { vimeoBalancedItems } from "./vimeo_catalog.js";
-import { mergeSourceLanes, sourceCatalogTasks, sourceRefreshTasks, sourceProfile, sourceCatalogKey, qualifySourceItem, isOKSourceProfile, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
+import { mergeSourceLanes, sourceCatalogTasks, sourceRefreshTasks, sourceProfile, sourceCatalogKey, okVerifiedSeed, qualifySourceItem, isOKSourceProfile, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
 import Sports from "./assets/sports-programs.js";
 import SourcePrograms from "./assets/source-program-policy.js";
 import { IA_CANONICAL_PILOT_PROFILES, IA_CANONICAL_SCHEMA_VERSION, canonicalGuide, canonicalPromotionEligibility, selectCanonicalItems } from "./ia_canonical_station.mjs";
@@ -1402,10 +1402,17 @@ function applyFreshness(items, body) {
     // A played upload can be outside the current cold window. Resolve its
     // canonical song against the full verified bootstrap, not this shelf only.
     const recent = recentCatalogIds(body);
-    const known = (OK_VERIFIED_SEARCH_SEED[musicProfile.profileKey] || []).concat(items);
+    const known = (OK_VERIFIED_SEARCH_SEED[okMusicProfileKey(musicProfile)] || []).concat(items);
     const heardSongs = new Set(known.filter(item => recent.has(queueItemKey(item))).map(item => okPlaybackIdentity(item, "music")));
     const fresh = items.filter(item => !recent.has(queueItemKey(item)) && !heardSongs.has(okPlaybackIdentity(item, "music")));
     return fresh.length ? fresh : items;
+  }
+  if (isOKSourceProfile(musicProfile) && musicProfile.intent === "television" && items.some(item => item.curatedVerified)) {
+    const recent = recentCatalogIds(body);
+    const known = okVerifiedSeed(musicProfile).concat(items);
+    const identities = new Set(known.filter(item => recent.has(queueItemKey(item))).map(item => okPlaybackIdentity(item, "tv")));
+    const unseen = items.filter(item => !recent.has(queueItemKey(item)) && !identities.has(okPlaybackIdentity(item, "tv")));
+    return unseen.length ? unseen : items;
   }
   if (Sports.enabled(body && (body.channel || body.profileKey))) {
     const channel=body.channel || body.profileKey, recent=recentCatalogIds(body);
@@ -1475,6 +1482,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   const catalogProfile = effectiveBody.sourceCatalog === true ? sourceProfile({ profileKey: channel }) : null;
   const catalogChannel = normalizedChannelKey(effectiveBody.catalogChannel || sourceCatalogKey(catalogProfile) || channel);
   const derivedCatalog = catalogProfile && catalogProfile.derivedCatalogOnly === true;
+  const derivedMusicYears = derivedCatalog ? catalogProfile.musicYears : null;
   const derivedDecade = derivedCatalog ? Number(catalogProfile.seriesDecade) : 0;
   const okCatalog = effectiveBody.sourceCatalog === true && isOKSourceProfile(catalogProfile);
   const vimeoCatalog = effectiveBody.sourceCatalog === true && /^vimeo-(?:movie|tv)-channel$/.test(channel);
@@ -1506,6 +1514,8 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
         FROM scored
       ) SELECT * FROM ranked ORDER BY qualification_rank, family_rank,
         CASE WHEN last_served_at IS NULL THEN 0 ELSE 1 END, last_served_at ASC, catalog_seen_at DESC, id LIMIT ? OFFSET ?`
+    : derivedMusicYears
+    ? `SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id LEFT JOIN channel_freshness cf ON cf.channel_key=? AND cf.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL AND CAST(json_extract(CASE WHEN json_valid(p.metadata_json) THEN p.metadata_json ELSE '{}' END,'$.musicReleaseYear') AS INTEGER) BETWEEN ? AND ? ORDER BY CASE WHEN cf.last_served_at IS NULL THEN 0 ELSE 1 END, cf.last_served_at ASC, cp.last_seen_at DESC LIMIT ?`
     : derivedCatalog
     ? `SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id LEFT JOIN channel_freshness cf ON cf.channel_key=? AND cf.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL AND CAST(json_extract(CASE WHEN json_valid(p.metadata_json) THEN p.metadata_json ELSE '{}' END,'$.seriesDecade') AS INTEGER)=? ORDER BY CASE WHEN cf.last_served_at IS NULL THEN 0 ELSE 1 END, cf.last_served_at ASC, cp.last_seen_at DESC LIMIT ?`
     : deepCatalog
@@ -1535,7 +1545,8 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   const now = Date.now();
   const bindings = repairCatalog
     ? [channel, now - 86400_000, now + 60_000, iaMinimumFileRuntimeSeconds(effectiveBody), limit, 0]
-    : derivedCatalog ? [channel, catalogChannel, derivedDecade, limit]
+    : derivedMusicYears ? [channel, catalogChannel, ...derivedMusicYears, limit]
+      : derivedCatalog ? [channel, catalogChannel, derivedDecade, limit]
       : deepCatalog ? [channel, catalogChannel, limit]
         : rotatingSourceCatalog ? [catalogChannel, JSON.stringify(Array.from(recentCatalogIds(effectiveBody))), limit] : [catalogChannel, limit];
   let result = await env.realsignal_catalog.prepare(query).bind(...bindings).all();
@@ -1618,6 +1629,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
     };
   };
   const items = (result.results || []).map(fromCatalogRow);
+  if (okCatalog && (derivedMusicYears || catalogProfile?.intent === "television")) items.push(...okVerifiedSeed(catalogProfile));
   let catalogReadRows = items.length, catalogReadPages = 1;
   // SQL can prioritize transport facts, but editorial rules remain the same
   // shared JS gate. Rejected records must not silently use up the entire
@@ -1635,7 +1647,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
      it here would make the guide and ready shelf suggest the exact provider
      that just timed out. Filter it before requalification and rotation. */
   const eligibleItems = items.filter((item) => !blockedProviders.has(sourceProviderKey(item && item.provider)));
-  const filtered = stableCatalogItems(eligibleItems, effectiveBody, limit);
+  const filtered = stableCatalogItems(derivedMusicYears ? okMusicBalanceDecades(eligibleItems) : eligibleItems, effectiveBody, limit);
   /* A catalog row without a resolved media URL is useful evidence for a
      background repair, but it is not a playable program. Keep it in the
      candidate union while measuring depth/freshness and selecting the public
@@ -1678,7 +1690,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
      otherwise Next can visibly repeat an old episode merely to represent
      five different shows. Cooled fallback rows are admitted only when the
      unseen catalog cannot fill the requested shelf at all. */
-  const selected = ignoreFreshness || fresh.length >= requestedCount ? fresh
+  const selected = ignoreFreshness || fresh.length >= requestedCount || derivedMusicYears && fresh.length ? fresh
     : fresh.concat(playableCatalog.filter(item => !freshKeys.has(queueItemKey(item))));
   const seenCount = Math.max(0, playableCatalog.length - fresh.length);
   const suppliedRecentSeries = Array.isArray(effectiveBody && effectiveBody.recentSeries)
@@ -1695,10 +1707,10 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   const rotated = rotatingSourceCatalog && !ignoreFreshness && fresh.length
     ? rotateCatalogItems(fresh, (Number(effectiveBody.rotation) || 0) * rotationStep).concat(playableCatalog.filter(item => !freshKeys.has(queueItemKey(item))))
     : rotateCatalogItems(selected, (Number(effectiveBody.rotation) || 0) * rotationStep);
-  const ordered = okCatalog ? okBalancedCandidates([rotated], channel === "ok-movie-channel" ? "movie" : "tv", limit) : vimeoCatalog ? vimeoBalancedItems(rotated) : rotated;
+  const ordered = okCatalog ? okBalancedCandidates([rotated], okKind, limit) : vimeoCatalog ? vimeoBalancedItems(rotated) : rotated;
   const seriesOrdered = okCatalog && okKind === "tv"
     ? okBalancedCandidates([okPreferUnseenSeries(ordered, recentSeries, requestedCount)], "tv", limit)
-    : ordered;
+    : derivedMusicYears ? okMusicBalanceDecades(ordered) : ordered;
   /* The playable shelf may contain cooled fallback rows when an otherwise
      healthy television lane has exhausted every episode from one series.
      Keep those recovery rows out of the public background window: clients
@@ -1706,11 +1718,11 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
      there makes Next look stale even when the five-item shelf is balanced. */
   const freshRotated = rotateCatalogItems(fresh, (Number(effectiveBody.rotation) || 0) * rotationStep);
   const freshOrdered = okCatalog
-    ? okBalancedCandidates([freshRotated], channel === "ok-movie-channel" ? "movie" : "tv", limit)
+    ? okBalancedCandidates([freshRotated], okKind, limit)
     : vimeoCatalog ? vimeoBalancedItems(freshRotated) : freshRotated;
   const freshSeriesOrdered = okCatalog && okKind === "tv"
     ? okBalancedCandidates([okPreferUnseenSeries(freshOrdered, recentSeries)], "tv", limit)
-    : freshOrdered;
+    : derivedMusicYears ? okMusicBalanceDecades(freshOrdered) : freshOrdered;
   const shelf = Sports.enabled(channel) ? Sports.select(seriesOrdered,{channel,count:requestedCount,
     history:Sports.history(playableCatalog,[...recentIDs].reverse()),seenKeys:[...sportsPlayed]}) : seriesOrdered.slice(0, requestedCount);
   return shelf.length ? {
@@ -2640,11 +2652,21 @@ async function handleDerivedSourceCatalog(env, ctx, id, body, profile, apiVersio
     sourceCatalog: true,
     recentIds,
     recentSeries: Array.isArray(body.recentSeries) ? body.recentSeries : [],
-    freshnessLedger: true,
+    freshnessLedger: false,
   }, SOURCE_LIMITS.SOURCE_MAX_ITEMS, { blockedProviders: new Set() }).catch((error) => {
     console.warn(JSON.stringify({ event: "derived-source-catalog-read-failed", requestId: id, profileKey: profile.profileKey, error: String(error).slice(0, 160) }));
     return null;
   });
+  if ((!cached || !cached.items?.length) && profile.musicYears) {
+    const bootstrap = okVerifiedSeed(profile);
+    const seed = okBalancedCandidates([bootstrap], "music", OK_CATALOG_WINDOW);
+    const fresh = applyFreshness(seed, { channel: profile.profileKey, recentIds });
+    const ordered = okMusicBalanceDecades(okBalancedCandidates([rotateCatalogItems(fresh, rotation)], "music", OK_CATALOG_WINDOW));
+    const items = ordered.slice(0, Math.max(1, Math.min(5, Number(body.count) || 5)));
+    if (items.length) return json({ profileKey: profile.profileKey, parentProfileKey: sourceCatalogKey(profile),
+      items, candidateItems: ordered, ready: items.length, catalogDepth: seed.length,
+      source: "verified-ok-music-seed", hydrating: false, apiVersion }, 200, { "Cache-Control": "no-store" });
+  }
   if (!cached || !Array.isArray(cached.items) || !cached.items.length) {
     return json({
       error: "derived catalog is underfilled",
@@ -2667,7 +2689,7 @@ async function handleDerivedSourceCatalog(env, ctx, id, body, profile, apiVersio
     hydrating: false,
     staleCatalog: false,
     adaptiveFreshness: true,
-    freshnessLedger: true,
+    freshnessLedger: false,
     providerAvailability: sourceProviderAvailability(env, cached.candidateItems || cached.items, []),
     apiVersion,
     release: apiVersion === "v3" ? V3_RELEASE : undefined,

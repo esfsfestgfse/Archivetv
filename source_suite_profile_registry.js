@@ -2601,6 +2601,15 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "match": ["music video", "pop", "rock", "alternative", "new wave"],
     "deny": ["lyrics", "concert", "podcast", "fan edit", "reaction", "audio only"]
   },
+  "ok-soul-flow-channel-1980-1999": { name: "OK Soul & Flow · 80s & 90s", derivedCatalogOnly: true, parentProfileKey: "ok-soul-flow-channel" },
+  "ok-soul-flow-channel-2000-2019": { name: "OK Soul & Flow · 00s & 10s", derivedCatalogOnly: true, parentProfileKey: "ok-soul-flow-channel" },
+  "ok-country-video-channel-1980-1999": { name: "OK Country Video · 80s & 90s", derivedCatalogOnly: true, parentProfileKey: "ok-country-video-channel" },
+  "ok-country-video-channel-2000-2019": { name: "OK Country Video · 00s & 10s", derivedCatalogOnly: true, parentProfileKey: "ok-country-video-channel" },
+  "ok-video-hits-channel-1980-1999": { name: "OK Video Hits · 80s & 90s", derivedCatalogOnly: true, parentProfileKey: "ok-video-hits-channel" },
+  "ok-video-hits-channel-2000-2019": { name: "OK Video Hits · 00s & 10s", derivedCatalogOnly: true, parentProfileKey: "ok-video-hits-channel" },
+  "ok-cookhouse-channel": {"name":"OK Cookhouse","queryLimit":32,"queryWindow":4,"providers":["ok-search","ok-manifest"],"intent":"television","serverOnly":true,"minRuntimeSeconds":900,"deepCatalog":true,"formatRelaxed":true,"queries":["Essential Pepin","The French Chef","Two Fat Ladies","Great British Bake Off"],"match":["full episode","television","series"],"deny":["trailer","podcast","fan edit","reaction","audio only"]},
+  "ok-science-lab-channel": {"name":"OK Science Lab","queryLimit":32,"queryWindow":4,"providers":["ok-search","ok-manifest"],"intent":"television","serverOnly":true,"minRuntimeSeconds":900,"deepCatalog":true,"formatRelaxed":true,"queries":["How the Universe Works","Through the Wormhole","Cosmos A Spacetime Odyssey","NOVA PBS"],"match":["full episode","television","series"],"deny":["trailer","podcast","fan edit","reaction","audio only"]},
+  "ok-gearhead-channel": {"name":"OK Gearhead","queryLimit":32,"queryWindow":4,"providers":["ok-search","ok-manifest"],"intent":"television","serverOnly":true,"minRuntimeSeconds":900,"deepCatalog":true,"formatRelaxed":true,"queries":["Top Gear","Fifth Gear","Wheeler Dealers","Jay Leno's Garage"],"match":["full episode","television","series"],"deny":["trailer","podcast","fan edit","reaction","audio only"]},
   "vimeo-movie-channel": {
     "name": "Vimeo Movie Channel",
     "queryLimit": 24,

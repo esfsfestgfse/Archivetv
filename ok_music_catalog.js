@@ -12,6 +12,13 @@ export const OK_SOUL_ARTISTS = Object.freeze([
   'Alicia Keys', 'Erykah Badu', 'D\'Angelo', 'Maxwell', 'Jill Scott', 'India.Arie',
   'Ciara', 'Ashanti', 'Nelly', 'Ludacris', 'Kanye West', 'Ne-Yo', 'Rihanna',
   'Earth, Wind & Fire', 'Kool & The Gang', 'Lionel Richie', 'Teena Marie',
+  "Drake", "Nicki Minaj", "J. Cole", "Kendrick Lamar", "Janelle Monáe",
+  "Miguel", "The Weeknd", "Frank Ocean", "Jazmine Sullivan", "Solange",
+  "Anderson .Paak", "H.E.R.", "SZA", "Childish Gambino", "Lizzo",
+  "Cardi B", "Bruno Mars", "Khalid", "Summer Walker", "Ella Mai",
+  "Tinashe", "Ari Lennox", "K. Michelle", "Daniel Caesar", "Trey Songz",
+  "Chris Brown", "Wale", "2 Chainz", "Migos", "DJ Khaled",
+  "Future",
 ]);
 export const OK_COUNTRY_ARTISTS = Object.freeze([
   'George Strait', 'Reba McEntire', 'Alan Jackson', 'Randy Travis',
@@ -34,6 +41,13 @@ export const OK_COUNTRY_ARTISTS = Object.freeze([
   'The Judds', 'Rick Trevino', 'Gary Allan', 'Chris LeDoux',
   'Billy Ray Cyrus', 'BlackHawk', 'Little Texas', 'Emmylou Harris',
   'Nitty Gritty Dirt Band', 'SHeDAISY', 'Phil Vassar', 'Tracy Byrd',
+  "Luke Bryan", "Eric Church", "Miranda Lambert", "Blake Shelton", "Kacey Musgraves",
+  "Chris Stapleton", "Maren Morris", "Thomas Rhett", "Kelsea Ballerini", "Florida Georgia Line",
+  "Little Big Town", "Darius Rucker", "Sam Hunt", "Luke Combs", "Jon Pardi",
+  "Old Dominion", "Brett Eldredge", "Dustin Lynch", "Dan + Shay", "Kip Moore",
+  "Kane Brown", "Cole Swindell", "Brothers Osborne", "Ashley McBryde", "Midland",
+  "Jamey Johnson", "Jason Aldean", "Zac Brown Band", "Randy Houser", "David Nail",
+  "Easton Corbin", "Chris Young", "Scotty McCreery", "Cody Johnson", "Lauren Alaina",
 ]);
 export const OK_VIDEO_HITS_ARTISTS = Object.freeze([
   'Madonna', 'Cyndi Lauper', 'Duran Duran', 'Eurythmics',
@@ -65,6 +79,14 @@ export const OK_VIDEO_HITS_ARTISTS = Object.freeze([
   'The Fray', 'The Script', 'Panic! at the Disco', 'Snow Patrol',
   'Daughtry', 'Good Charlotte', 'Sum 41', 'P.O.D.',
   'System of a Down', 'Korn',
+  "Lady Gaga", "Katy Perry", "Adele", "Taylor Swift", "Ed Sheeran",
+  "Imagine Dragons", "OneRepublic", "Florence + the Machine", "Lana Del Rey", "Lorde",
+  "Miley Cyrus", "Dua Lipa", "Ariana Grande", "Selena Gomez", "Sia",
+  "Billie Eilish", "Shawn Mendes", "Halsey", "The 1975", "Twenty One Pilots",
+  "Tame Impala", "Hozier", "Bastille", "CHVRCHES", "Foster the People",
+  "The Black Keys", "Kings of Leon", "Vampire Weekend", "HAIM", "Mumford & Sons",
+  "American Authors", "Carly Rae Jepsen", "Walk the Moon", "Kesha", "Demi Lovato",
+  "FUN.",
 ]);
 const MUSIC_FAMILIES = Object.freeze({'ok-soul-flow-channel':'soul','ok-country-video-channel':'country','ok-video-hits-channel':'video-hits'});
 const FAMILY_ARTISTS = Object.freeze({'soul':OK_SOUL_ARTISTS,'country':OK_COUNTRY_ARTISTS,'video-hits':OK_VIDEO_HITS_ARTISTS});
@@ -73,10 +95,35 @@ const DENY = /\b(?:lyrics?|live|concert|reaction|review|podcast|interview|tutori
 const FOREIGN = /[\u0400-\u04ff\u0600-\u06ff\u0900-\u097f\u3040-\u30ff\u3400-\u9fff]|\b(?:vostfr|subesp|dublado|latino|espa[nñ]ol|fran[cç]ais)\b/i;
 const MBID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const normalize = value => String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
-export function okMusicChannel(profile) { return Object.hasOwn(MUSIC_FAMILIES,profile?.profileKey || ''); }
+export function okMusicProfileKey(profile) {
+  return String(profile?.profileKey || '').replace(/-(?:1980-1999|2000-2019)$/, '');
+}
+export function okMusicChannel(profile) { return Object.hasOwn(MUSIC_FAMILIES,okMusicProfileKey(profile)); }
+export function okMusicYears(profile) {
+  if (!okMusicChannel(profile)) return null;
+  const key = String(profile.profileKey);
+  if (key.endsWith('-1980-1999')) return [1980, 1999];
+  if (key.endsWith('-2000-2019')) return [2000, 2019];
+  return [1980, 2019];
+}
+// An abundant decade must not fill the bounded window before the other one
+// is represented. This consumes the current order within each decade.
+export function okMusicBalanceDecades(items) {
+  const buckets = new Map();
+  for (const item of items) {
+    const decade = Math.floor(Number(item.musicReleaseYear) / 10);
+    if (!buckets.has(decade)) buckets.set(decade, []);
+    buckets.get(decade).push(item);
+  }
+  const queues = [...buckets.values()], result = [];
+  for (let index = 0; result.length < items.length; index++) {
+    for (const queue of queues) if (index < queue.length) result.push(queue[index]);
+  }
+  return result;
+}
 export function okMusicQueries(profile, cursor = 0) {
   if (!okMusicChannel(profile)) return [];
-  const artists = FAMILY_ARTISTS[MUSIC_FAMILIES[profile.profileKey]];
+  const artists = FAMILY_ARTISTS[MUSIC_FAMILIES[okMusicProfileKey(profile)]];
   return Array.from({ length: 4 }, (_, i) => `${artists[(Math.abs(Math.floor(cursor)) * 4 + i) % artists.length]} music video`);
 }
 export function okMusicTitle(title) {
@@ -93,7 +140,7 @@ export function okMusicTitle(title) {
 }
 export function okMusicPrecheck(profile, item, checkAspect = true) {
   const title = okMusicTitle(item?.title);
-  const artists = FAMILY_ARTISTS[MUSIC_FAMILIES[profile?.profileKey]] || [];
+  const artists = FAMILY_ARTISTS[MUSIC_FAMILIES[okMusicProfileKey(profile)]] || [];
   return okMusicChannel(profile) && !!item && !!item.id && !!title && artists.includes(title.artist)
     && Number(item.duration) >= 120 && Number(item.duration) <= 900
     && (!checkAspect || Number(item.aspectRatio) >= 1.2)
@@ -114,7 +161,7 @@ export function okMusicIdentityFromResults(item, result) {
   const record = records[0];
   if (!record) return null;
   const year = Number(record['first-release-date'].slice(0,4));
-  if (year < 1980 || year > 2009) return null;
+  if (year < 1980 || year > 2019) return null;
   return { musicVerified: true, musicVerificationVersion: 2, musicFamily: OK_COUNTRY_ARTISTS.includes(title.artist) ? 'country' : OK_VIDEO_HITS_ARTISTS.includes(title.artist) ? 'video-hits' : 'soul', musicArtist: title.artist,
     musicArtistId: record['artist-credit'][0].artist.id, musicTrack: title.song,
     musicTrackKey: title.key, musicRecordingId: record.id, musicReleaseYear: year,
@@ -123,11 +170,11 @@ export function okMusicIdentityFromResults(item, result) {
     identityReference: 'https://musicbrainz.org/recording/' + record.id };
 }
 export function okMusicVerified(profile, item) {
-  const title = okMusicTitle(item?.title);
+  const title = okMusicTitle(item?.title), years = okMusicYears(profile), year = Number(item?.musicReleaseYear);
   return okMusicPrecheck(profile,item) && item.musicVerified === true && item.musicVerificationVersion === 2
-    && (item.musicFamily || 'soul') === MUSIC_FAMILIES[profile.profileKey]
+    && (item.musicFamily || 'soul') === MUSIC_FAMILIES[okMusicProfileKey(profile)]
     && title?.key === item.musicTrackKey && MBID.test(item.musicArtistId || '') && MBID.test(item.musicRecordingId || '')
-    && item.musicReleaseYear >= 1980 && item.musicReleaseYear <= 2009
+    && Number.isInteger(year) && year >= years[0] && year <= years[1]
     && item.identityReference === 'https://musicbrainz.org/recording/' + item.musicRecordingId
     && item.embedAllowed === true && /^https:\/\/ok\.ru\/videoembed\/\d+(?:[?#]|$)/.test(item.embedUrl || item.url || '');
 }

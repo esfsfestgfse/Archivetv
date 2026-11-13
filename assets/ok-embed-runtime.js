@@ -3,7 +3,11 @@
 (function (root) {
   "use strict";
   var active = null;
-  function musicProfile(profile) { return !!profile && /^(?:ok-soul-flow-channel|ok-country-video-channel|ok-video-hits-channel)$/.test(String(profile.profileKey || "")); }
+  function musicFamily(profile) {
+    var match = /^ok-(soul-flow|country-video|video-hits)-channel(?:-(?:1980-1999|2000-2019))?$/.exec(String(profile?.profileKey || ""));
+    return match ? ({ "soul-flow": "soul", "country-video": "country", "video-hits": "video-hits" })[match[1]] : "";
+  }
+  function musicProfile(profile) { return !!musicFamily(profile); }
   function normalize(item) {
     if (!item || item.provider !== "OK.ru") return item;
     var url = String(item.embedUrl || item.url || "");
@@ -25,9 +29,11 @@
           .replace(/\b(?:feat\.?|ft\.?)\s+.*$/i, "")
           .replace(/["“”]/g, "").replace(/\s*\((?:\d+)\)\s*$/, "").replace(/[\s\-_:,]+$/, "").trim() : "";
       var mbid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
+      var key = String(profile.profileKey), year = Number(item.musicReleaseYear);
       return item.musicVerified === true && item.musicVerificationVersion === 2
-        && (item.musicFamily || "soul") === (profile.profileKey === "ok-country-video-channel" ? "country" : profile.profileKey === "ok-video-hits-channel" ? "video-hits" : "soul")
-        && item.musicReleaseYear >= 1980 && item.musicReleaseYear <= 2009
+        && (item.musicFamily || "soul") === musicFamily(profile)
+        && Number.isInteger(year) && year >= (key.endsWith("-2000-2019") ? 2000 : 1980)
+        && year <= (key.endsWith("-1980-1999") ? 1999 : 2019)
         && mbid.test(String(item.musicArtistId || "")) && mbid.test(String(item.musicRecordingId || ""))
         && item.identityReference === "https://musicbrainz.org/recording/" + item.musicRecordingId
         && !!item.id && !!song && song.length <= 160 && clean(artist) + ":" + clean(song) === item.musicTrackKey
@@ -49,7 +55,7 @@
         && !/\b(?:shorts?|clip|trailer|teaser|recap|reaction|review|podcast|how[ -]to|tutorial|fan[ -]?(?:made|film|edit|animation)|parody|amv|gacha|gameplay|porn|hentai|nsfw|audio only)\b/i.test(title)
         && (family[1] !== "anime" || /\b(?:english[ ._-]+dub(?:bed)?|dub(?:bed)?[ ._-]+english)\b/i.test(title));
     }
-    var curated = /^ok-(britannia|history-vault|factory-floor|black-tv)-channel$/.exec(String(profile.profileKey || ""));
+    var curated = /^ok-(britannia|history-vault|factory-floor|black-tv|cookhouse|science-lab|gearhead)-channel$/.exec(String(profile.profileKey || ""));
     if (curated) {
       var expectedFamily = curated[1] === "history-vault" ? "history" : curated[1] === "factory-floor" ? "factory" : curated[1];
       return item.curatedVerified === true && item.curatedVerificationVersion === 1 && item.curatedFamily === expectedFamily
@@ -80,7 +86,7 @@
   function stop() { if (active) active(); active = null; }
   function programKey(item) {
     if (!item) return "";
-    if (item.musicVerified && item.identityReference) return item.identityReference;
+    if (item.musicVerified) return item.musicTrackKey || item.identityReference || item.id;
     var value = String(item.title || "").replace(/[_.:-]+/g, " ");
     var pair = value.match(/\bs\s*(\d{1,2})\s*e\s*(\d{1,3})\b/i)
       || value.match(/\b(\d{1,2})\s*x\s*(\d{1,3})\b/i)
@@ -88,7 +94,7 @@
     var episode = pair ? "s" + String(Number(pair[1])).padStart(2, "0") + "e" + String(Number(pair[2])).padStart(2, "0")
       : (value.match(/\b(?:episode|ep)\s*(\d{1,3})\b/i) || [])[1];
     if (!pair && episode) episode = "episode" + Number(episode);
-    episode = episode || item.episodeIdentity;
+    episode = item.episodeIdentity || episode;
     return item.seriesId && episode ? item.seriesId + ":" + episode
       : !item.seriesId && item.identityReference ? item.identityReference : item.id;
   }

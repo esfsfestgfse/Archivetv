@@ -9340,7 +9340,7 @@ async function tuneNum(n){
   if(my!==token||!powered)return;
   if(sl.source==="v2preview"){ if(my!==token)return; return tuneV2Preview(ch,sl,my); }
   if(sl.source==="weather"){ if(my!==token)return; return tuneWeather(ch,sl,my); }
-  if(sl.source==="onthisday"){ if(my!==token)return; return tuneOnThisDay(ch,sl,my); }
+  if(sl.source==="onthisday"){ if(my!==token)return; return tuneOnThisDay(ch,my); }
   if(sl.source==="pdday"){ if(my!==token)return; return tunePDDay(ch,sl,my); }
   if(sl.source==="livetv"){ if(my!==token)return; return tuneLiveTV(ch,sl,my); }
   if(sl.source==="liveradio"){ if(my!==token)return; return tuneLiveRadio(ch,sl,my); }
@@ -9834,7 +9834,8 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl){return new Promise(r
      instances take several seconds to expose the first decoded frame. Do not
      discard a good Source Suite item at the generic IA timeout. */
   const boundedIaStart=iaRepairEnabled(ch)&&!isAudio&&!it.isAd&&!it.isSignoff;
-  let done=false,to,adRecoveryTimer,spareTimer; const startTimeout=(boundedIaStart||sportsControl)?4000:(it.isAd?900:(ch&&ch.source==="v2preview"&&/peertube/i.test(String(it.provider||""))?15000:(isFallback>0?7000:(isAudio?9000:12000))));
+  let done=false,to,adRecoveryTimer,spareTimer;
+  const startTimeout=ch?.source==="onthisday"?3000:(boundedIaStart||sportsControl)?4000:(it.isAd?900:(ch&&ch.source==="v2preview"&&/peertube/i.test(String(it.provider||""))?15000:(isFallback>0?7000:(isAudio?9000:12000))));
   function finishAd(){if(!it.isAd||my!==token||!powered||curVideo!==v)return false;clearTimeout(adRecoveryTimer);try{v.pause();}catch(e){}v.dispatchEvent(new Event("ended"));return true;}
   function armStart(){
     clearTimeout(to);
@@ -14614,42 +14615,72 @@ function aurParseNotice(item){
   return {type:type,summary:summary.slice(0,150),issued:(item&&item.issue_datetime)||""};
 }
 
-/* ---------- On This Day: Wikipedia's real On This Day feed -> matching video on Wikimedia Commons ONLY
-   (never falls back to Internet Archive — if no Commons video matches, it shows NO SIGNAL, not a substitute) ---------- */
-async function searchCommonsVideoByTitle(title){
+/* On This Day pairs Wikipedia events with video from Wikimedia Commons. */
+async function tuneOnThisDay(ch,my){
+  if(my!==token)return;
+  setSig("tuning","SEARCHING");
+  showOv("ON THIS DAY","SEARCHING WIKIMEDIA","Looking for footage from today’s history…");
+  clearScreen();
+  var controller=new AbortController(), deadline=setTimeout(function(){controller.abort();},4000);
+  var events=[], clips=[];
+  async function read(url){
+    var response=await fetch(url,{mode:"cors",signal:controller.signal});
+    if(!response.ok)throw new Error("HTTP "+response.status);
+    return response.json();
+  }
   try{
-    var url="https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*"+
-      "&generator=search&gsrnamespace=6&gsrlimit=5&gsrsearch="+encodeURIComponent("filetype:video "+title)+
-      "&prop=imageinfo&iiprop=url|mediatype";
-    var d=await fetchJSON(url);
-    var pages=d&&d.query&&d.query.pages?Object.values(d.query.pages):[];
-    var vids=pages.map(function(p){return p.imageinfo&&p.imageinfo[0];}).filter(Boolean);
-    var pk=vids.find(function(i){return /\.webm$/i.test(i.url);})||vids.find(function(i){return /\.ogv$/i.test(i.url);})||vids[0];
-    if(!pk) return null;
-    return {type:"video", url:pk.url, id:null, captions:null, alts:[]};
-  }catch(e){ return null; }
-}
-async function tuneOnThisDay(ch,sl,my){
-  if(my!==token)return; setSig("tuning","SEARCHING"); try{sfxStatic();}catch(e){}
-  showOv("ON THIS DAY","SEARCHING WIKIPEDIA","Looking for archival footage tied to today\u2019s history\u2026"); clearScreen();
-  try{
-    var now=new Date(), mm=String(now.getMonth()+1).padStart(2,"0"), dd=String(now.getDate()).padStart(2,"0");
-    var d=await fetchJSON("https://en.wikipedia.org/api/rest_v1/feed/onthisday/events/"+mm+"/"+dd);
+    var now=new Date(), month=String(now.getMonth()+1).padStart(2,"0"), day=String(now.getDate()).padStart(2,"0");
+    var feed=await read("https://en.wikipedia.org/api/rest_v1/feed/onthisday/events/"+month+"/"+day);
     if(my!==token)return;
-    var events=(d&&d.events)||[]; var cands=[];
-    events.forEach(function(ev){ (ev.pages||[]).forEach(function(p){ if(p&&p.title) cands.push({title:p.title,text:ev.text,year:ev.year}); }); });
-    cands.sort(function(){return Math.random()-0.5;});
-    for(var i=0;i<Math.min(cands.length,10);i++){
-      if(my!==token)return;
-      var c=cands[i], vid=await searchCommonsVideoByTitle(c.title);
-      if(vid){ vid.title=c.title+(c.year?(" ("+c.year+")"):""); vid.year=c.year;
-        var ok=await playFile(vid,ch,{show:"On This Day"+(c.year?(" \u00b7 "+c.year):"")},my);
-        if(ok){ if(curItem) curItem.onThisDay=c.text; return; }
+    events=(Array.isArray(feed&&feed.events)?feed.events:[]).filter(function(event){return event&&event.text;});
+    var titles=new Set(), candidates=[];
+    for(var event of events){
+      for(var page of event.pages||[]){
+        var title=String(page&&page.title||"").replace(/_/g," ").replace(/"/g,"");
+        if(!title||titles.has(title))continue;
+        titles.add(title);
+        candidates.push({title:title,event:event});
       }
     }
-    nlog("onthisday",false,"no Wikimedia Commons video matched today's events");
-    noSignal(ch,my);
-  }catch(e){ nlog("onthisday",false,(e&&e.message)||e); noSignal(ch,my); }
+    candidates.sort(function(){return Math.random()-0.5;});
+    clips=await Promise.all(candidates.slice(0,8).map(async function(candidate){
+      try{
+        var query=encodeURIComponent('filetype:video "'+candidate.title+'"');
+        var data=await read("https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=5&gsrsearch="+query+"&prop=imageinfo&iiprop=url|mediatype");
+        var matches=Object.values(data?.query?.pages||{}).sort(function(a,b){return a.index-b.index;});
+        var video=matches.map(function(match){return match.imageinfo?.[0];}).find(function(info){
+          return info?.mediatype==="VIDEO"&&/^https:\/\/upload\.wikimedia\.org\/.+\.(?:webm|ogv|mp4)$/i.test(info.url);
+        });
+        return video&&{url:video.url,title:candidate.title,event:candidate.event};
+      }catch(_){return null;}
+    }));
+  }catch(error){
+    if(my===token)nlog("onthisday",false,error.message||String(error));
+  }finally{
+    clearTimeout(deadline);
+  }
+  var tried=new Set();
+  for(var clip of clips){
+    if(my!==token||tried.size>=2)break;
+    if(!clip||tried.has(clip.url))continue;
+    tried.add(clip.url);
+    var year=clip.event.year;
+    try{
+      if(await playFile({type:"video",url:clip.url,title:clip.title+(year?" ("+year+")":""),year:year},ch,{show:ch.nm},my)){
+        if(my===token&&curItem)curItem.onThisDay=clip.event.text;
+        return;
+      }
+    }catch(error){
+      if(my===token)nlog("onthisday",false,error.message||String(error));
+    }
+  }
+  if(my!==token)return;
+  var story=events.length?events[Math.floor(Math.random()*events.length)]:null;
+  setSig(story?"live":"dead",story?"HISTORY":"UNAVAILABLE");
+  showOv("ON THIS DAY",story?String(story.year||"TODAY IN HISTORY"):"WIKIMEDIA UNAVAILABLE",
+    story?story.text:"Today’s events are temporarily unavailable.");
+  nowName.textContent=story?story.text:"Today’s events unavailable";
+  nowMeta.textContent="CH "+ch.num+" · "+ch.nm;
 }
 
 
@@ -14922,17 +14953,6 @@ async function skipOne(){ if(!powered){quickBanner("TURN THE TV ON FIRST");retur
   var sc=byNum(curNum);
   if(iaRepairEnabled(sc)){if(curItem&&!curItem.isAd)iaRepairEvent(sc,curItem,"skipped");adQueue=0;fastTuneDrop(sc.num);resetProgress();tuneNum(curNum);return;}
   if(sc&&sc.source==="v2preview"&&typeof window.__v2PreviewNext==="function"){window.__v2PreviewNext(true);return;}
-  if(sc&&sc.source==="worldclock"&&typeof window.__worldClockNext==="function"){window.__worldClockNext();return;}
-  if(sc&&sc.source==="tropical"&&typeof window.__tropicalNext==="function"){window.__tropicalNext();return;}
-  if(sc&&sc.source==="wildfire"&&typeof window.__wildfireNext==="function"){window.__wildfireNext();return;}
-  if(sc&&sc.source==="river"&&typeof window.__waterNext==="function"){window.__waterNext();return;}
-  if(sc&&sc.source==="space"&&typeof window.__spaceNext==="function"){window.__spaceNext();return;}
-  if(sc&&sc.source==="seismic"&&typeof window.__seismicNext==="function"){window.__seismicNext();return;}
-  if(sc&&sc.source==="airtraffic"&&typeof window.__skyBeaconNext==="function"){window.__skyBeaconNext();return;}
-  if(sc&&sc.source==="apod"&&typeof window.__apodNext==="function"){window.__apodNext();return;}
-  if(sc&&sc.source==="iss"&&typeof window.__issNext==="function"){window.__issNext();return;}
-  if(sc&&sc.source==="hf"&&typeof window.__hfNext==="function"){window.__hfNext();return;}
-  if(sc&&sc.source==="aurora"&&typeof window.__auroraNext==="function"){window.__auroraNext();return;}
   if(sc&&sc.source==="weather"&&typeof window.__weatherNext==="function"){window.__weatherNext();return;}
   if(sc)schedClear(sc); /* 1.2: SKIP = manual re-roll of the slot */
   if(curItem&&curItem.id){if(sc&&!sc.source){iaReportPlayed(sc,curItem,"skipped");markIaSkipped(sc.num,curItem);}markSkipped(curItem.id);if(sc&&!sc.source)iaSkipTuneAt[String(curNum)]=Date.now();fastTuneDrop(curNum);}

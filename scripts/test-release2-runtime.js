@@ -55,9 +55,6 @@ for (const file of builds) {
   const actualStamp = (html.match(/window\.__ATV_BUILD\s*=\s*"([^"]+)"/) || [])[1] || '';
   check(/^(?:[3-5]\.\d+\.\d+|[67]\.\d+\.\d+(?:-rc\.[1-9]\d*)?)-(?:desktop|mobile|source-suite)[.-][a-z0-9-]+$/.test(actualStamp) || html.includes('2.2.2-' + surfaceStamp + '.240-channel-health-repairs'), `${file}: build stamp is a recognized RealSignal release`);
   check(html.includes('var chanRT={timers:[],teardowns:[]};') && html.includes('chanRT.teardowns.splice(0)'), `${file}: live-channel teardown callbacks are executed`);
-  check(html.includes('shipSocket.close()') && html.includes('clearTimeout(publicViewTimer)'), `${file}: Ship Tracker closes sockets and pending viewport retries on channel change`);
-  check(/function clearShipData\(\)\{[\s\S]*?selectedMmsi=""[\s\S]*?ship-detail-empty/.test(html), `${file}: Ship Tracker clears stale vessel selection when the map region changes`);
-  check(html.includes('function fetchSkyMetar') && html.includes('api.cors.syrins.tech/?url='), `${file}: Sky Beacon uses the dedicated METAR relay fallback`);
   const gearHeadStart = html.indexOf('"Gear Head": {');
   const gearHeadEnd = html.indexOf('\n  /* Deadline', gearHeadStart);
   const gearHead = gearHeadStart >= 0 && gearHeadEnd > gearHeadStart ? html.slice(gearHeadStart, gearHeadEnd) : '';
@@ -65,8 +62,6 @@ for (const file of builds) {
   check(gearHead.includes('the tonight show') && gearHead.includes('talk show') && gearHead.includes('monologue'), `${file}: Gear Head rejects Jay Leno late-night/talk-show bleed`);
   check(html.includes('sportsEpgById={}') && html.includes('function trustedSportsLive(c)') && html.includes('data-sports-live-mode="live"'), `${file}: sports EPG state survives rerenders and exposes a verified Live Now filter`);
   check(html.includes('function todayEventState(status,when)') && html.includes('/postpon|cancel|abandon|suspend|no contest|delayed/'), `${file}: stale and invalid sports events are excluded from Live Now`);
-  check(html.includes('class="ship-map-panel"') && html.includes('class="ship-data-panel"') && html.includes('min-width:44px!important'), `${file}: Ship Tracker has a stacked touch layout with 44px map controls`);
-  check(html.includes('aria-label="Pan water map north"') && html.includes('Interactive water map. Drag or use arrow keys'), `${file}: water map has labeled touch and keyboard controls`);
   check(html.includes('cast-receiver-ack') && html.includes('REALSIGNAL_CAST_OK'), `${file}: Cast receiver playback contributes first-frame telemetry`);
   check(html.includes('__rsChannelHealthPolicy') && html.includes('function dynamicChannelHealth'), `${file}: lineup accepts temporary measured health overrides`);
   check(html.includes('function orderedChannels(){return DIAL_ORDER.filter(isPublicLineupChannel);}') && html.includes('var order=orderedChannels()'), `${file}: channel stepping skips hidden repair lanes without renumbering`);

@@ -58,6 +58,8 @@
   }
 
   function renderLive() {
+    var dialog = document.getElementById('diagOv');
+    if (!dialog?.classList.contains('show')) return;
     var host = document.getElementById('rs31Live');
     if (!host) return;
     var rows = liveChannels();
@@ -113,6 +115,16 @@
   }
 
   window.__rs31Health = { load: load, render: renderRemote, live: renderLive, endpoint: endpoint };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ensure, { once: true }); else ensure();
-  setInterval(renderLive, 30000);
+  function install() {
+    var dialog = document.getElementById('diagOv');
+    if (!dialog) return;
+    function update() {
+      if (!dialog.classList.contains('show')) return;
+      if (document.getElementById('rs31Panel')) renderLive(); else ensure();
+    }
+    new MutationObserver(update).observe(dialog, { attributes: true, attributeFilter: ['class'] });
+    setInterval(renderLive, 30000);
+    update();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, { once: true }); else install();
 })();

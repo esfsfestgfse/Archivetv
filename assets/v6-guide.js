@@ -6,6 +6,7 @@
   var preview = guideMode !== '0';
   var active = {}, tuned = null;
   var panel, list, refs = {}, rowRefs = {}, entries = [], selected = null, opener, timer, opened = false;
+  var scrollFrame = null;
   var category = 'all', view = 'all', search = '', scroll = 0, focusId = '', renderedKey = '';
   var oldOpen = window.openGuide, oldClose = window.closeGuide;
   function el(tag, id, text, parent, cls) {
@@ -229,6 +230,13 @@
     var columns = el('div', '', '', main, 'rsg-columns'); columns.setAttribute('aria-hidden', 'true');
     ['Channel', preview ? 'Playing / ready' : 'Playing / coming up', preview ? 'Up next' : 'Next'].forEach(function (title) { el('span', '', title, columns); });
     list = el('div', 'rsV6GuideList', '', main); list.setAttribute('aria-label', 'Channels');
+    list.addEventListener('scroll', function () {
+      if (!opened || scrollFrame !== null) return;
+      scrollFrame = requestAnimationFrame(function () {
+        scrollFrame = null;
+        refresh();
+      });
+    }, { passive: true });
     el('p', 'rsV6GuideEmpty', 'No channels match. Try All or clear the search.', main);
     var detail = el('aside', '', '', body, 'rsg-detail'); detail.setAttribute('aria-label', 'Selected channel');
     if (preview) {
@@ -292,6 +300,8 @@
     var started = now();
     focusId = panel.contains(document.activeElement) ? document.activeElement.id || '' : '';
     scroll = list.scrollTop; opened = false; clearInterval(timer); panel.hidden = true;
+    if (scrollFrame !== null) cancelAnimationFrame(scrollFrame);
+    scrollFrame = null;
     if (preview) {
       document.documentElement.classList.remove('rs-guide-browsing');
       document.documentElement.classList.remove('rs-guide-picture');

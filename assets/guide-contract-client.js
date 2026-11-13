@@ -5,7 +5,7 @@
   function enabled() {
     return optedIn && !(typeof window.__rsCastIsConnected === 'function' && window.__rsCastIsConnected());
   }
-  var commands = { tune: 'tuneNum', favorite: 'toggleFav', next: 'skipOne', 'broadcast-live': 'backToSharedBroadcast', 'guide-open': 'openGuide', 'guide-close': 'closeGuide', power: 'togglePower', info: 'toggleInfo', menu: 'toggleOsd', 'channel-step': 'step', 'volume-step': 'setVol', mute: 'toggleMute', cast: '__rsCastRequest' };
+  var commands = { tune: 'tuneNum', favorite: 'toggleFav', next: 'skipOne', 'guide-open': 'openGuide', 'guide-close': 'closeGuide', power: 'togglePower', info: 'toggleInfo', menu: 'toggleOsd', 'channel-step': 'step', 'volume-step': 'setVol', mute: 'toggleMute', cast: '__rsCastRequest' };
   var api = {
     available: optedIn,
     categories: function () {

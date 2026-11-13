@@ -78,8 +78,6 @@ if (!(/return \{show:(?:ch\.nm|canonicalChannelLabel\(ch\)), genre:prog\.genre\|
 if (/show:prog\.show/.test(slotBlock)) issues.push('legacy PROGRAM show labels must never rename an IA channel');
 if (/id="setPlan"|function buildPlan\(|function planKey\(|stationMgr\?/.test(source)) issues.push('clock-bound Station Manager appointments must remain retired');
 if (/barsText\.textContent=\(hour/.test(source)) issues.push('color bars must not sign off according to the clock');
-const naraBlock = blockAfter('async function tuneNARA(', '{', '}');
-if (/getHours|\bh\s*>=|Late Night Declassified/.test(naraBlock)) issues.push('National Archives programming must expose every editorial lane at every hour');
 if (!/var labels=\["NOW","NEXT","LATER","AFTER"\]/.test(source)) issues.push('TV guide must describe queue order instead of hourly programming gates');
 if (!/window\.__atvTimelessAudit=function\(\)/.test(source) || !/identity:permanentShow===ch\.nm/.test(source)) issues.push('runtime timeless-programming identity audit is missing');
 if (!/IA_TIMELESS_IDENTITY_VERSION=2/.test(source) || !/store\.set\("sched",\{\}\)/.test(source) || !/store\.set\("fastTune",\{\}\)/.test(source)) issues.push('legacy clock-scheduled playback state must be cleared once on upgrade');

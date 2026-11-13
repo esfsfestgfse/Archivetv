@@ -7,6 +7,7 @@ const root = path.resolve(__dirname, '..');
 
 // DOM/clock boundaries only; exercise the actual presenter and command adapter.
 function harness(search = '?guidePreview=0') {
+  const frames = new Map();
   const ids = new Map(), intervals = new Map(), calls = [], reads = [], layout = [], offscreen = new Set(); let connected = false, serial = 0;
   class Node {
     constructor(tag) { this.tagName = tag.toUpperCase(); this.children = []; this.attrs = {}; this.listeners = {};
@@ -61,6 +62,8 @@ function harness(search = '?guidePreview=0') {
     tuneNum: n => calls.push(['tune', n]), toggleFav: n => { calls.push(['favorite', n]); favorites.has(n) ? favorites.delete(n) : favorites.add(n); },
     setInterval: fn => { const id = ++serial; intervals.set(id, fn); return id; }, clearInterval: id => intervals.delete(id),
     setTimeout: () => ++serial, clearTimeout() {},
+    requestAnimationFrame: fn => { const id = ++serial; frames.set(id, fn); return id; },
+    cancelAnimationFrame: id => frames.delete(id),
     fetch: () => { throw Error('guide must not fetch'); }, primeGuideQueues: () => { throw Error('guide must not prime'); },
   };
   context.window = context; vm.createContext(context);
@@ -68,6 +71,7 @@ function harness(search = '?guidePreview=0') {
   const script = path.join(root, 'assets/v6-guide.js');
   if (fs.existsSync(script)) vm.runInContext(fs.readFileSync(script, 'utf8'), context);
   return { context, document, opener, legacy, ids, calls, intervals, snapshots, reads, layout, offscreen,
+    frame() { const callbacks = [...frames.values()]; frames.clear(); callbacks.forEach(fn => fn()); },
     connect(v) { connected = v; }, tick() { [...intervals.values()].forEach(fn => fn()); },
     visibleNumbers() { return ids.get('rsV6GuideList').children.map(x => Number(x.dataset.channelNum)); } };
 }
@@ -177,6 +181,15 @@ test('opening only reads on-screen program rows and the selected channel, not th
   const h = harness(); h.offscreen.add(300); h.context.openGuide();
   assert.ok(!h.reads.includes(300), 'off-screen queue selection must not delay guide opening');
   h.offscreen.delete(300); h.tick();
+  assert.equal(h.ids.get('rsV6GuideNow-300').textContent, 'Select a live channel');
+});
+
+test('scrolling fills newly visible guide rows on the next frame', () => {
+  const h = harness(); h.offscreen.add(300); h.context.openGuide();
+  assert.equal(h.ids.get('rsV6GuideNow-300').textContent, 'Program information pending');
+  h.offscreen.delete(300);
+  h.ids.get('rsV6GuideList').dispatch('scroll');
+  h.frame();
   assert.equal(h.ids.get('rsV6GuideNow-300').textContent, 'Select a live channel');
 });
 

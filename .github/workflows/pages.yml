@@ -41,8 +41,8 @@ jobs:
           node-version: '22'
           package-manager-cache: false
 
-      - name: Verify the shared broadcast tuner
-        run: node --test scripts/test-broadcast-app.mjs scripts/test-broadcast-player.mjs scripts/test-youtube-embed-runtime.js
+      - name: Verify the guide and active player integrations
+        run: node --test scripts/test-v6-guide.js scripts/test-v6-watching-shell.js scripts/test-youtube-embed-runtime.js scripts/test-ok-source-recovery.js scripts/test-vimeo-embed-runtime.js
 
       # A fast release gate for first-play availability across representative
       # eras, animation, sports, live-data, and long-tail IA lanes. The

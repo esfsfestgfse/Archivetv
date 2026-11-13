@@ -21,6 +21,22 @@ function programFixture(){
  return {scope,events,start(key,channel=10,extra={}){scope.push({type:'first-visible-frame',channel,programKey:key,...extra});}};
 }
 
+test('diagnostics refresh only while the dialog is open',()=>{
+ const calls=[];
+ let visible=false;
+ const scope={document:{getElementById:()=>({classList:{contains:()=>visible}})},
+   renderHealthView:()=>calls.push('render'),fetchRemoteHealth:()=>calls.push('fetch')};
+ const source=fs.readFileSync(path.join(__dirname,'../assets/release2-runtime.js'),'utf8');
+ vm.createContext(scope);
+ vm.runInContext(source.slice(source.indexOf('  function refreshOpenDiagnostics('),source.indexOf('  function laneRows(')),scope);
+ scope.refreshOpenDiagnostics();
+ visible=true;
+ scope.refreshOpenDiagnostics();
+ visible=false;
+ scope.refreshOpenDiagnostics();
+ assert.deepEqual(calls,['render','fetch']);
+});
+
 test('confirmed A/B/A starts count a repeat without requiring another channel tune',()=>{
  const f=programFixture();for(const key of ['A','B','A'])f.start(key);
  assert.equal(f.events.filter(e=>e.type==='repeat').length,1);

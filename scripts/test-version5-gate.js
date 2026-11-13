@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* Machine-enforced Version 5 release gate.
+/* Internet Archive playback health checks.
  *
  * This does not deploy or stamp a release. It only certifies a completed IA
  * report when availability, depth, latency, and freshness meet the published
@@ -15,12 +15,13 @@ function option(name, fallback) {
 }
 
 const reportPath = option('--report');
+const manifestPath = option('--manifest');
 const minChannels = Math.max(1, Number(option('--min-channels', '179')) || 179);
 const minFreshness = Math.max(0, Math.min(1, Number(option('--min-freshness', '0.813')) || 0.813));
 const maxFirstPlayMs = Math.max(250, Number(option('--max-first-play-ms', '3000')) || 3000);
 
 if (!reportPath) {
-  console.error('Usage: node scripts/test-version5-gate.js --report <ia-report.json> [--min-channels 179] [--min-freshness 0.813] [--max-first-play-ms 3000]');
+  console.error('Usage: node scripts/test-version5-gate.js --report <ia-report.json> [--manifest <ia-manifest.json> | --min-channels 179] [--min-freshness 0.813] [--max-first-play-ms 3000]');
   process.exit(2);
 }
 
@@ -49,8 +50,19 @@ const uniqueCoverage = Number(freshness.uniqueCoverage);
 const firstPlay = totals.firstPlayLatencyMs || report.firstPlayLatencyMs || {};
 const maxObserved = Number(firstPlay.max);
 
+let coverage = { ok: expected >= minChannels && ready >= expected, detail: `${ready}/${expected} ready; minimum ${minChannels}` };
+if (manifestPath) {
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  if (!Array.isArray(manifest) || !manifest.length) throw new Error('The IA manifest must contain channels.');
+  const channels = new Set(manifest.map(row => String(row.channel || '')));
+  if (channels.has('') || channels.size !== manifest.length) throw new Error('The IA manifest contains missing or duplicate channel numbers.');
+  const measured = new Set((Array.isArray(report.results) ? report.results : []).map(row => String(row.channel)));
+  coverage = { ok: expected === channels.size && ready >= channels.size &&
+      measured.size === channels.size && [...channels].every(channel => measured.has(channel)),
+    detail: `${ready}/${channels.size} ready; report covered ${expected} channels` };
+}
 const checks = [
-  { name: 'channel coverage', ok: expected >= minChannels && ready >= expected, detail: `${ready}/${expected} ready; minimum ${minChannels}` },
+  { name: 'channel coverage', ...coverage },
   { name: 'zero timeouts', ok: timeouts === 0, detail: `${timeouts} timeouts` },
   { name: 'zero transport failures', ok: transportFailures === 0, detail: `${transportFailures} transport failures` },
   { name: 'zero HTTP failures', ok: httpFailures === 0, detail: `${httpFailures} HTTP failures` },
@@ -61,5 +73,5 @@ const checks = [
 
 const failed = checks.filter(check => !check.ok);
 for (const check of checks) console.log(`${check.ok ? 'PASS' : 'FAIL'} ${check.name}: ${check.detail}`);
-console.log(failed.length ? `Version 5 gate: BLOCKED (${failed.length} check${failed.length === 1 ? '' : 's'} failed)` : 'Version 5 gate: PASSED');
+console.log(failed.length ? `IA health: FAILED (${failed.length} check${failed.length === 1 ? '' : 's'} failed)` : 'IA health: PASSED');
 if (failed.length) process.exitCode = 1;

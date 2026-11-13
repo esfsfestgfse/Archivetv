@@ -11,7 +11,7 @@
   var REMOTE_ENDPOINT=String(window.__RS_REMOTE_TELEMETRY_ENDPOINT||'https://realsignal-api.tdy1990.workers.dev/api/v3/telemetry');
   var REMOTE_HEALTH_ENDPOINT=String(window.__RS_REMOTE_HEALTH_ENDPOINT||'https://realsignal-api.tdy1990.workers.dev/api/v3/health/summary?hours=24&limit=8');
   var REMOTE_TYPES={"tune-complete":1,"first-visible-frame":1,"guide-open":1,"guide-close":1,"queue-sample":1,"repeat":1,"control":1,"stall":1,"media-error":1,"tune-failed":1,"startup-timeout":1,"source-recovery":1,"source-recovery-failed":1,"source-success":1,"source-failure":1};
-  var remoteQueue=[],remoteTimer=0,remoteInFlight=false,remoteHealthInFlight=false,remoteHealth=null,healthPolicy={};
+  var remoteQueue=[],remoteTimer=0,remoteInFlight=false,remoteHealthInFlight=false,healthPolicy={};
   var STORAGE_KEY='realsignal:health:v2',persistTimer=0,stored={};
   try{stored=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}')||{};}catch(_){stored={};}
   var report={version:4,startedAt:Date.now(),events:Array.isArray(stored.events)?stored.events.slice(-500):[],channelStats:stored.channelStats&&typeof stored.channelStats==='object'?stored.channelStats:{},sessions:Number(stored.sessions||0)+1,notes:['bounded local report','optional remote v3 telemetry','bounded 500-event ring','bounded per-channel history']};
@@ -117,7 +117,7 @@
       var empty=document.getElementById('rsHealthRemoteLanes');if(empty)empty.innerHTML='<div class="rs-health-empty">Server health is temporarily unavailable. Local measurements remain active.</div>';
       return;
     }
-    remoteHealth=value;syncRemoteHealthPolicy(value);
+    syncRemoteHealthPolicy(value);
     var channels=Array.isArray(value.channels)?value.channels:[],totals=value.totals||{},score=Number(value.overallScore);
     set('rsHealthRemoteStatus',String(value.status||'READY').toUpperCase()+' · '+(Number.isFinite(score)?Math.round(score)+'/100':'NO SCORE'));
     set('rsHealthRemoteFrame',formatMs(remoteMetric(channels,'first_frame_avg_ms')));
@@ -133,6 +133,12 @@
     if(!remoteTelemetryOn||remoteHealthInFlight||typeof fetch!=='function'||!document.getElementById('rsHealthRemoteStatus'))return;
     remoteHealthInFlight=true;var controller=typeof AbortController==='function'?new AbortController():null,timer=setTimeout(function(){if(controller)controller.abort();},5000);
     fetch(REMOTE_HEALTH_ENDPOINT,{method:'GET',mode:'cors',cache:'no-store',headers:{'x-realsignal-client':'health-dashboard'},signal:controller?controller.signal:undefined}).then(function(response){if(!response.ok)throw new Error('HTTP '+response.status);return response.json();}).then(function(value){if(value&&value.apiVersion==='v3')renderRemoteHealth(value);else throw new Error('invalid dashboard payload');}).catch(function(error){renderRemoteHealth({error:String(error&&error.message||'unavailable')});}).finally(function(){clearTimeout(timer);remoteHealthInFlight=false;});
+  }
+  function refreshOpenDiagnostics(){
+    var dialog=document.getElementById('diagOv');
+    if(!dialog||!dialog.classList.contains('show'))return;
+    renderHealthView();
+    fetchRemoteHealth();
   }
   function laneRows(){return Object.keys(report.channelStats).map(function(key){var row=report.channelStats[key]||{},attempts=Number(row.tunes||0),frames=Number(row.frames||0),failures=Number(row.failures||0),stalls=Number(row.stalls||0),repeats=Number(row.repeats||0),timeouts=Number(row.timeouts||0),frameP50=median(row.frameMs),switchP50=median(row.switchMs),depths=(row.queueDepths||[]).filter(Number.isFinite),cat=String(row.cat||''),source=String(row.source||''),visualLane=source==='v2preview'||/^(NET|TOON|MOV|TV|DOC|SOURCE|RETRO|HOL|BRIT|SPORTS)$/.test(cat),unframed=visualLane?Math.max(0,attempts-frames):0,score=100-(failures*18)-(timeouts*20)-(stalls*8)-(repeats*5)-(unframed*12)+(frames?Math.min(8,frames):0);return {channel:Number(row.channel||key)||0,name:String(row.name||('CHANNEL '+key)),cat:cat,source:source,visualLane:visualLane,attempts:attempts,frames:frames,unframed:unframed,failures:failures,stalls:stalls,repeats:repeats,timeouts:timeouts,recoveries:Number(row.recoveries||0),frameP50:frameP50,switchP50:switchP50,queue:depths.length?depths[depths.length-1]:null,score:Math.max(0,Math.min(100,score)),lastAt:Number(row.lastAt||0)};}).filter(function(row){return row.attempts||row.frames||row.failures||row.repeats||row.stalls;}).sort(function(a,b){return a.score-b.score||b.failures-a.failures||b.lastAt-a.lastAt;});}
   function refreshLineupAfterHealth(){try{if(typeof buildCatNav==='function')buildCatNav();if(typeof renderGuide==='function'){var wrap=document.getElementById('gwrap');if(wrap&&wrap.classList.contains('show'))renderGuide();}}catch(_){ }}
@@ -240,7 +246,8 @@
   function formatMs(value){return Number.isFinite(value)?Math.round(value)+' ms':'—';}
   function renderHealthView(){
     if(!telemetryOn||!window.__rsRelease2Telemetry)return;
-    var panel=document.getElementById('rsHealthPanel');if(!panel)return;
+    var panel=document.getElementById('rsHealthPanel'),dialog=document.getElementById('diagOv');
+    if(!panel||!dialog||!dialog.classList.contains('show'))return;
     var s=summary(),set=function(id,value){var el=document.getElementById(id);if(el)el.textContent=value;};
     set('rsHealthFrame',formatMs(s.frameP50));
     set('rsHealthSwitch',formatMs(s.tuneP50));
@@ -274,7 +281,11 @@
     var node=document.createElement('script');node.type='application/json';node.id='rs-release2-telemetry';node.hidden=true;document.body.appendChild(node);
     window.__rsRelease2Telemetry={report:report,summary:summary,status:deviceStatus,lanes:laneRows,render:renderHealthView,record:push,clear:function(){report.events.length=0;report.channelStats={};seenPrograms.length=0;try{localStorage.removeItem(STORAGE_KEY);}catch(_){ }push({type:'cleared'});},json:function(){return JSON.stringify({report:report,summary:summary(),weakest:laneRows()},null,2);}};
     installHealthControls();installGuideObserver();
-    setTimeout(fetchRemoteHealth,700);setInterval(fetchRemoteHealth,60000);
+    var diagnostics=document.getElementById('diagOv');
+    if(diagnostics){
+      new MutationObserver(refreshOpenDiagnostics).observe(diagnostics,{attributes:true,attributeFilter:['class']});
+      setInterval(refreshOpenDiagnostics,60000);
+    }
     var baseOpen=window.openGuide,baseClose=window.closeGuide;
     if(typeof baseOpen==='function'&&!baseOpen.__release2Wrapped){window.openGuide=function(){pendingGuide={action:'open',at:stamp()};return baseOpen.apply(this,arguments);};window.openGuide.__release2Wrapped=true;}
     if(typeof baseClose==='function'&&!baseClose.__release2Wrapped){window.closeGuide=function(){pendingGuide={action:'close',at:stamp()};return baseClose.apply(this,arguments);};window.closeGuide.__release2Wrapped=true;}

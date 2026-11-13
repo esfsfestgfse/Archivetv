@@ -30,6 +30,35 @@ const { pathToFileURL } = require('node:url');
   };
   const ctx = { waitUntil(promise) { return promise; } };
 
+  // The cache must short-circuit the database, not just replace a response
+  // after paying for its queries. Playback POSTs must bypass this cache.
+  const originalCaches = globalThis.caches;
+  let reads = 0;
+  const cache = new Map();
+  globalThis.caches = { default: {
+    async match(key) { return cache.get(key.url)?.clone(); },
+    async put(key, value) { cache.set(key.url, value); }
+  } };
+  try {
+    const publicEnv = { realsignal_catalog: { prepare() {
+      reads++;
+      return { bind() { return { async all() { return { results: [{ id: 'cached-program' }] }; } }; } };
+    } } };
+    const request = new Request('https://api.example/api/v3/catalog?channel=12');
+    const cold = await worker.fetch(request, publicEnv, ctx);
+    const warm = await worker.fetch(request, publicEnv, ctx);
+    assert.equal(cold.headers.get('X-RealSignal-Cache'), 'miss');
+    assert.equal(warm.headers.get('X-RealSignal-Cache'), 'hit');
+    assert.deepEqual(await warm.json(), await cold.json());
+    assert.equal(reads, 1, 'cache hits should skip D1');
+    const invalid = await worker.fetch(new Request(request.url, { method: 'POST' }), publicEnv, ctx);
+    assert.equal(invalid.status, 405);
+    globalThis.caches.default.match = async () => { throw Error('cache offline'); };
+    const recovered = await worker.fetch(request, publicEnv, ctx);
+    assert.equal(recovered.status, 200);
+    assert.equal(reads, 2);
+  } finally { globalThis.caches = originalCaches; }
+
   const health = await worker.fetch(new Request('https://api.example/api/v3/health'), env, ctx);
   assert.equal(health.status, 200);
   const healthBody = await health.json();

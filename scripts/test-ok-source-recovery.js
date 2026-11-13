@@ -108,6 +108,7 @@ const root = path.resolve(__dirname, '..');
   send('error', 'https://ok.ru', nextFrame.contentWindow); assert.equal(failed, 1);
   assert.equal(listeners.size, 0);
   const silentReady = window.RealSignalOKEmbed.play(options); frames[2].onload(); await silentReady;
+  send('inited', 'https://ok.ru', frames[2].contentWindow);
   for (const fn of [...timers.values()]) fn();
   assert.equal(failed, 2, 'an iframe page with no media start must not hang forever');
   const pausedReady = window.RealSignalOKEmbed.play(options); frames[3].onload(); await pausedReady;
@@ -125,6 +126,20 @@ const root = path.resolve(__dirname, '..');
     assert.equal(timers.size, 1, 'resuming an unstarted player re-enables bounded recovery');
     window.RealSignalOKEmbed.stop();
   }
+  let empty = 0;
+  const blank = window.RealSignalOKEmbed.play({ ...options, onUnavailable: () => empty++ });
+  const blankFrame = frames.at(-1);
+  for (const fn of [...timers.values()]) fn();
+  assert.equal(await blank, null, 'an embed with no provider response must be treated as temporarily unavailable');
+  assert.equal(empty, 1);
+  assert.equal(failed, 2, 'an unavailable provider must not mark the individual episode bad');
+  assert.equal(blankFrame.removed, true);
+  assert.equal(timers.size, 0);
+  const blankDocument = window.RealSignalOKEmbed.play({ ...options, onUnavailable: () => empty++ });
+  frames.at(-1).onload(); await blankDocument;
+  for (const fn of [...timers.values()]) fn();
+  assert.equal(empty, 2, 'a loaded document without player events must also report the provider unavailable');
+  assert.equal(failed, 2);
   const api = fs.readFileSync(path.join(root, 'realsignal_api_v2_worker.js'), 'utf8');
   assert.ok(api.includes('metadata_json=excluded.metadata_json'), 'catalog repairs must replace stale metadata');
   for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {

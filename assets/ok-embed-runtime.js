@@ -145,18 +145,25 @@
   function play(options) {
     stop();
     return new Promise(function (resolve) {
-      var frame = document.createElement("iframe"), disposed = false, loaded = false, playing = false, startSuppressed = false, advanced = false, settled = false, timer;
+      var frame = document.createElement("iframe"), disposed = false, loaded = false, playing = false, providerResponded = false, startSuppressed = false, advanced = false, settled = false, timer;
       var offset = Math.max(0, Math.floor(Number(options.startSeconds?.()) || 0));
       function settle(value) { if (!settled) { settled = true; resolve(value); } }
       function cleanup() {
-        disposed = true; clearTimeout(timer); root.removeEventListener("message", message); frame.onload = null;
+        disposed = true; clearTimeout(timer); root.removeEventListener("message", message); frame.onload = frame.onerror = null;
         if (active === cleanup) active = null;
         settle(false);
       }
       function armStartTimer() {
         clearTimeout(timer);
         if (startSuppressed) return;
-        timer = setTimeout(function () { if (!playing) fail(); }, 15000);
+        timer = setTimeout(function () { if (!playing) providerResponded ? fail() : unavailable(); }, 15000);
+      }
+      function unavailable() {
+        if (disposed || !options.isCurrent()) return;
+        settle(null);
+        cleanup();
+        frame.remove();
+        if (options.onUnavailable) options.onUnavailable();
       }
       function fail() {
         if (disposed || !options.isCurrent()) return;
@@ -168,7 +175,8 @@
         if (disposed || !options.isCurrent() || event.source !== frame.contentWindow || event.origin !== "https://ok.ru") return;
         var data = event.data;
         try { if (typeof data === "string") data = JSON.parse(data); } catch (_) { return; }
-        if (!data || typeof data !== "object") return;
+        if (!data || typeof data !== "object" || typeof data.event !== "string") return;
+        providerResponded = true;
         if (data.event === "error") { fail(); return; }
         // Explicit pauses, autoplay restrictions and ads are not failed media.
         if (/^(?:paused|autoplaySoundProhibited|adShown|adStarted)$/.test(data.event)) { startSuppressed = true; clearTimeout(timer); return; }
@@ -193,12 +201,13 @@
         if (disposed || !options.isCurrent()) { cleanup(); return; }
         if (!loaded) { loaded = true; frame.dataset.playbackState = "ready"; if (!playing) armStartTimer(); options.onReady(); settle(true); }
       };
+      frame.onerror = unavailable;
       root.addEventListener("message", message);
       active = cleanup;
       options.container.appendChild(frame);
       // Page load is not video start. A silent, unstarted player gets one
       // bounded recovery; actual EOF alone advances a playing program.
-      timer = setTimeout(function () { if (!loaded) fail(); }, 20000);
+      if (!loaded) timer = setTimeout(unavailable, 9000);
     });
   }
   root.RealSignalOKEmbed = { play: play, stop: stop, qualify: qualify, order: order, normalize: normalize, programKey: programKey, seriesKey: seriesKey, reconcileShelf: reconcileShelf, musicProfile: musicProfile };

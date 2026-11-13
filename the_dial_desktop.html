@@ -9,12 +9,12 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 7.2.9</title>
+<title>REALSIGNAL · Retro Cable 7.2.10</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
-<script src="assets/ok-embed-runtime.js?v=7.2.9"></script>
+<script src="assets/ok-embed-runtime.js?v=7.2.10"></script>
 <script src="assets/ia-playback-shelf.js?v=5.6.29"></script>
 <script src="assets/sports-programs.js?v=7.0.0"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
@@ -1702,7 +1702,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="7.2.9-desktop-retro-cable";
+window.__ATV_BUILD="7.2.10-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -9275,7 +9275,51 @@ function v2FreshCursor(profile,state,unseenOnly){if(!profile||!state||!state.ite
 /* Source Suite playback verifier: reveal the embed only after the player reports
    a playing state, with a short loaded-player fallback for browsers that do not
    forward YouTube postMessage events. */
-function playOKEmbed(item,ch,sl,my){if(my!==token)return Promise.resolve(false);killMedia();screenArea.innerHTML="";return window.RealSignalOKEmbed.play({item:item,container:screenArea,isCurrent:function(){return my===token&&powered&&curNum===ch.num;},onReady:function(){hideOv();hideBuffer();setSig("live","PLAYER READY");curVideo=null;setCurItem(Object.assign({},item,{embedded:true,type:"video",url:item.embedUrl||item.url}),ch,sl);showNow(ch,sl,item.title,item.provider);bug.classList.remove("hide");},onStarted:function(){setSig("live","ON AIR");var profile=V2_PREVIEW_PROFILES[ch.previewKey];if(profile)v2Remember(profile.name,item);},onEnded:function(){if(typeof window.__v2PreviewNext==="function")window.__v2PreviewNext();},onError:function(){v2RejectEmbed(item,ch,my);}});}
+function playOKEmbed(item,ch,sl,my){
+  if(my!==token)return Promise.resolve(false);
+  killMedia();
+  screenArea.innerHTML="";
+  var state=v2PreviewState[ch.num],profile=V2_PREVIEW_PROFILES[ch.previewKey];
+  return window.RealSignalOKEmbed.play({
+    item:item,
+    container:screenArea,
+    isCurrent:function(){return my===token&&powered&&curNum===ch.num;},
+    onReady:function(){
+      if(state&&state.currentId===item.id)return;
+      hideOv();
+      hideBuffer();
+      setSig("tuning","WAITING FOR OK.RU");
+    },
+    onStarted:function(){
+      hideOv();
+      hideBuffer();
+      setSig("live","ON AIR");
+      curVideo=null;
+      setCurItem(Object.assign({},item,{embedded:true,type:"video",url:item.embedUrl||item.url}),ch,sl);
+      showNow(ch,sl,item.title,item.provider);
+      bug.classList.remove("hide");
+      if(profile)v2Remember(profile.name,item);
+      if(state){
+        state.currentId=item.id;
+        state.currentTitle=item.title;
+        state.currentDuration=Number(item.duration)||0;
+        state.provider=item.provider;
+        state.pendingId="";
+      }
+      refreshGuideData();
+    },
+    onEnded:function(){if(typeof window.__v2PreviewNext==="function")window.__v2PreviewNext();},
+    onError:function(){v2RejectEmbed(item,ch,my);},
+    onUnavailable:function(){
+      if(state){state.currentId="";state.currentTitle="";state.currentDuration=0;}
+      hideBuffer();
+      setSig("tuning","OK.RU UNAVAILABLE");
+      setChanStatus(ch.num,"OK.RU PLAYER UNAVAILABLE");
+      showOv("OK.RU UNAVAILABLE","PRESS NEXT TO RETRY","OK.ru did not open the video player.");
+      refreshGuideData();
+    }
+  }).then(function(ready){return ready===true?null:ready;});
+}
 function playVimeoEmbed(item,ch,sl,my){if(my!==token)return Promise.resolve(false);killMedia();screenArea.innerHTML="";var selectedAt=performance.now();return window.RealSignalVimeoEmbed.play({item:item,container:screenArea,isCurrent:function(){return my===token&&powered&&curNum===ch.num;},onReady:function(){hideOv();hideBuffer();setSig("live","PLAYER READY");curVideo=null;setCurItem(Object.assign({},item,{embedded:true,type:"video",url:item.embedUrl||item.url}),ch,sl);showNow(ch,sl,item.title,item.provider);bug.classList.remove("hide");},onStarted:function(){setSig("live","ON AIR");var profile=V2_PREVIEW_PROFILES[ch.previewKey];if(profile)v2Remember(profile.name,item);applyAV();if(window.__rsRelease2Telemetry)window.__rsRelease2Telemetry.record({type:"first-visible-frame",channel:ch.num,source:"Vimeo",ms:Math.round(performance.now()-selectedAt),programKey:item.id});},onEnded:function(){if(typeof window.__v2PreviewNext==="function")window.__v2PreviewNext();},onError:function(){v2RejectEmbed(item,ch,my);}});}
 function v2YouTubeSDKEnabled(){return new URLSearchParams(location.search).get("youtubeSDK")!=="0";}
 function v2CanPrepareYouTube(profile){return !!(window.RealSignalYouTubeEmbed&&typeof window.RealSignalYouTubeEmbed.prepare==="function"&&v2YouTubeSDKEnabled()&&profile&&Array.isArray(profile.providers)&&profile.providers.indexOf("youtube")>=0&&!(typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected()));}

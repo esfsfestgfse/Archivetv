@@ -922,6 +922,7 @@ function normalized(item, provider, query) {
     provider,
     ...(provider === "NASCAR Classics" ? { officialReplay: item.officialReplay === true, verification: item.verification, verifiedAt: Number(item.verifiedAt) || 0, raceTrack: item.raceTrack, raceSeries: item.raceSeries } : {}),
     durationUnit: provider === "OK.ru" ? "seconds" : "",
+    ...(provider === "OK.ru" && Number(item.videoHeight) > 0 ? { videoHeight: Number(item.videoHeight) } : {}),
     query: text(query, 180),
     type: item.type || "video",
     url: text(item.url, 1400),

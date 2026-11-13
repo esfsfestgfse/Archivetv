@@ -50,7 +50,7 @@ export function okEmbedMetadata(html, expectedId) {
     if (!(width > 0 && height > 0)) return null;
     return { id: String(expectedId), title: String(movie.title || ""),
       compilationTitle: String(metadata.compilationTitle || "").slice(0, 160),
-      duration: Number(movie.duration) || 0, width, height, aspectRatio: width / height,
+      duration: Number(movie.duration) || 0, width, height, videoHeight: height, aspectRatio: width / height,
       embedAllowed: true, type: "embed", url: `https://ok.ru/videoembed/${expectedId}`,
       embedUrl: `https://ok.ru/videoembed/${expectedId}`,
       rights: "OK.ru public embed; playback remains subject to provider availability" };
@@ -340,7 +340,7 @@ export function okPreferUnseenSeries(items, recentSeries) {
 
 // Fair admission: no search page or series can consume the hydration budget.
 export function okBalancedCandidates(pages, kind, maximum = 36) {
-  const seen = new Set(), buckets = new Map();
+  const seen = new Set(), buckets = new Map(), programs = new Map();
   for (let index = 0; index < Math.max(0, ...pages.map(page => page.length)); index++) {
     for (const page of pages) {
       const item = page[index];
@@ -348,10 +348,18 @@ export function okBalancedCandidates(pages, kind, maximum = 36) {
       seen.add(item.id);
       const name = item.musicArtistId || (kind === "tv" && item.seriesId ? item.seriesId : okProgramName(item.title, kind).toLowerCase());
       const identity = kind === "movie" ? `${name}:${String(item.title).match(/\b(?:19|20)\d{2}\b/)?.[0] || ""}` : okPlaybackIdentity(item, kind);
-      if (seen.has(`program:${identity}`)) continue;
-      seen.add(`program:${identity}`);
+      const prior = programs.get(identity);
+      if (prior) {
+        if (Number(item.videoHeight || 0) > Number(prior.item.videoHeight || 0)) {
+          prior.bucket[prior.index] = item;
+          prior.item = item;
+        }
+        continue;
+      }
       if (!buckets.has(name)) buckets.set(name, []);
-      buckets.get(name).push(item);
+      const bucket = buckets.get(name);
+      programs.set(identity, { item, bucket, index: bucket.length });
+      bucket.push(item);
     }
   }
   const result = [];

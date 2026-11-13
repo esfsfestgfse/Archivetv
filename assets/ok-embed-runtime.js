@@ -55,7 +55,7 @@
         && !/\b(?:shorts?|clip|trailer|teaser|recap|reaction|review|podcast|how[ -]to|tutorial|fan[ -]?(?:made|film|edit|animation)|parody|amv|gacha|gameplay|porn|hentai|nsfw|audio only)\b/i.test(title)
         && (family[1] !== "anime" || /\b(?:english[ ._-]+dub(?:bed)?|dub(?:bed)?[ ._-]+english)\b/i.test(title));
     }
-    var curated = /^ok-(britannia|history-vault|factory-floor|black-tv|cookhouse|science-lab|gearhead|wildlife|casefiles|homestead|treasures|travel)-channel$/.exec(String(profile.profileKey || ""));
+    var curated = /^ok-(britannia|history-vault|factory-floor|black-tv|cookhouse|science-lab|gearhead|wildlife|casefiles|homestead|treasures|travel|rail|air|rescue)-channel$/.exec(String(profile.profileKey || ""));
     if (curated) {
       var expectedFamily = curated[1] === "history-vault" ? "history" : curated[1] === "factory-floor" ? "factory" : curated[1];
       if (expectedFamily === "cookhouse" && /\bessential[\s._-]+p[ée]pin\b/i.test(title)) return false;
@@ -104,13 +104,22 @@
     return String(item.seriesId || item.seriesTitle || "").trim();
   }
   function order(profile, items, recentArtists) {
-    var groups = new Map(), seen = new Set(), result = [], tv = profile.intent === "television" || /^ok-(?:kids|adult|anime)-channel$/.test(String(profile.profileKey || ""));
+    var groups = new Map(), seen = new Map(), result = [], tv = profile.intent === "television" || /^ok-(?:kids|adult|anime)-channel$/.test(String(profile.profileKey || ""));
     items.forEach(function (item) {
       var series = String(item.musicArtistId || item.seriesId || item.seriesTitle || item.id);
       var key = item.musicVerified ? programKey(item) : tv ? programKey(item) : item.identityReference || item.id;
-      if (seen.has(key)) return; seen.add(key);
+      var prior = seen.get(key);
+      if (prior) {
+        if (Number(item.videoHeight || 0) > Number(prior.item.videoHeight || 0)) {
+          prior.bucket[prior.index] = item;
+          prior.item = item;
+        }
+        return;
+      }
       if (!groups.has(series)) groups.set(series, []);
-      groups.get(series).push(item);
+      var bucket = groups.get(series);
+      seen.set(key, { item: item, bucket: bucket, index: bucket.length });
+      bucket.push(item);
     });
     var artists = (Array.isArray(recentArtists) ? recentArtists : []).slice(0,8).reverse();
     while (Array.from(groups.values()).some(function (list) { return list.length; })) {

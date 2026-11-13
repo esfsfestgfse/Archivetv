@@ -6,12 +6,23 @@
  */
 
 const COMMON_DENY = /\b(?:shorts?|clip|trailer|teaser|promo|recap|reaction|review|podcast|how[ -]?to|tutorial|fan[ -]?(?:made|film|edit|animation)|parody|mashup|gameplay|soundtrack|theme song|music video|audio only|commentary only|interview|behind the scenes|making of|video essay|explained|lecture|seminar|conference|panel|best of|supercut|tribute|anniversary|50 years of laughs|greatest christmas moments|lost pilot|test episode|comedy duo|life lessons|doctors? revisited)\b/i;
-const FOREIGN = /(?:[\u0400-\u04ff\u0600-\u06ff\u0900-\u097f\u0e00-\u0e7f\u1100-\u11ff\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]|\b(?:vostfr|vose|truefrench|subfrench|subesp|subbed|rus|russian|french|spanish|german|hindi|tamil|telugu|italian|hungarian|dublado|dubbed|dual|multi|latino|espa[nñ]ol|fran[cç]ais|episodul|portugu[eê]s|subtitulado|magyar|turkish|romana|romanian|ukrainian|ukr|dvo|tr-p\d+|seizoen|polarni|hun)\b)/i;
+const FOREIGN = /(?:[\u0400-\u04ff\u0600-\u06ff\u0900-\u097f\u0e00-\u0e7f\u1100-\u11ff\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]|\b(?:vostfr|vose|truefrench|subfrench|subesp|subbed|rus|russian|french|spanish|german|hindi|tamil|telugu|italian|hungarian|dublado|dubbed|dual|multi|latino|espa[nñ]ol|fran[cç]ais|episodul|portugu[eê]s|subtitulado|magyar|turkish|romana|romanian|ukrainian|ukr|dvo|tr-p\d+|seizoen|polarni|hun|vost|castellano)\b)/i;
 
 const CHANNELS = Object.freeze({
   "ok-britannia-channel": {
     family: "britannia",
     programs: [
+      ["One Foot in the Grave"],
+      ["Yes Minister"],
+      ["Yes Prime Minister"],
+      ["Absolutely Fabulous"],
+      ["The Vicar of Dibley"],
+      ["As Time Goes By"],
+      ["Open All Hours"],
+      ["The Good Life"],
+      ["Jonathan Creek"],
+      ["A Touch of Frost","Touch of Frost"],
+      ["Cracker"],
       ["Only Fools and Horses"], ["Fawlty Towers"], ["Doctor Who"], ["Blackadder"],
       ["Peep Show"], ["The Office UK", "The Office (UK)", "The Office BBC"],
       ["Midsomer Murders"], ["Inspector Morse"], ["Poirot", "Agatha Christie's Poirot"],
@@ -21,6 +32,13 @@ const CHANNELS = Object.freeze({
   "ok-history-vault-channel": {
     family: "history",
     programs: [
+      ["Victory at Sea"],
+      ["The Great War BBC 1964","The Great War BBC","The Great War 1964"],
+      ["World War II in Colour","World War II in Color"],
+      ["World War II The Lost Color Archives","WWII The Lost Color Archives"],
+      ["Ken Burns The Civil War","The Civil War Ken Burns"],
+      ["Civilisations BBC","Civilisations 2018"],
+      ["A History of Britain","Simon Schama A History of Britain"],
       ["The Men Who Built America"], ["Ancient Discoveries"], ["Connections", "Connections James Burke"],
       ["The World at War"], ["The Century America's Time", "The Century: America's Time"],
       ["History Detectives"], ["Cities of the Underworld"], ["Engineering an Empire"],
@@ -30,6 +48,11 @@ const CHANNELS = Object.freeze({
   "ok-factory-floor-channel": {
     family: "factory",
     programs: [
+      ["Building Giants"],
+      ["Impossible Engineering"],
+      ["Extreme Engineering"],
+      ["Food Factory USA"],
+      ["Machines How They Work"],
       ["Ultimate Factories"], ["MegaFactories", "Mega Factories"],
       ["How It's Made Dream Cars", "How Its Made Dream Cars"], ["How It's Made", "How Its Made"],
       ["Food Factory"], ["How Do They Do It"], ["Inside the Factory"],
@@ -40,6 +63,13 @@ const CHANNELS = Object.freeze({
   "ok-cookhouse-channel": {
     family: "cookhouse",
     programs: [
+      ["Mary Makes It Easy"],
+      ["Mary Berry Love to Cook"],
+      ["Rick Stein's Secret France","Rick Stein Secret France"],
+      ["Rick Stein's Long Weekends","Rick Stein Long Weekends"],
+      ["The Hairy Bikers Go North"],
+      ["Gordon Ramsay's Ultimate Cookery Course"],
+      ["Nigella At My Table"],
       ["The French Chef", "Julia Child The French Chef"],
       ["Two Fat Ladies"], ["Great British Bake Off", "The Great British Baking Show"],
       ["America's Test Kitchen"], ["Great Chefs"], ["Baking with Julia"],
@@ -52,6 +82,10 @@ const CHANNELS = Object.freeze({
   "ok-science-lab-channel": {
     family: "science-lab",
     programs: [
+      ["Horizon","BBC Horizon"],
+      ["The Secret Life of Chaos"],
+      ["The Day the Universe Changed","James Burke The Day the Universe Changed"],
+      ["Wonders of Life"],
       ["How the Universe Works"], ["Through the Wormhole", "Through the Wormhole with Morgan Freeman"],
       ["Cosmos A Spacetime Odyssey"], ["Cosmos Possible Worlds"], ["Wonders of the Universe"],
       ["PBS NOVA", "NOVA PBS"], ["Wonders of the Solar System"], ["The Planets BBC", "BBC The Planets"],
@@ -61,6 +95,12 @@ const CHANNELS = Object.freeze({
   "ok-gearhead-channel": {
     family: "gearhead",
     programs: [
+      ["Richard Hammond's Workshop","Richard Hammonds Workshop"],
+      ["Overhaulin"],
+      ["Graveyard Carz"],
+      ["Bitchin Rides"],
+      ["FantomWorks"],
+      ["Counting Cars"],
       ["Top Gear"], ["Fifth Gear"], ["Wheeler Dealers"], ["Car SOS", "Car S O S"],
       ["Jay Leno's Garage", "Jay Lenos Garage"], ["Chasing Classic Cars"],
       ["Fast N Loud", "Fast and Loud"], ["MotorWeek"], ["Car Fix"]
@@ -69,6 +109,14 @@ const CHANNELS = Object.freeze({
   "ok-wildlife-channel": {
     family: "wildlife",
     programs: [
+      ["BBC Natural World","Natural World"],
+      ["The Private Life of Plants"],
+      ["The Living Planet"],
+      ["Life Story"],
+      ["Wild China with Ray Mears"],
+      ["The Secret Life of the Zoo"],
+      ["Secrets of the Zoo Down Under"],
+      ["Wild Scandinavia PBS","PBS Wild Scandinavia","Wild Scandinavia"],
       ["Planet Earth III"],
       ["Planet Earth II"],
       ["Planet Earth"],
@@ -88,6 +136,15 @@ const CHANNELS = Object.freeze({
   "ok-casefiles-channel": {
     family: "casefiles",
     programs: [
+      ["The First 48 Presents Homicide Squad Atlanta"],
+      ["The First 48 Missing Persons"],
+      ["Homicide Hunter Lt Joe Kenda","Homicide Hunter"],
+      ["Fear Thy Neighbor"],
+      ["American Monster"],
+      ["New York Homicide"],
+      ["Murder Comes to Town"],
+      ["The Murder Tapes"],
+      ["Unusual Suspects"],
       ["Forensic Files II"],
       ["Forensic Files"],
       ["The FBI Files"],
@@ -102,6 +159,9 @@ const CHANNELS = Object.freeze({
   "ok-homestead-channel": {
     family: "homestead",
     programs: [
+      ["George Clarke's Amazing Spaces","George Clarke Amazing Spaces"],
+      ["Restoration Home"],
+      ["Your Home Made Perfect"],
       ["Gardeners' World"],
       ["Beechgrove Garden","The Beechgrove Garden"],
       ["Love Your Garden"],
@@ -116,6 +176,10 @@ const CHANNELS = Object.freeze({
   "ok-treasures-channel": {
     family: "treasures",
     programs: [
+      ["Salvage Hunters Classic Cars"],
+      ["Celebrity Antiques Road Trip"],
+      ["American Restoration"],
+      ["King of Collectibles"],
       ["Antiques Roadshow US"],
       ["Antiques Roadshow"],
       ["Celebrity Antiques Road Trip"],
@@ -132,6 +196,13 @@ const CHANNELS = Object.freeze({
   "ok-travel-channel": {
     family: "travel",
     programs: [
+      ["Joanna Lumley's Silk Road Adventure","Joanna Lumleys Silk Road Adventure"],
+      ["Joanna Lumley's Greek Odyssey"],
+      ["Himalaya with Michael Palin","Michael Palin Himalaya"],
+      ["Michael Palin's New Europe","Michael Palin New Europe"],
+      ["Michael Palin in North Korea"],
+      ["Michael Palin into Iraq","Michael Palin in Iraq"],
+      ["Michael Palin in Nigeria"],
       ["Globe Trekker","Pilot Guides"],
       ["Japanology Plus"],
       ["Rick Steves Europe","Rick Steves","Rick Steve's Art of Europe"],
@@ -147,9 +218,53 @@ const CHANNELS = Object.freeze({
       ["Travel Man 48 Hours in"]
     ]
   },
+  "ok-rail-channel": {
+    family: "rail",
+    programs: [
+      ["Great British Railway Journeys"],
+      ["Great Continental Railway Journeys"],
+      ["Great Japanese Railway Journeys"],
+      ["Great Asian Railway Journeys"],
+      ["Great American Railroad Journeys"],
+      ["Mighty Trains"],
+      ["The World's Most Scenic Railway Journeys","World's Most Scenic Railway Journeys"],
+      ["Great Coastal Railway Journeys"],
+      ["Impossible Railways"]
+    ]
+  },
+  "ok-air-channel": {
+    family: "air",
+    programs: [
+      ["Air Crash Investigation","Mayday Air Disaster","Mayday Air Disasters","Air Disasters","Mayday"],
+      ["Mighty Planes"],
+      ["Air Warriors"],
+      ["Ice Pilots NWT"]
+    ]
+  },
+  "ok-rescue-channel": {
+    family: "rescue",
+    programs: [
+      ["Saving Lives at Sea"],
+      ["Paramedics on Scene"],
+      ["Helicopter ER"],
+      ["Emergency Helicopter Medics"],
+      ["Ambulance UK","Ambulance BBC"],
+      ["Rescue 911"],
+      ["999 What's Your Emergency"],
+      ["24 Hours in A&E","24 Hours in AE"]
+    ]
+  },
   "ok-black-tv-channel": {
     family: "black-tv",
     programs: [
+      ["Sister Sister"],
+      ["Family Matters"],
+      ["Good Times"],
+      ["The Jeffersons"],
+      ["Sanford and Son"],
+      ["Half and Half"],
+      ["One on One"],
+      ["The Hughleys"],
       ["Martin"], ["In Living Color", "In Living Colour"], ["Living Single"], ["Moesha"],
       ["The Parkers"], ["Girlfriends"], ["The Jamie Foxx Show"], ["A Different World"],
       ["The Wayans Bros", "The Wayans Brothers"], ["The Steve Harvey Show"],
@@ -164,7 +279,7 @@ const clean = value => String(value || "").toLowerCase().replace(/[’']/g, "").
 const compact = value => clean(value).replace(/\s+/g, "");
 const canonical = aliases => aliases[0];
 
-const NEW_FAMILIES = new Set(["wildlife","casefiles","homestead","treasures","travel"]);
+const NEW_FAMILIES = new Set(["wildlife","casefiles","homestead","treasures","travel","rail","air","rescue"]);
 const SPECIALIST_FAMILIES = new Set(["factory", "cookhouse", "science-lab", "gearhead", ...NEW_FAMILIES]);
 
 export function okCuratedChannel(profile) {
@@ -181,10 +296,16 @@ export function okCuratedQueries(profile, cursor = 0) {
   const channel = okCuratedChannel(profile);
   if (!channel) return [];
   const programs = channel.programs;
-  const start = Math.abs(Number(cursor) || 0) * 4;
-  const selected = Array.from({ length: Math.min(4, programs.length) }, (_, index) => canonical(programs[(start + index) % programs.length]));
-  return selected.map(program => {
+  const window = Math.abs(Math.floor(Number(cursor) || 0));
+  const start = window * 4;
+  const selected = Array.from({ length: Math.min(4, programs.length) }, (_, index) => programs[(start + index) % programs.length]);
+  return selected.map((aliases, index) => {
+    const program = canonical(aliases);
     if (channel.family === "black-tv" && program === "Martin") return "Martin Lawrence Martin 1992 sitcom full episode";
+    // After the first pass, search aliases too so regional series names and
+    // alternate spellings contribute their own paginated discovery results.
+    const alias = aliases[Math.floor((start + index) / programs.length) % aliases.length];
+    if (alias !== program) return alias;
     if (channel.family === "black-tv") return `${program} full episode`;
     if (channel.family === "history" && program === "The Men Who Built America") return "History Channel The Men Who Built America full episode";
     if (channel.family === "history" && program === "Ancient Discoveries") return "Ancient Discoveries History Channel full episode";
@@ -194,6 +315,7 @@ export function okCuratedQueries(profile, cursor = 0) {
       if (program === "Gardeners' World") return "Gardeners World";
       if (program === "Unsolved Mysteries") return "Unsolved Mysteries Robert Stack";
       if (program === "Frozen Planet") return "Frozen Planet BBC";
+      if (program === "Horizon") return "Horizon BBC science";
       if (program === "Planet Earth") return "Planet Earth BBC";
       return program;
     }
@@ -223,8 +345,8 @@ function programLeadsTitle(channel, program, title) {
   value = value.replace(/^(?:episode\s+\d+|ep\s*\d+)\s+/, "");
   value = value.replace(/^asa\s+/, "");
   if (channel.family === "factory") value = value.replace(/^(?:national geographic|discovery channel)\s+/, "");
-  if (["gearhead","homestead","wildlife"].includes(channel.family)) value = value.replace(/^bbc(?: one| two)?\s+/, "");
-  if (channel.family === "cookhouse") value = value.replace(/^(?:19|20)\d{2} /, "");
+  if (["gearhead","homestead","wildlife","travel","rail","air","rescue","history"].includes(channel.family)) value = value.replace(/^bbc(?: one| two)?\s+/, "");
+  if (SPECIALIST_FAMILIES.has(channel.family)) value = value.replace(/^(?:19|20)\d{2} /, "");
   const name = clean(program);
   const boundary = " " + value + " ";
   return boundary.startsWith(" " + name + " ") || boundary.startsWith(" the " + name + " ")
@@ -265,9 +387,17 @@ export function okCuratedPrecheck(profile, item, checkAspect = true) {
   if (program === "PBS NOVA" && /\b(?:manhunt|boston bombers|escape from nazi alcatraz)\b/i.test(title)) return false;
   if (program === "Mega Manufacturing" && /\b\d+of\d+\b/i.test(title)) return false;
   if (NEW_FAMILIES.has(channel.family) && /\b(?:fan fiction|audiobook|reaction video|full movie|stop motion)\b/i.test(title)) return false;
+  if (program === "Life Story" && !/\b(?:bbc|s\d{1,2}[ ._-]*e\d{1,3}|\d+of\d+|attenborough)\b/i.test(title)) return false;
+  if (program === "Gordon Ramsay's Ultimate Cookery Course" && !okEpisodeIdentity(title)) return false;
   if (channel.family === "wildlife" && /\b(?:planet earth live|sezonnye|sntrk|hans zimmer|rom[ -]extremlym|green planet|music from)\b/i.test(title)) return false;
   if (channel.family === "casefiles" && (Number(item.duration) > 5400 || !okEpisodeIdentity(title) && !/\b(?:s\d{1,2}|episode|season|with robert stack)\b/i.test(title))) return false;
   if (channel.family === "homestead" && /\b(?:love your garden for less|blossom)\b/i.test(title)) return false;
+  if (/\b(?:bonus|outtakes|gag reel|behind the scenes)\b/i.test(title)) return false;
+  if (["Cracker", "Horizon", "Mayday", "Counting Cars", "Good Times", "One on One"].includes(program)
+    && !okEpisodeIdentity(title)) return false;
+  if (channel.family === "rail" && /\b(?:railway sound|train sounds|cab view|model railway|virtual walk|viyana|bölümü)\b/i.test(title)) return false;
+  if (channel.family === "air" && /\b(?:flight simulator|plane spotting|aviation nation|the aviator|the aviators|air crash animation)\b/i.test(title)) return false;
+  if (channel.family === "rescue" && /\b(?:reaction video|911 call audio|reenactment compilation)\b/i.test(title)) return false;
   if (channel.family === "travel" && Number(item.duration) > 7200) return false;
   if (channel.family === "travel" && /\b(?:sarkig|full movie|monty python|smart glasses|watch party)\b/i.test(title)) return false;
   if (channel.family === "cookhouse" && /\b(?:an extra slice|celebrity bake off|junior bake off)\b/i.test(title)) return false;
@@ -292,7 +422,7 @@ export async function okCuratedIdentity(profile, item) {
   const programTail = normalizedTitle.includes(normalizedProgram)
     ? normalizedTitle.slice(normalizedTitle.indexOf(normalizedProgram) + normalizedProgram.length).trim()
     : "";
-  const numberedSpecial = NEW_FAMILIES.has(channel.family)
+  const numberedSpecial = (NEW_FAMILIES.has(channel.family) || channel.family === "history")
     ? (programTail.match(/^(?:episode |ep )?(\d{1,2})(?:\s|$)/) || programTail.match(/\b(\d{1,2})\s*of\s*\d{1,2}\b/))?.[1]
     : "";
   const wildlifeEpisode = channel.family === "wildlife" && program !== "PBS Nature";
@@ -307,7 +437,10 @@ export async function okCuratedIdentity(profile, item) {
   const yearKey = (program === "Great British Bake Off" || program === "Great British Menu" || channel.family === "homestead") && year && numbered.startsWith("episode") ? year : "";
   const forensicName = program === "Forensic Files II" && episodeTitle && episodeTitle !== programTail && !/^\d/.test(episodeTitle)
     ? "title-" + compact(episodeTitle.replace(/\b(?:19|20)\d{2}\b.*$/, "")).slice(0,60) : "";
-  const episode = forensicName || yearKey + numbered || (named && special ? "special-" + compact(special).slice(0, 60)
+  // The Canadian, British and US releases of Mayday use different numbering.
+  const airCaseTitle = program === "Air Crash Investigation" ? episodeTitle.replace(/\b(?:19|20)\d{2}\b.*$/, "").replace(/\b(?:1080p|720p|hdtv|webrip|bdrip)\b.*$/, "").trim() : "";
+  const airCase = airCaseTitle && episodeTitle !== programTail && /[a-z]/.test(airCaseTitle) ? "case-" + compact(airCaseTitle).slice(0,60) : "";
+  const episode = airCase || forensicName || yearKey + numbered || (named && special ? "special-" + compact(special).slice(0, 60)
     : NEW_FAMILIES.has(channel.family) && titleKey ? "title-" + compact(titleKey).slice(0, 60) : "");
   return {
     language: "en",

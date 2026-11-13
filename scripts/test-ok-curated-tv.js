@@ -60,17 +60,18 @@ const { pathToFileURL } = require('node:url');
   }),false,title);
   const source=await import(pathToFileURL(path.join(__dirname,'..','realsignal_source_catalog.js')));
   const shared=await import(pathToFileURL(path.join(__dirname,'..','ok_public_search.js')));
-  for(const family of ['factory-floor','cookhouse','science-lab','gearhead','wildlife','casefiles','homestead','treasures','travel']){
+  for(const family of ['factory-floor','cookhouse','science-lab','gearhead','wildlife','casefiles','homestead','treasures','travel','rail','air','rescue']){
     const profileKey='ok-'+family+'-channel', profile=source.sourceProfile({profileKey});
     const seeds=source.okVerifiedSeed(profile);
-    if (['wildlife','casefiles','homestead','treasures','travel'].includes(family)) assert.ok(seeds.every(item => item.id.startsWith('ok:'+family+':')), 'station metadata must have separate storage IDs');
+    if (['wildlife','casefiles','homestead','treasures','travel','rail','air','rescue'].includes(family)) assert.ok(seeds.every(item => item.id.startsWith('ok:'+family+':')), 'station metadata must have separate storage IDs');
     assert.ok(seeds.length>=25,profileKey+' cold-start catalog is shallow');
-    assert.ok(new Set(seeds.map(item=>item.seriesId)).size>=4,profileKey+' should have multiple shows');
+    assert.ok(new Set(seeds.map(item=>item.seriesId)).size>=(family==='air'?2:4),profileKey+' should have multiple shows');
     const ordered=shared.okBalancedCandidates([seeds],'tv',512);
     assert.equal(ordered.length,seeds.length,profileKey+' includes alternate copies');
+    const minSeries = family === 'air' ? 2 : 4;
     for(let offset=0;offset<15;offset+=5){
       const shelf=ordered.slice(offset,offset+5);
-      assert.ok(new Set(shelf.map(item=>item.seriesId)).size>=4,profileKey+' repeats the same series in the first three shelves');
+      assert.ok(new Set(shelf.map(item=>item.seriesId)).size>=minSeries,profileKey+' repeats the same series in the first three shelves');
     }
   }
   const black = { profileKey: 'ok-black-tv-channel' };
@@ -92,6 +93,13 @@ const { pathToFileURL } = require('node:url');
   ]);
   assert.equal(deDuplicated.length, 1, 'alternate copies of the same episode must collapse in the playback order');
   const helpers = await import(pathToFileURL(path.join(__dirname, '..', 'ok_public_search.js')));
+  const aviation = { profileKey: 'ok-air-channel' };
+  assert.ok(Array.from({length:12},(_,window)=>catalog.okCuratedQueries(aviation,window)).flat().includes('Mayday Air Disasters'),
+    'background discovery must reach alternate names of the same aviation series');
+  const hd = { ...duplicateEpisode, id: 'ok:hd', videoHeight: 1080 };
+  const sd = { ...duplicateEpisode, id: 'ok:sd', videoHeight: 480 };
+  assert.equal(helpers.okBalancedCandidates([[sd,hd]], 'tv')[0].id, hd.id, 'duplicate copies prefer verified higher resolution');
+  assert.equal(window.RealSignalOKEmbed.order({intent:'television'}, [sd,hd])[0].id, hd.id);
   const pending = { id: 'pending', title: 'Selected episode' };
   const stable = window.RealSignalOKEmbed.reconcileShelf({ items: [pending], pendingId: pending.id, currentId: 'prior' }, [{ id: 'new' }]);
   assert.equal(stable.items[stable.cursor].id, 'pending', 'background installs cannot change the pending tune');

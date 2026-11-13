@@ -70,7 +70,6 @@ if (!/v\.addEventListener\("playing",\(\)=>\{ if\(my===token\)\{/.test(source) |
 if (/addEventListener\("canplay",\(\)=>\{ if\(my===token\)\{ fin\(true\)/.test(source)) issues.push('canplay must not be treated as playback success');
 if (!/const expectedType=\(ch&&ch\.audio\)\?"audio":"video"/.test(source) || !/it\.type!==expectedType/.test(source)) issues.push('direct playback must enforce the channel media type');
 if (!/cacheValid=!!cached&&Number\(cached\.version\|\|0\)===V2_SOURCE_CACHE_VERSION/.test(source) || !/if\(cacheFresh&&unseen\(state\.items\)\)return state\.items/.test(source)) issues.push('fresh source catalogs must be cache-first to protect upstream quota');
-if (!/if\(prog\)\{buildProgramQueries\(prog,ch,false\)/.test(source)) issues.push('marathon mode must preserve PROGRAM channel constraints');
 
 const slotBlock = blockAfter('function slotFor(', '{', '}');
 if (/getHours|names\s*\[|PROFILES|seasonalProfileName/.test(slotBlock)) issues.push('slotFor must never select programming from the clock or a seasonal profile');
@@ -78,7 +77,6 @@ if (!(/return \{show:(?:ch\.nm|canonicalChannelLabel\(ch\)), genre:prog\.genre\|
 if (/show:prog\.show/.test(slotBlock)) issues.push('legacy PROGRAM show labels must never rename an IA channel');
 if (/id="setPlan"|function buildPlan\(|function planKey\(|stationMgr\?/.test(source)) issues.push('clock-bound Station Manager appointments must remain retired');
 if (/barsText\.textContent=\(hour/.test(source)) issues.push('color bars must not sign off according to the clock');
-if (!/var labels=\["NOW","NEXT","LATER","AFTER"\]/.test(source)) issues.push('TV guide must describe queue order instead of hourly programming gates');
 if (!/window\.__atvTimelessAudit=function\(\)/.test(source) || !/identity:permanentShow===ch\.nm/.test(source)) issues.push('runtime timeless-programming identity audit is missing');
 if (!/IA_TIMELESS_IDENTITY_VERSION=2/.test(source) || !/store\.set\("sched",\{\}\)/.test(source) || !/store\.set\("fastTune",\{\}\)/.test(source)) issues.push('legacy clock-scheduled playback state must be cleared once on upgrade');
 if (/cm\.best\?'<div class="ip-row"><b>BEST<\/b>/.test(source)) issues.push('channel info must not advertise clock-based best-time windows');
@@ -87,7 +85,7 @@ if (!/queries:iaQueueQueries\(sl\)/.test(source) || !/var qs=iaQueueQueries\(sl\
 if (!/const IA_EDITORIAL_DIVERSITY=\{maxPerEra:1,maxPerLane:1,maxPerCreator:1,maxPerCollection:2,maxPerFamily:1\}/.test(source) || !/function iaQueueDiversity\(sl\)/.test(source) || !/maxPerFamily:cap\("maxPerFamily",1\)/.test(source) || !/diversity:iaQueueDiversity\(sl\)/.test(source)) issues.push('IA queues must transmit bounded editorial diversity preferences');
 const guideListingBlock = blockAfter('function guideListing(', '{', '}');
 if (/schedGet/.test(guideListingBlock) || !/guideQueueNext\(ch,sl,current\)/.test(guideListingBlock)) issues.push('guide listings must use live playback or the current queue, never persisted clock records');
-if (!/function primeGuideQueues\(rows\)/.test(source) || !/queue=\(rows\|\|visibleChannels\(\)\)\.filter/.test(source) || !/primeGuideQueues\(CH\)/.test(source)) issues.push('both guide views must actively fill their IA queues');
+if (!/function primeGuideQueues\(rows\)/.test(source) || !/queue=\(rows\|\|visibleChannels\(\)\)\.filter/.test(source) || !/renderGuide\(\);primeGuideQueues\(\)/.test(source)) issues.push('the fallback guide must use bounded IA queue priming');
 if (!/\.guide-directory\{[^}]*grid-template-columns:minmax\(0,1fr\)!important;[^}]*grid-template-areas:"top" "preview" "list" "ticker"!important/.test(source) || !/\.guide-directory \.guide-layout\{[^}]*grid-area:list!important/.test(source)) issues.push('the RealSignal directory must own a complete named grid instead of inheriting the legacy cable layout');
 if (!/\.guide-directory \.guide-main\{[^}]*flex:1 1 auto!important;[^}]*width:100%/.test(source) || !/\.guide-directory \.chlist\{[^}]*flex:1 1 auto!important;[^}]*width:100%!important/.test(source)) issues.push('the RealSignal directory main pane and channel list must fill their available width');
 

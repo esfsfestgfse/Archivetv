@@ -70,7 +70,7 @@ test('opt-in activates a labeled dock without touching the current media node', 
   const h = harness();
   assert.ok(h.document.documentElement.classList.contains('rs-v6-watch'));
   assert.equal(h.screen.children[0], h.video); assert.equal(h.video.currentTime, 123);
-  for (const id of ['Power','Guide','Next','Info','Menu','Mute','Cast','ChDown','ChUp','VolDown','VolUp']) assert.ok(h.ids.get('rsV6' + id)?.textContent);
+  for (const id of ['Power','Guide','Next','Menu','ChDown','ChUp']) assert.ok(h.ids.get('rsV6' + id)?.textContent);
   assert.equal(h.calls.length, 0);
 });
 test('flag-off and Cast receivers cannot change the existing presentation', () => {
@@ -85,17 +85,12 @@ test('the full release activates the labeled V6 dock by default', () => {
   const h = harness('');
   assert.ok(h.document.documentElement.classList.contains('rs-v6-watch'));
   assert.ok(h.ids.get('rsV6Guide'));
-  const more = h.ids.get('rsV6More');
-  assert.equal(h.ids.get('rsV6MoreControls').hidden, true);
-  more.click();
-  assert.equal(h.ids.get('rsV6MoreControls').hidden, false);
-  h.ids.get('rsV6Mute').click();
-  assert.deepEqual(h.calls, [['toggleMute']]);
-  more.press('Escape');
-  assert.equal(h.ids.get('rsV6MoreControls').hidden, true);
+  assert.equal(h.ids.get('rsV6More'), undefined);
+  h.ids.get('rsV6Menu').click();
+  assert.deepEqual(h.calls, [['toggleOsd']]);
 });
 test('explicit controls issue one command each through the latest playback wrappers', () => {
-  const h = harness(); h.context.skipOne = () => h.calls.push(['latestNext']);
+  const h = harness('?guidePreview=0'); h.context.skipOne = () => h.calls.push(['latestNext']);
   for (const id of ['Next','ChDown','ChUp','VolDown','VolUp','Power','Mute','Info','Menu','Cast']) h.ids.get('rsV6' + id).click();
   assert.deepEqual(h.calls, [['latestNext'],['step',-1],['step',1],['setVol',-.1],['setVol',.1],['togglePower'],['toggleMute'],['toggleInfo'],['toggleOsd'],['__rsCastRequest']]);
 });

@@ -62,14 +62,20 @@ html.rs-v6-watch.rs-guide-preview { --v6-dock:0px; --v6-edge:5px; }
 .rs-guide-preview.rs-v6-watch #rsV6Controls #rsV6Guide,.rs-guide-preview.rs-v6-watch #rsV6Controls #rsV6Next {
   border-color:#967d52; color:#ffe3aa; background:#352e24;
 }
-.rs-guide-preview #rsV6MoreControls {
-  position:absolute; right:0; bottom:calc(100% + 9px); z-index:1; width:min(100%,300px);
-  display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:5px; padding:8px;
-  border:1px solid #465771; border-radius:9px; background:#121b2b; box-shadow:0 5px 25px #0009;
-}
-.rs-guide-preview #rsV6MoreControls[hidden] { display:none; }
 @media(max-width:790px) {
   .rs-guide-preview.rs-v6-watch #rsV6Dock { inset-inline:7px; grid-template-columns:minmax(0,1fr); padding:7px; gap:6px; }
   .rs-guide-preview.rs-v6-watch #rsV6Controls { grid-template-columns:repeat(6,minmax(0,1fr)); }
   .rs-guide-preview.rs-v6-watch #rsV6Controls button { min-height:44px; padding-inline:3px; }
 }
+
+.rs-guide-preview .osd {
+  background:#121b2b; border:1px solid #465771; color:#edf2f8;
+}
+.rs-guide-preview .osd-h {
+  color:#ffe3aa; border-color:#465771; letter-spacing:0; font-size:14px;
+}
+.rs-guide-preview .osd-x {
+  min-height:32px; font:inherit; font-size:12px; color:#edf2f8;
+  border:1px solid #465771; background:#202d42;
+}
+.rs-guide-preview .osd-item { color:#edf2f8; }

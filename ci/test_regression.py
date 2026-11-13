@@ -157,6 +157,27 @@ async def main():
         await pg.wait_for_function("()=>document.getElementById('wxTicker').textContent.includes('unavailable')")
         check("18. Alert outages never claim an all-clear", "No active" not in await pg.locator('#wxTicker').inner_text())
 
+        # The dock opens one viewing menu, and its settings work by keyboard.
+        if v6:
+            await pg.locator('#rsV6Menu').click()
+            menu = pg.get_by_role('dialog', name='Viewing menu')
+            await menu.wait_for(state='visible')
+            check('19. One menu with viewing controls', await menu.get_by_role('button', name='Cast', exact=True).is_visible() and await pg.locator('#rsV6More').count() == 0)
+            await pg.keyboard.press('Escape')
+            check('20. Escape closes the menu and restores dock focus', not await menu.is_visible() and await pg.locator('#rsV6Menu').evaluate('(node) => node === document.activeElement'))
+            await pg.locator('#rsV6Menu').click()
+            await menu.get_by_role('button', name='Settings', exact=True).focus()
+            await pg.keyboard.press('Enter')
+            settings = pg.get_by_role('dialog', name='Settings', exact=True)
+            await settings.wait_for(state='visible')
+            await settings.locator('#setClock').click()
+            await pg.wait_for_function("()=>document.getElementById('rsV6Time').textContent.match(/^\\d{2}:\\d{2}$/)")
+            check('21. Settings updates the active clock and keeps setup tucked away', await settings.locator('#setClock').inner_text() == '24H' and not await settings.locator('#castBridgeUrlInput').is_visible())
+            await settings.get_by_text('Advanced', exact=True).click()
+            await settings.locator('#castBridgeUrlInput').focus()
+            await pg.keyboard.press('Escape')
+            check('22. Escape closes Settings from a text input and restores focus', not await settings.is_visible() and await pg.locator('#rsV6Menu').evaluate('(node) => node === document.activeElement'))
+
         # The rollback is an explicit supported presentation, not a hidden-control
         # workaround when the default guide fails.
         await pg.goto(TARGET + ('&' if '?' in TARGET else '?') + 'v6=0', wait_until='load')
@@ -173,7 +194,7 @@ async def main():
 
         await b.close()
 
-    print(f"\n=== {len(failures)} failures out of 18 checks ===")
+    print(f"\n=== {len(failures)} failed checks ===")
     if errors:
         print(f"Page errors: {errors[:3]}")
     if failures:

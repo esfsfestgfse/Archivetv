@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 7.2.4</title>
+<title>REALSIGNAL · Retro Cable 7.2.5</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
@@ -1122,27 +1122,6 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
 @keyframes identFlashFade{0%{opacity:.35}100%{opacity:0}}
 
 /* ============ v14: watch-later tape shelf visual ============ */
-.tape-shelf{display:flex;flex-direction:column;gap:7px}
-.tape-card{display:flex;align-items:center;gap:10px;background:linear-gradient(180deg,#1a1a14,#0e0e0a);
-  border:1px solid #3a3020;border-radius:8px;padding:8px 10px;cursor:pointer}
-.tape-card:hover{border-color:#5a4a2a}
-.tape-card:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
-.tape-icon{font-size:20px;flex:none}
-.tape-info{flex:1;min-width:0}
-.tape-t{font-size:12px;color:#eafff0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tape-meta{font-size:10px;color:#caa06a;margin-top:1px}
-.tape-play{flex:none;color:var(--phos);font-size:14px}
-
-/* ============ v14: multi-hour EPG grid ============ */
-#tvgList{overflow-x:auto}
-.epg-row{display:grid;grid-template-columns:150px repeat(4,minmax(90px,1fr));gap:2px;align-items:stretch;margin-bottom:2px}
-.epg-head{font-size:9px;letter-spacing:1px;color:#7fb38f;margin-bottom:4px}
-.epg-ch{padding:6px 8px;font-size:11px;color:#caa06a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  background:rgba(255,255,255,.03);border-radius:5px 0 0 5px}
-.epg-head .epg-ch{background:none;color:#7fb38f}
-.epg-cell{padding:6px 8px;font-size:10.5px;color:#dff;background:rgba(255,255,255,.03);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.epg-row[data-n]{cursor:pointer}
-.epg-row[data-n]:hover .epg-cell,.epg-row[data-n]:hover .epg-ch{background:rgba(255,255,255,.09)}
 
 /* ============ v14: Emergency Weather Takeover screen ============ */
 .eas-note{font-size:11px;color:#ffbdbd;margin-top:6px}
@@ -1220,7 +1199,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
   padding:9px 10px;border-bottom:1px solid #15240f;font-size:12px;color:#dfe9ff}
 .settings-sep{height:1px;background:rgba(255,255,255,.1);margin:6px 4px}
 .settings-label{font-size:9px;letter-spacing:1px;color:#7fb38f;padding:6px 10px 2px}
-.settings-input{flex:1;background:#0a1410;border:1px solid var(--phos-d);border-radius:6px;
+.settings-input{flex:1;min-width:0;background:#0a1410;border:1px solid var(--phos-d);border-radius:6px;
   color:#eafff0;font-size:12px;padding:6px 8px;min-width:0}
 .settings-group{margin:6px 4px;border:1px solid rgba(103,255,134,.16);border-radius:8px;background:rgba(4,14,10,.42);overflow:hidden}
 .settings-group>summary{cursor:pointer;list-style:none;padding:9px 11px;color:#b6ffca;font-size:10px;letter-spacing:1.2px;font-weight:700}
@@ -1229,6 +1208,9 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
 .settings-group[open]>summary{border-bottom:1px solid rgba(103,255,134,.16);background:rgba(103,255,134,.06)}
 .settings-group[open]>summary::after{content:"−"}
 .settings-group-body{padding:2px 0 5px}
+#settingsOv .settings-row button{min-height:40px}
+#settingsOv .pop-x{font:inherit;font-size:11px;background:transparent;color:inherit;min-height:36px}
+#settingsOv :focus-visible{outline:2px solid var(--phos);outline-offset:2px}
 .settings-group-body .settings-label{padding-top:8px}
 
 /* ============ cycle-2: scrolling weather ticker · channel media panes · newswire ============ */
@@ -1256,21 +1238,18 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
 }
 
 /* ============ cycle-5: on-screen TV menu (OSD) ============ */
-.osd{position:absolute;left:14px;top:14px;bottom:14px;z-index:27;width:min(48%,300px);display:flex;flex-direction:column;
+.osd{position:absolute;left:14px;top:14px;z-index:27;width:min(calc(100% - 28px),290px);display:flex;flex-direction:column;
   background:rgba(3,12,6,.93);border:2px solid var(--phos-d);border-radius:8px;box-shadow:0 0 26px rgba(0,0,0,.65);overflow:hidden}
 .osd.hide{display:none}
 .osd-h{flex:none;padding:8px 12px;color:var(--amber);font-weight:bold;letter-spacing:2px;font-size:12px;
   border-bottom:1px solid var(--phos-d);display:flex;justify-content:space-between;align-items:center}
 .osd-x{cursor:pointer;color:#fff;border:1px solid var(--phos-d);border-radius:4px;padding:0 7px;font-size:11px}
-.osd-list{flex:1;overflow-y:auto;padding:5px 6px 10px}
-.osd-sec{padding:8px 8px 3px;font-size:9px;letter-spacing:2px;color:#7fb38f}
+.osd-list{display:grid;gap:2px;overflow-y:auto;padding:5px 6px}
 .osd-item{display:flex;justify-content:space-between;gap:8px;padding:6px 9px;border-radius:5px;color:#dfe9df;
-  font-size:12px;cursor:pointer;border:1px solid transparent}
-.osd-item .osd-val{color:var(--amber);font-size:11px;white-space:nowrap}
-.osd-item.cur{background:linear-gradient(90deg,rgba(255,180,58,.25),rgba(255,180,58,.06));border-color:rgba(255,180,58,.5);color:#fff}
+  font-size:13px;min-height:44px;cursor:pointer;border:1px solid transparent;background:transparent;text-align:left}
 .osd-item:hover{background:rgba(255,255,255,.07)}
-.osd-f{flex:none;padding:6px 10px;border-top:1px solid #15240f;font-size:9px;letter-spacing:1px;color:#7fb38f}
-#tube:fullscreen .osd{left:24px;top:24px;bottom:24px}
+#tube:fullscreen .osd{left:24px;top:24px}
+.osd button:focus-visible{outline:2px solid var(--phos);outline-offset:-2px}
 
 /* ============ cycle-7: Sky Traffic radar scope ============ */
 .sky-wrap{width:100%;height:100%;display:flex;align-items:center;background:radial-gradient(120% 80% at 50% 0%,#04140a,#020a06 70%);color:var(--phos);box-sizing:border-box;container-type:size}
@@ -1702,8 +1681,8 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
 @media(prefers-reduced-motion:reduce){.sports-screen *,.wx-screen *,.wr-cabinet *{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 </style>
 <link rel="stylesheet" href="assets/guide-overhaul.css">
-<link rel="stylesheet" href="assets/v6-watching-shell.css?v=7.2.3">
-<link rel="stylesheet" href="assets/v6-guide.css?v=7.2.1">
+<link rel="stylesheet" href="assets/v6-watching-shell.css?v=7.2.5">
+<link rel="stylesheet" href="assets/v6-guide.css?v=7.2.5">
 <script src="assets/commercial-scheduler.js?v=7.0.0"></script>
 <script src="assets/fast-catalog.js?v=7.0.0"></script>
 <link rel="stylesheet" href="assets/weather-networks.css?v=7.0.0">
@@ -1723,7 +1702,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="7.2.4-desktop-retro-cable";
+window.__ATV_BUILD="7.2.5-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -1808,7 +1787,7 @@ window.addEventListener("unhandledrejection",function(e){
           </div>
           <div class="banner" id="banner"></div>
           <div class="info-panel hide" id="infoPanel"></div>
-          <div class="osd hide" id="osdMenu"></div>
+          <div class="osd hide" id="osdMenu" role="dialog" aria-label="Viewing menu"></div>
           <div class="buff-ov" id="buffOv"><div class="buff-ring"></div><span>BUFFERING…</span></div>
           <div class="flip-bar" id="flipBar"></div>
           <div class="prog-wrap" id="progWrap"><div class="prog-track"><div class="prog-fill" id="progFill"></div></div><div class="prog-time" id="progTime"></div></div>
@@ -1932,7 +1911,6 @@ window.addEventListener("unhandledrejection",function(e){
             <button class="rbtn sm acc" id="rPause">PAUSE</button><button class="rbtn sm acc" id="rSkip">&#9197; SKIP</button>
           </div>
           <div class="rrow">
-            <button class="rbtn sm" id="rSave">&#128427; SAVE</button><span></span>
           </div>
         </div>
         <!-- battery cover cosmetic -->
@@ -1970,58 +1948,33 @@ window.addEventListener("unhandledrejection",function(e){
   </section>
 </div>
 
-<!-- picture controls -->
-<div class="pop" id="savedOv" role="dialog" aria-label="Watch later">
-  <div class="pop-h">WATCH LATER <span class="pop-x" data-close="savedOv" role="button" tabindex="0" aria-label="Close">✕</span></div>
-  <div class="hist-list" id="savedList"></div>
-</div>
-<div class="pop" id="statsOv" role="dialog" aria-label="Watch stats">
-  <div class="pop-h">WATCH STATS <span class="pop-x" data-close="statsOv" role="button" tabindex="0" aria-label="Close">✕</span></div>
-  <div class="hist-list" id="statsList"></div>
-</div>
-<div class="pop" id="tvgOv" role="dialog" aria-label="TV Guide">
-  <div class="pop-h">TV GUIDE <span class="pop-x" data-close="tvgOv" role="button" tabindex="0" aria-label="Close">✕</span></div>
-  <div class="hist-list" id="tvgList"></div>
-</div>
 <div class="pop" id="settingsOv" role="dialog" aria-label="Settings">
-  <div class="pop-h">SETTINGS <span class="pop-x" data-close="settingsOv" role="button" tabindex="0" aria-label="Close">✕</span></div>
-  <div class="settings-body" id="settingsBody">
-    <details class="settings-group" open><summary>PLAYBACK &amp; APPEARANCE</summary><div class="settings-group-body">
-      <div class="settings-row"><span>Station Bumpers</span><button class="rbtn xs" id="setBumpers">ON</button></div>
-      <div class="settings-row"><span>Clock Format</span><button class="rbtn xs" id="setClock">12H</button></div>
-      <div class="settings-row"><span>Cabinet Theme</span><button class="rbtn xs" id="setTheme">WALNUT</button></div>
-      <div class="settings-row"><span>Picture Adjustment</span><button class="rbtn xs" id="setPicLink">OPEN →</button></div>
+  <div class="pop-h">Settings <button type="button" class="pop-x" data-close="settingsOv" aria-label="Close settings">Close</button></div>
+  <div class="settings-body">
+    <div class="settings-row"><span>Commercials</span><button type="button" class="rbtn xs" id="setAds">On</button></div>
+    <div class="settings-row"><span>Station bumpers</span><button type="button" class="rbtn xs" id="setBumpers">On</button></div>
+    <div class="settings-row"><span>Night dim</span><button type="button" class="rbtn xs" id="setNight">Auto</button></div>
+    <div class="settings-row"><span>Clock format</span><button type="button" class="rbtn xs" id="setClock">12H</button></div>
+    <div class="settings-row"><span>Picture controls</span><button type="button" class="rbtn xs" id="setPicLink">Open</button></div>
+    <details class="settings-group"><summary>Weather location</summary><div class="settings-group-body">
+      <div class="settings-row"><span>Location mode</span><button type="button" class="rbtn xs" id="setLocMode">Home ZIP</button></div>
+      <div class="settings-row"><input id="homeZipInput" class="settings-input" type="text" aria-label="Home ZIP" placeholder="5-digit ZIP" inputmode="numeric" maxlength="5" autocomplete="postal-code"><button type="button" id="btnZipSave" class="rbtn xs">Set ZIP</button></div>
     </div></details>
-    <details class="settings-group"><summary>CAST / TV HANDOFF</summary><div class="settings-group-body">
-      <div class="settings-row"><input id="castReceiverIdInput" class="settings-input" type="text" placeholder="Google Cast receiver app ID" autocomplete="off"><button id="btnCastReceiverSave" class="rbtn xs">SAVE</button></div>
-      <div class="settings-row"><input id="castBridgeUrlInput" class="settings-input" type="url" placeholder="Local Cast Bridge URL (optional)" autocomplete="off"><button id="btnCastBridgeSave" class="rbtn xs">SAVE</button></div>
-      <div class="settings-row"><span id="castReceiverStatus" aria-live="polite">Receiver not connected</span><button class="rbtn xs" id="btnCastOpen">CAST →</button></div>
-    </div></details>
-    <details class="settings-group"><summary>LOCAL DATA &amp; HEALTH</summary><div class="settings-group-body">
-      <div class="settings-row"><span>Check all sources now</span><button class="rbtn xs" id="btnHealth">RUN ALL</button></div>
-      <div class="hist-list" id="healthList" style="max-height:30vh"></div>
-      <div class="settings-row"><span>Location Mode</span><button class="rbtn xs" id="setLocMode">HOME ZIP</button></div>
-      <div class="settings-row"><input id="homeZipInput" class="settings-input" type="text" placeholder="5-digit ZIP" maxlength="5" autocomplete="off"><button id="btnZipSave" class="rbtn xs">SET</button></div>
-      <div class="settings-row"><input id="naraKeyInput" class="settings-input" type="text" placeholder="NARA API key (optional)" autocomplete="off"><button id="btnNaraSave" class="rbtn xs">SAVE</button></div>
-    </div></details>
-    <details class="settings-group"><summary>LIBRARY &amp; BACKUP</summary><div class="settings-group-body">
-      <div class="settings-row"><span>Manage Favorites</span><button class="rbtn xs" id="setFavMgr">OPEN →</button></div>
-      <div class="settings-row"><span>Banished Programs</span><button class="rbtn xs" id="setBanMgr">OPEN →</button></div>
-      <div class="settings-row"><span>Export all as JSON</span><button class="rbtn xs" id="setExport">DOWNLOAD</button></div>
-      <div class="settings-row"><span>Import from JSON</span><label class="rbtn xs" for="setImportFile" style="cursor:pointer">CHOOSE FILE</label><input id="setImportFile" type="file" accept="application/json" style="display:none"></div>
-      <div class="settings-row"><span>Reset ALL settings + favorites</span><button class="rbtn xs" id="setReset" style="color:#ff8a7a;border-color:rgba(255,138,122,.5)">RESET</button></div>
+    <details class="settings-group"><summary>Advanced</summary><div class="settings-group-body">
+      <div class="settings-row"><span id="castReceiverStatus" aria-live="polite">Receiver not connected</span></div>
+      <div class="settings-row"><input id="castReceiverIdInput" class="settings-input" type="text" aria-label="Google Cast receiver app ID" placeholder="Cast receiver app ID" autocomplete="off"><button type="button" id="btnCastReceiverSave" class="rbtn xs">Save ID</button></div>
+      <div class="settings-row"><input id="castBridgeUrlInput" class="settings-input" type="url" aria-label="Local Cast Bridge URL" placeholder="Local Cast Bridge URL" autocomplete="off"><button type="button" id="btnCastBridgeSave" class="rbtn xs">Save URL</button></div>
+      <div class="settings-row"><span>Live TV failed streams</span><button type="button" class="rbtn xs" id="setTVDead">Hidden</button></div>
+      <div class="settings-row"><button type="button" class="rbtn xs" id="setBanMgr">Blocked programs</button><button type="button" class="rbtn xs" id="setDiagLink">Diagnostics</button></div>
+      <div class="settings-row"><button type="button" class="rbtn xs" id="setExport">Export settings</button><button type="button" class="rbtn xs" id="setImport">Import settings</button><input id="setImportFile" type="file" accept="application/json" hidden></div>
+      <div class="settings-row"><button type="button" class="rbtn xs" id="setReset">Reset app data</button></div>
     </div></details>
   </div>
-</div>
-<!-- audit-fix Ship C 2026-08-09: Favorites Manager popup. -->
-<div class="pop" id="favMgrPop" role="dialog" aria-label="Favorites Manager">
-  <div class="pop-h">FAVORITES <span class="pop-x" data-close="favMgrPop" role="button" tabindex="0" aria-label="Close">✕</span></div>
-  <div class="hist-list" id="favMgrList"></div>
 </div>
 <!-- audit-fix Ship C 2026-08-09: Blocklist Manager popup. -->
 <div class="pop" id="banMgrPop" role="dialog" aria-label="Banished Programs">
   <div class="pop-h">BANISHED <span class="pop-x" data-close="banMgrPop" role="button" tabindex="0" aria-label="Close">✕</span></div>
-  <div style="padding:8px 12px;font-size:10px;color:#7fb38f">Items you banished via the OSD Menu — they won't be picked again on any channel. Un-ban restores.</div>
+  <div style="padding:8px 12px;font-size:10px;color:#7fb38f">Unblock a program to let it play again.</div>
   <div class="hist-list" id="banMgrList"></div>
 </div>
 <div class="pop" id="diagOv" role="dialog" aria-label="Network diagnostics">
@@ -2061,11 +2014,6 @@ window.addEventListener("unhandledrejection",function(e){
   <div class="hist-list" id="histList"></div>
 </div>
 
-<!-- F26 (2026-08-14): TODAY IN HISTORY — Wikipedia OnThisDay events for today, click to tune -->
-<div class="pop pop-wide" id="todayPop" role="dialog" aria-label="Today in history">
-  <div class="pop-h">TODAY IN HISTORY <span class="pop-x" data-close="todayPop" role="button" tabindex="0" aria-label="Close">✕</span></div>
-  <div class="hist-list" id="todayList" style="max-height:60vh"></div>
-</div>
 
 <!-- controls / help -->
 <div class="pop pop-wide" id="helpOv" role="dialog" aria-label="Controls and shortcuts">
@@ -8905,8 +8853,8 @@ function primeGuideQueues(rows){
   /* A guide is a browser, not a bulk loader.  Keep its work to a small shelf so
      opening it never steals the network from the channel the viewer just chose. */
   queue=queue.slice(0,12);
-  function guideOpen(){var epg=$("tvgOv");return !!((gwrap&&gwrap.classList.contains("show"))||(epg&&epg.classList.contains("show")));}
-  function refresh(){if(gwrap&&gwrap.classList.contains("show"))refreshGuideRows();var epg=$("tvgOv");if(epg&&epg.classList.contains("show"))renderTVGuide();}
+  function guideOpen(){return gwrap.classList.contains("show");}
+  function refresh(){if(guideOpen())refreshGuideRows();}
   function pump(){if(run!==guidePrimeRun||!guideOpen())return;
     while(active<1&&cursor<queue.length){(function(ch){active++;refillIAQueue(ch,slotFor(ch,0,{preview:true})).catch(function(){}).finally(function(){active--;refresh();setTimeout(pump,450);});})(queue[cursor++]);}}
   pump();
@@ -9303,7 +9251,6 @@ window.__v2PreviewNext=function(manual){var ch=byNum(curNum),state=ch&&v2Preview
 
 async function tuneNum(n){
   if(!powered)return;
-  if(n===-1 && customSlot){ return tuneCustomExec(); }
   const requestedNum=Number(n),canonicalNum=canonicalTuneNum(requestedNum),ch=byNum(canonicalNum); if(!ch)return;
   if(window.__rsPlaybackAudit)window.__rsPlaybackAudit.begin(canonicalNum);
   const changedChannel=(curNum!==canonicalNum)||justPowered; justPowered=false; // NEW: station bumper only on a real channel change
@@ -9311,7 +9258,6 @@ async function tuneNum(n){
   curNum=canonicalNum; store.set("last",canonicalNum); store.set("lastRequested",requestedNum); store.set("lastName",canonicalChannelLabel(ch)); if(typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected()&&typeof window.__rsCastCommand==="function")window.__rsCastCommand("TUNE",{channel:canonicalNum}); if(typeof window.__rsCastSync==="function")window.__rsCastSync(); const my=++token; clearTimeout(retryTimer);
   renderRail(); chNum.textContent=String(canonicalNum);
   const sl=slotFor(ch,0);
-  if(marathonLock[ch.num] && sl.source==="ia"){ sl.queries=marathonQueryFor(marathonLock[ch.num],ch); sl.show="\ud83d\udd12 "+marathonLock[ch.num].label; } // NEW: marathon lock
   if(!ch.source)primeIACompanions(ch,sl);
   nowName.textContent=canonicalChannelLabel(ch); nowMeta.textContent=sl.show; showBanner(ch,sl);
   /* Clear stale lower-third metadata as soon as a channel handoff begins. */
@@ -9935,7 +9881,6 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl){return new Promise(r
       if(token===my&&powered)tuneNum(curNum); return; }
     schedClear(ch);fastTuneDrop(ch.num); // Clear both rejoin caches BEFORE an interstitial can return early.
     if(adScheduler){
-      try{if(curVideo&&isFinite(curVideo.duration)){totalMs+=curVideo.duration*1000;store.set("totalMs",totalMs);}}catch(e){}
       if(adsOn&&shouldInsertAdBreak(ch,Number(v.duration)||0)&&await playAdBreak(ch,sl,my))return;
       if(token===my&&powered)tuneNum(curNum);return;
     }
@@ -9958,7 +9903,6 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl){return new Promise(r
     /* Video stations get video spots; music/radio stations get audio-only spots.
        A commercial can never cross that media boundary. */
     if(adsOn && !ch.source && ch.gl!=="commercials" && shouldInsertAdBreak(ch)){ if(await playAdBreak(ch,sl,my)) return; } // holiday stations take a measured break every second completed program
-    try{ if(curVideo&&isFinite(curVideo.duration)){ totalMs+=curVideo.duration*1000; store.set("totalMs",totalMs); } }catch(e){} // NEW: watch-stats tally
     fastTuneDrop(ch.num); /* An ended program must advance, never restart from the return-tune cache. */
     if(token===my&&powered) tuneNum(curNum); },{signal:sig}); // 'ended' is still the ONLY advance path
   /* buffering / stall handling — show spinner, auto-recover if a feed hangs */
@@ -10020,7 +9964,6 @@ function powerOn(){powered=true;document.body.classList.add("atv-powered");justP
   setTimeout(function(){if(!powered)return;startEmergencyMonitor();getWxLocation().then(resolveLocale);setTimeout(function(){if(powered)primeIAQueues();},30000);},0);
   var pLed=$("rPowLed"); if(pLed) pLed.classList.add("on"); /* PWR LED green when powered on */
   var mBtn=$("rMute"); if(mBtn) mBtn.classList.remove("mute-on"); /* mute cleared on power-on */
-  showShortcutHint(); /* audit-fix Ship B 2026-08-09: fade-in-and-out shortcut strip on power-on */
 }
 function powerOff(){powered=false;if(typeof window.__rsCastSync==="function")window.__rsCastSync();document.body.classList.remove("atv-powered");++token;stopClock();clearTimeout(retryTimer);releaseWake();tube.classList.add("off");
   setTimeout(()=>{clearScreen();showOv("REALSIGNAL","PRESS POWER","Grab the remote and hit the red button.");tube.classList.remove("off");},470);
@@ -10124,6 +10067,7 @@ $("favFilter").addEventListener("click",()=>{favOnly=!favOnly;$("favFilter").sty
 gwrap.addEventListener("click",e=>{if(e.target===gwrap)closeGuide();});
 
 document.addEventListener("keydown",e=>{
+  if(e.target?.closest?.(".pop.show")){if(e.key==="Escape"){e.preventDefault();closeAllOverlays();}return;}
   const tg=(e.target&&e.target.tagName)||""; if(tg==="INPUT"||tg==="TEXTAREA"||(e.target&&e.target.isContentEditable))return; /* CYCLE-1 FIX: typing in inputs was changing channels */
   if(osdOpen()){osdKey(e);return;} /* CYCLE-5: OSD menu captures navigation keys while open */
   if(gwrap.classList.contains("show")){if(e.key==="Escape"){e.preventDefault();closeGuide();}return;}
@@ -10238,59 +10182,6 @@ function renderHist(){if(!histList)return;if(!histArr.length){histList.innerHTML
    r.addEventListener("click",function(){if(histPanel)histPanel.classList.remove("show");if(!powered)powerOn();tuneNum(h.n);});histList.appendChild(r);});}
 function toggleHist(){if(!histPanel)return;if(histPanel.classList.contains("show"))histPanel.classList.remove("show");else{renderHist();histPanel.classList.add("show");}}
 
-/* F26 (2026-08-14) TODAY IN HISTORY — fetches Wikipedia OnThisDay events for today's month/day
-   and renders them as a browsable list. Clicking an event tunes to the On This Day channel
-   (which then searches Commons for footage tied to it). */
-function showTodayInHistory(){
-  var pop=document.getElementById("todayPop"), list=document.getElementById("todayList");
-  if(!pop||!list) return;
-  list.innerHTML='<div class="pop-empty">Loading events…</div>';
-  pop.classList.add("show");
-  var now=new Date(), mm=String(now.getMonth()+1).padStart(2,"0"), dd=String(now.getDate()).padStart(2,"0");
-  var monthNames=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  var todayLabel=monthNames[now.getMonth()]+" "+parseInt(dd,10);
-  fetch("https://en.wikipedia.org/api/rest_v1/feed/onthisday/events/"+mm+"/"+dd,{cache:"default"})
-    .then(function(r){ if(!r.ok) throw new Error("http "+r.status); return r.json(); })
-    .then(function(d){
-      var events=(d&&d.events)||[];
-      var seen={}, keep=[];
-      events.forEach(function(ev){
-        var y=ev.year; if(y==null || seen[y]) return; seen[y]=true; keep.push(ev);
-      });
-      keep.sort(function(a,b){ return (b.year||0)-(a.year||0); });
-      keep=keep.slice(0,30);
-      if(!keep.length){ list.innerHTML='<div class="pop-empty">Nothing on record for '+esch(todayLabel)+'.</div>'; return; }
-      var html='<div style="padding:8px 12px 4px;font-size:11px;color:#9fd6a6;letter-spacing:.15em">'+esch(todayLabel.toUpperCase())+' · '+keep.length+' EVENTS</div>';
-      html+=keep.map(function(ev){
-        var year=ev.year||"?";
-        var text=(ev.text||"").slice(0,150);
-        return '<div class="hist-row" data-year="'+esch(String(year))+'" data-text="'+esch(text)+'" tabindex="0" role="button">'+
-          '<span class="hist-ch" style="min-width:52px">'+esch(String(year))+'</span>'+
-          '<span class="hist-t">'+esch(text)+'</span>'+
-        '</div>';
-      }).join("");
-      html+='<div style="padding:10px 14px 14px;text-align:center;border-top:1px solid #15240f;margin-top:6px">'+
-        '<button class="pop-btn" id="todayTune">TUNE ON THIS DAY CHANNEL</button></div>';
-      list.innerHTML=html;
-      Array.prototype.forEach.call(list.querySelectorAll(".hist-row"),function(r){
-        r.addEventListener("click",function(){
-          var y=r.getAttribute("data-year"), t=r.getAttribute("data-text");
-          try{ quickBanner(y+" · "+t.slice(0,60)); }catch(_){}
-        });
-      });
-      var btn=document.getElementById("todayTune");
-      if(btn) btn.addEventListener("click",function(){
-        pop.classList.remove("show");
-        var ch=CH.find(function(c){return c.source==="onthisday";});
-        if(ch){ if(!powered) powerOn(); tuneNum(ch.num); }
-        else { quickBanner("ON THIS DAY channel not found"); }
-      });
-    })
-    .catch(function(e){
-      list.innerHTML='<div class="pop-empty">Wikipedia is unreachable right now — try again in a bit.<br><br><span style="font-size:10px;opacity:.6">'+esch((e&&e.message)||String(e))+'</span></div>';
-    });
-}
-
 /* favorites quick-surf */
 function favSurf(){if(!powered)return;const f=CH.filter(function(c){return isFav(c.num);});if(!f.length){quickBanner("No favorites yet — press ★ FAV");return;}
   let pool=f.filter(function(c){return c.num!==curNum;});if(!pool.length)pool=f;lastNum=curNum;tuneNum(pool[Math.floor(Math.random()*pool.length)].num);}
@@ -10350,7 +10241,7 @@ document.addEventListener("visibilitychange",function(){if(document.visibilitySt
 })();
 
 /* close any popup overlay (guide handled separately) */
-function closeAllOverlays(){let did=false; /* CYCLE-1 FIX: Esc now closes every dialog, not a hardcoded 3 */
+function closeAllOverlays(){let did=closeSettings(); /* CYCLE-1 FIX: Esc now closes every dialog, not a hardcoded 3 */
   document.querySelectorAll(".pop.show").forEach(function(el){el.classList.remove("show");did=true;});
   if(infoPanel&&!infoPanel.classList.contains("hide")){infoPanel.classList.add("hide");did=true;}return did;}
 
@@ -10364,7 +10255,7 @@ function closeAllOverlays(){let did=false; /* CYCLE-1 FIX: Esc now closes every 
 
 /* wire the new controls (ids shared by both shells; null-safe) */
 wire("picReset",resetPicture); /* 1.0: dead EXTRAS wires removed — all functions live in the OSD menu */
-document.querySelectorAll("[data-close]").forEach(function(el){el.addEventListener("click",function(){const t=$(el.dataset.close);if(t)t.classList.remove("show");});});
+document.querySelectorAll("[data-close]").forEach(function(el){el.addEventListener("click",function(){if(el.dataset.close==="settingsOv"){closeSettings();return;}const t=$(el.dataset.close);if(t)t.classList.remove("show");});});
 wirePicture();applyPicture();
 
 /* a11y: make click-divs keyboard operable */
@@ -10393,7 +10284,6 @@ function setCurItem(it,ch,sl,decoded){
   if(iaRepairEnabled(ch)){if(decoded!==false)iaRepairEvent(ch,it,"started");}else iaReportPlayed(ch,it);
   if(!it.isAd){
     const nt=normTitle(curItem.title); if(nt){ recentTitles.unshift(nt); if(recentTitles.length>12)recentTitles.length=12; }
-    chStats[ch.num]=(chStats[ch.num]||0)+1; store.set("chStats",chStats);
     /* F06 (2026-08-14): remember last-played IA identifier per channel for guide thumbnails */
     var _lid=(it.meta&&(it.meta.identifier||it.meta.id))||curItem.id||"";
     if(_lid){ try{ window.__chLastId=window.__chLastId||store.get("chLastId",{}); window.__chLastId[ch.num]=_lid; store.set("chLastId",window.__chLastId); }catch(_){}
@@ -10644,21 +10534,37 @@ wire("diagTest",testConn);
 
 /* ---------- Settings screen: consolidates toggles that used to be scattered across menus ---------- */
 function renderSettings(){
-  var n=$("setNight"); if(n) n.textContent=nightMode.toUpperCase();
-  var a=$("setAds"); if(a) a.textContent=adsOn?"ON":"OFF";
+  $("setTVDead").textContent=tvHideDead()?"Hidden":"Shown";
+  var n=$("setNight"); if(n)n.textContent=nightMode[0].toUpperCase()+nightMode.slice(1);
+  var a=$("setAds"); if(a) a.textContent=adsOn?"On":"Off";
   var c=$("setClock"); if(c) c.textContent=clk24?"24H":"12H";
-  var cr=$("setCRT"); if(cr) cr.textContent=(["OFF","SUBTLE","MEDIUM","FULL"])[window.__crtLevel||0];
-  var bb=$("setBumpers"); if(bb) bb.textContent=bumperOn?"ON":"OFF";
-  var t=$("setTheme"); if(t) t.textContent=THEMES[themeIdx].toUpperCase();
+
+  var bb=$("setBumpers"); if(bb) bb.textContent=bumperOn?"On":"Off";
+
   var castId=$("castReceiverIdInput"); if(castId&&document.activeElement!==castId)castId.value=(typeof window.__rsCastReceiverId==="function"?window.__rsCastReceiverId():"");
   var castBridge=$("castBridgeUrlInput"); if(castBridge&&document.activeElement!==castBridge)castBridge.value=store.get("castBridgeUrl","http://192.168.1.67:8788")||"";
   var castStatus=$("castReceiverStatus"); if(castStatus)castStatus.textContent=(typeof window.__rsCastStatus==="function"?window.__rsCastStatus():((typeof window.__rsCastReceiverId==="function"&&window.__rsCastReceiverId())?"Receiver ready · select CAST":"Receiver ID required for full-screen casting"));
-  var k=$("naraKeyInput"); if(k && !k.value) k.value=naraKey();
   var lm=$("setLocMode"); if(lm)lm.textContent=(locMode==="zip")?("HOME "+(homeLoc.zip||"ZIP")):"GPS";
   var hz=$("homeZipInput"); if(hz&&!hz.value)hz.value=homeLoc.zip||"";
 }
-function toggleSettings(){ var o=$("settingsOv"); if(!o){quickBanner("SETTINGS UNAVAILABLE");return;}
-  if(o.classList.contains("show")) o.classList.remove("show"); else { renderSettings(); o.classList.add("show"); } }
+var settingsOpener=null;
+function closeSettings(){
+  var dialog=$("settingsOv");
+  if(!dialog?.classList.contains("show"))return false;
+  dialog.classList.remove("show");
+  if(settingsOpener?.isConnected)settingsOpener.focus({preventScroll:true});
+  settingsOpener=null;
+  return true;
+}
+function toggleSettings(){
+  if(closeSettings())return;
+  var dialog=$("settingsOv");
+  settingsOpener=document.activeElement;
+  renderSettings();
+  dialog.classList.add("show");
+  dialog.querySelector("button").focus({preventScroll:true});
+}
+
 
 wire("setNight",function(){ cycleNight(); renderSettings(); });
 /* audit-fix Ship A 2026-08-09: #setCRT removed from Settings — CRT now lives as #picCRT slider
@@ -10676,63 +10582,16 @@ wire("setNight",function(){ cycleNight(); renderSettings(); });
   });
 })();
 wire("setBumpers",function(){ bumperOn=!bumperOn; store.set("bumpers",bumperOn); renderSettings(); quickBanner("STATION BUMPERS "+(bumperOn?"ON":"OFF")); });
-wire("setAds",function(){ var b=$("btnAds"); if(b) b.click(); else { adsOn=!adsOn; store.set("ads",adsOn); } renderSettings(); });
+wire("setAds",function(){adsOn=!adsOn;store.set("ads",adsOn);renderSettings();});
 wire("setClock",function(){ toggleClockFmt(); renderSettings(); });
-wire("setTheme",function(){ cycleTheme(); renderSettings(); });
+wire("setImport",function(){$("setImportFile").click();});
+wire("setTVDead",function(){store.set("tvHideDead",!tvHideDead());renderSettings();if(byNum(curNum)?.source==="livetv")window.__tvReload?.();});
+
 wire("btnCastReceiverSave",function(){var input=$("castReceiverIdInput"),id=String(input&&input.value||"").trim();if(!id){quickBanner("ENTER A CAST RECEIVER ID");return;}store.set("castReceiverId",id);if(typeof window.__rsCastInit==="function")window.__rsCastInit(true);renderSettings();quickBanner("CHROMECAST RECEIVER SAVED");});
 wire("btnCastBridgeSave",function(){var input=$("castBridgeUrlInput"),raw=String(input&&input.value||"").trim().replace(/\/$/,"");if(raw&&!/^https?:\/\//i.test(raw)){quickBanner("BRIDGE URL MUST START HTTP:// OR HTTPS://");return;}store.set("castBridgeUrl",raw);renderSettings();quickBanner(raw?"CAST BRIDGE SAVED":"CAST BRIDGE DISABLED");});
-wire("btnCastOpen",function(){if(typeof window.__rsCastRequest==="function")window.__rsCastRequest();});
+
 wire("setPicLink",function(){ toggleSettings(); togglePic(); });
 wire("setDiagLink",function(){ toggleSettings(); toggleDiag(); });
-
-/* ---------- CYCLE-12: external feed health check — one row per service, OK/ERR + latency ---------- */
-function healthM3U(url){return withTO(fetch(url,{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("http "+r.status);return r.text();}).then(function(t){if(!/#EXTM3U/.test(t))throw new Error("invalid playlist");return true;}),15000);}
-var HEALTH_SOURCES=[
- ["Internet Archive search",function(){return fetchJSON(iaURL("mediatype:movies",1,1));}],
- ["Internet Archive metadata",function(){return fetchJSON("https://archive.org/metadata/prelinger/metadata/identifier");}],
- ["NWS weather (api.weather.gov)",function(){return getWxLocation().then(function(l){return fetchJSON("https://api.weather.gov/points/"+l.lat+","+l.lon);});}],
- ["NWS rivers/lakes (NWPS)",function(){return getWxLocation().then(function(l){return fetchJSON("https://api.water.noaa.gov/nwps/v1/gauges?bbox.xmin="+(l.lon-0.4).toFixed(2)+"&bbox.ymin="+(l.lat-0.4).toFixed(2)+"&bbox.xmax="+(l.lon+0.4).toFixed(2)+"&bbox.ymax="+(l.lat+0.4).toFixed(2)+"&srid=EPSG_4326");});}],
- ["USGS earthquakes",function(){return fetchJSON("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson");}],
- ["USGS volcanoes",function(){return fetchJSON("https://volcanoes.usgs.gov/vsc/api/volcanoApi/elevated");}],
- ["NHC tropical",function(){return fetchJSONResilient("https://www.nhc.noaa.gov/CurrentStorms.json","health");}],
- ["NOAA space weather",function(){return fetchJSON("https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json");}],
- ["NOAA tides",function(){return fetchJSON("https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=predictions&application=archive_tv&date=today&datum=MLLW&station=8771450&time_zone=lst_ldt&units=english&interval=hilo&format=json");}],
- ["ISS tracker",function(){return fetchJSON("https://api.wheretheiss.at/v1/satellites/25544");}],
- ["Aviation weather (METAR)",function(){return fetchJSONResilient("https://aviationweather.gov/api/data/metar?format=json&ids=KACT","health");}],
- ["Energy data (EIA)",function(){return fetchJSONResilient("https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key=DEMO_KEY&frequency=hourly&data[]=value&facets[respondent][]=TEX&sort[0][column]=period&sort[0][direction]=desc&length=1","health").then(function(d){if(!d||!d.response||!Array.isArray(d.response.data)||!d.response.data.length)throw new Error("no ERCOT rows");return d;});}],
- ["Sports scoreboard (ESPN)",function(){return fetchSportsData("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard","health").then(function(d){if(!d||!Array.isArray(d.events))throw new Error("unexpected scoreboard");return d;});}],
- ["Live TV catalog (IPTV-org)",function(){return healthM3U("https://iptv-org.github.io/iptv/languages/eng.m3u");}],
- ["Live TV FAST catalog",function(){return healthM3U("https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/tubi_all.m3u");}],
- ["Flight data relay fallback",function(){return fetchJSONviaProxy("https://api.adsb.lol/v2/point/31.6/-97.2/5");}],
- ["NIFC wildfires",function(){return fetchJSON("https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Incident_Locations_Current/FeatureServer/0/query?f=json&where=1%3D1&outFields=IncidentName&resultRecordCount=1").then(function(d){if(d&&d.error)throw new Error("query rejected");return d;});}],
- ["GDELT newswire",function(){return fetchJSONResilient("https://api.gdeltproject.org/api/v2/doc/doc?query=earthquake%20sourcelang:eng&mode=ArtList&maxrecords=1&format=json","health");}],
- ["Wikipedia",function(){return fetchJSON("https://en.wikipedia.org/api/rest_v1/page/summary/Internet_Archive");}],
- ["Wikimedia Commons",function(){return fetchJSON("https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&meta=siteinfo");}],
- ["NASA images",function(){return fetchJSON("https://images-api.nasa.gov/search?q=apollo&media_type=image&page_size=1");}],
- ["FAA status",function(){return fetchTextResilient("https://nasstatus.faa.gov/api/airport-status-information","health");}],
- ["CORS relay chain",function(){return fetchJSONviaProxy("https://archive.org/metadata/prelinger/metadata/identifier");}],
- ["Historic Waco: LOC photos",function(){return fetchJSONResilient("https://www.loc.gov/photos/?q=Waco+Texas&fo=json&c=1&at=results","health");}],
- ["Historic Waco: Wikimedia",function(){return fetchJSONResilient("https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrsearch=Waco%20Texas&gsrnamespace=6&gsrlimit=1&prop=imageinfo&iiprop=url","health");}],
- ["iNaturalist",function(){return fetchJSON("https://api.inaturalist.org/v1/observations?lat=31.58&lng=-97.13&radius=20&per_page=1");}],
- ["Open-Meteo air quality",function(){return fetchJSON("https://air-quality-api.open-meteo.com/v1/air-quality?latitude=31.58&longitude=-97.13&current=us_aqi");}]
-];
-function runHealthCheck(){
-  var box=$("healthList"); if(!box)return;
-  box.innerHTML=HEALTH_SOURCES.map(function(sc,i){
-    return '<div class="hist-row"><span class="hist-ch" id="hc'+i+'" style="min-width:44px;color:#999">\u2026</span><span class="hist-t">'+esch(sc[0])+'</span><span class="hist-a" id="hct'+i+'"></span></div>';
-  }).join("");
-  HEALTH_SOURCES.forEach(function(sc,i){
-    var t0=Date.now();
-    Promise.resolve().then(sc[1]).then(
-      function(){ var el=$("hc"+i); if(el){el.textContent="OK";el.style.color="#7f7";}
-        var tt=$("hct"+i); if(tt)tt.textContent=(Date.now()-t0)+"ms"; },
-      function(e){ var el=$("hc"+i); if(el){el.textContent="ERR";el.style.color="#f77";}
-        var tt=$("hct"+i); if(tt)tt.textContent=String((e&&e.message)||e).slice(0,26); });
-  });
-}
-wire("btnHealth",runHealthCheck);
-
-
 
 /* ---------- Night Dim (ported from mobile — desktop never got this) ---------- */
 var nightMode="auto";
@@ -11172,42 +11031,12 @@ function triggerEmergencyTakeover(props){
 
 
 
-/* ---------- National Archives (CYCLE-12 rebuild): the channel ALWAYS plays now ----------
-   ROOT CAUSE of the dead channel: the catalog API demands an x-api-key HEADER, which forces a
-   browser CORS preflight that catalog.archives.gov doesn't answer from a local page — so every
-   request died and the channel dead-ended. The API is still tried first (with real error
-   logging), but ANY failure now falls through to NARA/government film mirrors hosted on the
-   Internet Archive itself (FedFlix + subject search), which are verified live and always play. */
-var NARA_Q=["moving images","motion picture film","newsreel","documentary film"];
-function naraKey(){ return String(store.get("naraKey","")||"").trim(); }
-wire("btnNaraSave", function(){ var el=$("naraKeyInput"); if(!el)return; store.set("naraKey",(el.value||"").trim()); quickBanner("NARA KEY SAVED"); });
 
-/* audit-fix Ship C 2026-08-09: Favorites Manager, Blocklist Manager, Export/Import/Reset handlers. */
-function renderFavMgr(){
-  var el=$("favMgrList"); if(!el) return;
-  var list=(typeof orderedChannels==="function")?orderedChannels().filter(function(c){ try{return isFav(c.num);}catch(_){return false;} }):[];
-  if(!list.length){ el.innerHTML='<div class="hist-row" style="opacity:.6"><span class="hist-t">No favorites yet.</span><span class="hist-a">press ★ FAV while watching</span></div>'; return; }
-  var html='';
-  list.forEach(function(c){
-    html+='<div class="hist-row" data-n="'+c.num+'"><span class="hist-t"><b>'+c.num+'</b> &nbsp; '+esch(c.nm)+'</span>'+
-      '<span class="hist-a"><a href="#" data-act="tune" data-n="'+c.num+'" style="color:#4dc8ff;margin-right:10px">TUNE</a>'+
-      '<a href="#" data-act="unfav" data-n="'+c.num+'" style="color:#ff8a7a">★ REMOVE</a></span></div>';
-  });
-  el.innerHTML=html;
-  el.querySelectorAll("[data-act]").forEach(function(a){
-    a.addEventListener("click",function(e){ e.preventDefault();
-      var n=+a.dataset.n, act=a.dataset.act;
-      if(act==="tune"){ document.getElementById("favMgrPop").classList.remove("show"); if(!powered)powerOn(); tuneNum(n); }
-      else if(act==="unfav"){ try{ toggleFav(n); }catch(_){} renderFavMgr(); }
-    });
-  });
-}
-function toggleFavMgr(){ var o=$("favMgrPop"); if(!o){quickBanner("FAV MGR UNAVAILABLE");return;}
-  if(o.classList.contains("show")){o.classList.remove("show");} else{renderFavMgr();o.classList.add("show");} }
+/* Blocked programs and settings backup. */
 function renderBanMgr(){
   var el=$("banMgrList"); if(!el) return;
   var list=(typeof banned!=="undefined"&&Array.isArray(banned))?banned:[];
-  if(!list.length){ el.innerHTML='<div class="hist-row" style="opacity:.6"><span class="hist-t">Nothing banished.</span><span class="hist-a">use BANISH PROGRAM in the OSD Menu</span></div>'; return; }
+  if(!list.length){ el.innerHTML='<div class="hist-row" style="opacity:.6"><span class="hist-t">Nothing banished.</span><span class="hist-a">Use Banish program in the viewing menu</span></div>'; return; }
   var html='<div class="hist-row" style="opacity:.7;border-bottom:1px solid rgba(255,255,255,.1)"><span class="hist-t">'+list.length+' banished items</span><span class="hist-a"><a href="#" id="banClearAll" style="color:#ff8a7a">CLEAR ALL</a></span></div>';
   list.forEach(function(id,i){
     html+='<div class="hist-row" data-id="'+esch(id)+'"><span class="hist-t" style="font-family:monospace;font-size:11px;overflow:hidden;text-overflow:ellipsis">'+esch(id)+'</span>'+
@@ -11226,7 +11055,6 @@ function renderBanMgr(){
 function toggleBanMgr(){ var o=$("banMgrPop"); if(!o){quickBanner("BLOCKLIST UNAVAILABLE");return;}
   if(o.classList.contains("show")){o.classList.remove("show");} else{renderBanMgr();o.classList.add("show");} }
 
-wire("setFavMgr", function(){ toggleSettings(); setTimeout(toggleFavMgr, 200); });
 wire("setBanMgr", function(){ toggleSettings(); setTimeout(toggleBanMgr, 200); });
 
 function _atvExport(){
@@ -11270,7 +11098,7 @@ wire("setExport", function(){
   });
 })();
 wire("setReset", function(){
-  if(!confirm("Reset ALL Afterglow settings, favorites, blocklist, and cached channel health? This cannot be undone.")) return;
+  if(!confirm("Reset RealSignal settings, favorites, blocked programs, and cached data?")) return;
   try{
     var kill=[];
     for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(k&&k.indexOf("atv:")===0) kill.push(k); }
@@ -12468,16 +12296,13 @@ function markTvOk(c,firstFrameMs){
   nlog("tvhealth",true,(c.name||"?")+" first frame "+(ms?ms+"ms":"ready")+" · score "+e.score);
 }
 function tvStrikes(c,health){ var e=(health||tvHealthAll())[tvHealthKey(c)]; return e?(e.f||0):0; }
-/* Culling: a channel that has failed twice or more on THIS device is hidden by default rather
-   than left cluttering the list. Nothing is deleted -- strikes still expire after 7 days, and
-   SHOW DEAD CHANNELS in the menu reveals them, so a stream that comes back can be found again. */
 function tvHideDead(){ return store.get("tvHideDead",true)!==false; }
 function cullDead(arr){
   if(!tvHideDead()) return {list:arr,hidden:0};
   var h=tvHealthAll(), kept=[], hidden=0;
   /* Two observed failures are enough to hide a stream, and explicit provider dead/offline
      flags are never useful in a playable directory. This is temporary UI culling only:
-     SHOW DEAD CHANNELS and the seven-day expiry preserve recovery. */
+     The setting and seven-day expiry preserve recovery. */
   arr.forEach(function(c){
     var dead=tvChannelVariants(c).every(function(row){
       return tvStrikes(row,h)>=2||/(?:dead|offline|broken|unavailable)/i.test(String((row.status||"")+" "+(row.health||"")));
@@ -14981,37 +14806,6 @@ var justPowered=false;
 var deepCuts=store.get("deepCuts",false), recentTitles=[];
 var sportsEra=store.get("sportsEra","all"); /* 1.4.2: Sports Vault era dial */
 var SPORTS_ERAS={"30s-50s":[1930,1959],"60s-70s":[1960,1979],"80s-90s":[1980,1995]};
-function cycleSportsEra(){ var order=["all","30s-50s","60s-70s","80s-90s"];
-  sportsEra=order[(order.indexOf(sportsEra)+1)%order.length]; store.set("sportsEra",sportsEra);
-  quickBanner("SPORTS VAULT ERA: "+sportsEra.toUpperCase());
-  var c=byNum(curNum); if(powered&&c&&c.nm==="Sports Vault"){ schedClear(c); resetProgress(); tuneNum(curNum); } }
-function toggleDeepCuts(){ deepCuts=!deepCuts; store.set("deepCuts",deepCuts);
-  quickBanner(deepCuts?"\ud83d\udd73 DEEP CUTS \u00b7 ON \u2014 surfacing obscure finds":"DEEP CUTS \u00b7 OFF"); }
-
-var marathonLock={};
-function marathonQueryFor(lock,ch){
-  /* CYCLE-5 FIX: marathons used to be lock+mediatype only, so two different genre channels
-     locked onto the same generic collection played identical content. The lock is now ANDed
-     with the channel's own genre constraints first; the generic pool is the last resort. */
-  var f=lock.kind==="collection" ? 'collection:"'+lock.value+'"' : 'creator:("'+lock.value+'")';
-  var qs=[],prog=ch&&channelProgramFor(ch),mt=(prog&&prog.mt)||((ch&&ch.audio)?"audio":"movies");
-  if(prog){buildProgramQueries(prog,ch,false).slice(0,8).forEach(function(q){qs.push(f+" AND ("+q+")");});return qs;}
-  if(ch&&ch.gl&&G[ch.gl]) buildQuery(ch.gl,ch.era).slice(0,5).forEach(function(q){ qs.push(f+" AND ("+q+")"); });
-  if(!qs.length){qs.push(f+" AND mediatype:"+mt);qs.push("mediatype:"+mt+" AND "+f);}
-  return qs;
-}
-function marathonToggle(){
-  var ch=byNum(curNum); if(!ch){quickBanner("TUNE A CHANNEL FIRST");return;}
-  schedClear(ch); /* 1.2: the pool is changing — current program no longer applies */
-  if(marathonLock[ch.num]){ delete marathonLock[ch.num]; quickBanner("MARATHON \u00b7 OFF"); if(powered){resetProgress();tuneNum(curNum);} return; }
-  var m=(curItem&&curItem.meta)||{};
-  if(m.collection){ marathonLock[ch.num]={kind:"collection",value:m.collection,label:m.collection}; }
-  else if(m.creator){ marathonLock[ch.num]={kind:"creator",value:m.creator,label:m.creator}; }
-  else { quickBanner("NO COLLECTION/CREATOR INFO FOR THIS ITEM"); return; }
-  quickBanner("\ud83d\udd12 MARATHON \u00b7 "+marathonLock[ch.num].label);
-  if(powered){resetProgress();tuneNum(curNum);}
-}
-
 /* NEW (feature: rolling-dial tune animation): briefly cycle the channel-number readouts
    through nearby digits before landing on the real one, like an old mechanical selector */
 var rollDialTimer=null;
@@ -15042,36 +14836,7 @@ function regionalIdents(){ /* CYCLE-2: idents adapt to wherever the set is runni
           "BROADCASTING FROM DOWNTOWN "+C,C+"'S HOME STATION SINCE 1953"];
 }
 
-/* shared custom pseudo-channel (num -1): powers "More Like This" and VCR resume */
-var customChan={num:-1,nm:"CUSTOM",cat:"SPEC"}, customSlot=null, resumeSeekSec=0;
-function tuneCustomQueries(queries,label){ customSlot={show:label,queries:queries}; if(!powered)powerOn(); return tuneNum(-1); }
-async function tuneCustomExec(){
-  var my=++token; clearTimeout(retryTimer); curNum=-1; renderRail();
-  if(chNum)chNum.textContent="\u2731"; if(nowName)nowName.textContent="CUSTOM"; if(nowMeta)nowMeta.textContent=customSlot.show;
-  setSig("tuning","TUNING"); try{sfxStatic();}catch(e){} showOv("TUNING\u2026","PLEASE STAND BY",customSlot.show); clearScreen();
-  if(customSlot.vcrId){
-    var pl=null; try{pl=await resolvePlayable(customSlot.vcrId);}catch(e){}
-    if(pl && pl.type==="video" && my===token){ pl.title=customSlot.show; if(await playFile(pl,customChan,customSlot,my)) return; }
-    if(my===token) noSignal(customChan,my);
-    return;
-  }
-  return tuneIA(customChan, customSlot, my);
-}
-function moreLikeThis(){ /* 1.3: multi-signal — decade+subject, creator, collection, subject */
-  var m=(curItem&&curItem.meta)||{};
-  var qs=[];
-  if(m.subjects&&m.subjects.length){
-    var subj=m.subjects.slice(0,4).map(function(x){return '"'+String(x).slice(0,60).replace(/"/g,"")+'"';}).join(" OR ");
-    var yr=parseInt(curItem.year||m.date,10);
-    if(yr) qs.push('mediatype:movies AND subject:('+subj+') AND year:['+(yr-6)+' TO '+(yr+6)+']');
-    qs.push('mediatype:movies AND subject:('+subj+')');
-  }
-  if(m.creator) qs.push('creator:("'+String(m.creator).replace(/"/g,"")+'") AND mediatype:movies');
-  if(m.collection&&!/^(feature_films|moviesandfilms)$/.test(m.collection)) qs.push('collection:'+m.collection+' AND mediatype:movies');
-  if(!qs.length){quickBanner("NO METADATA FOR THIS ITEM");return;}
-  tuneCustomQueries(qs,"More like \u201c"+(curItem.title||"this")+"\u201d");
-}
-function tuneVCR(id,resumeSec,label){ resumeSeekSec=resumeSec||0; customSlot={show:label||"Resuming\u2026",queries:null,vcrId:id}; if(!powered)powerOn(); return tuneNum(-1); }
+var resumeSeekSec=0;
 
 /* authentic sign-off: best-effort archival clip -> static -> power off (hard-capped, never hangs) */
 var signoffClipDone=function(){};
@@ -15104,22 +14869,7 @@ function signOff(){
   })();
 }
 
-/* watch stats (feature #6) */
-var chStats=store.get("chStats",{}), totalMs=store.get("totalMs",0);
-/* F06: preload persisted last-played identifiers for guide thumbnails */
 window.__chLastId=store.get("chLastId",{});
-function renderStats(){
-  var el=$("statsList"); if(!el)return;
-  var hrs=(totalMs/3600000).toFixed(1);
-  var plays=Object.keys(chStats).reduce(function(a,k){return a+chStats[k];},0);
-  var top=Object.keys(chStats).map(function(k){return {n:+k,c:chStats[k]};}).sort(function(a,b){return b.c-a.c;}).slice(0,5);
-  var html='<div class="hist-row"><span class="hist-t">Programs played</span><span class="hist-a">'+plays+'</span></div>'+
-           '<div class="hist-row"><span class="hist-t">Hours watched (approx)</span><span class="hist-a">'+hrs+'h</span></div>';
-  if(top.length){ html+='<div class="hist-row" style="opacity:.7"><span class="hist-t">TOP CHANNELS</span></div>';
-    top.forEach(function(t){ var ch=byNum(t.n); html+='<div class="hist-row"><span class="hist-t">'+esch(ch?ch.nm:("CH "+t.n))+'</span><span class="hist-a">'+t.c+'x</span></div>'; }); }
-  el.innerHTML=html;
-}
-function toggleStats(){ var o=$("statsOv"); if(!o){quickBanner("STATS UNAVAILABLE");return;} if(o.classList.contains("show"))o.classList.remove("show"); else{renderStats();o.classList.add("show");} }
 
 /* thumbs-down banish (feature #7) */
 var banned=store.get("banned",[]);
@@ -15129,38 +14879,6 @@ function banishCurrent(){ if(!curItem||!curItem.id){quickBanner("NOTHING TO BANI
   if(banned.indexOf(curItem.id)<0){ banned.push(curItem.id); if(banned.length>500)banned.shift(); store.set("banned",banned); }
   updateBanBtn(); quickBanner("\ud83d\udc4e BANISHED \u2014 won't play again"); if(powered){resetProgress();tuneNum(curNum);} }
 function clearBans(){ banned=[]; store.set("banned",banned); updateBanBtn(); quickBanner("BAN LIST CLEARED"); }
-
-/* Queue-driven TV guide. Columns describe actual buffered sequence, never hours
-   of day, so every IA channel exposes the same editorial range at every clock time. */
-function renderTVGuide(){
-  var el=$("tvgList"); if(!el)return;
-  var labels=["NOW","NEXT","LATER","AFTER"];
-  var html='<div class="epg-row epg-head"><span class="epg-ch"></span>'+labels.map(function(label){return '<span class="epg-cell">'+label+'</span>';}).join("")+'</div>';
-  orderedChannels().forEach(function(ch){
-    var sl=slotFor(ch,0,{preview:true}), listing=guideListing(ch);
-    var currentItem=(ch.num===curNum&&curItem)?curItem:null;
-    var queued=ch.source?[]:guideQueueItems(ch,sl,currentItem).slice(0,4);
-    var cells=[];
-    if(ch.source){
-      cells=[listing.now,listing.next,listing.detail,"CONTINUOUS LIVE FEED"];
-    }else{
-      var current=currentItem&&currentItem.title;
-      cells.push(current?("\u25b6 "+current+(iaRuntimeLabel(currentItem.runtime||currentItem.dur)?(" · "+iaRuntimeLabel(currentItem.runtime||currentItem.dur)):"")):(queued[0]?("READY · "+(queued[0].title||queued[0].identifier)+(iaRuntimeLabel(queued[0].runtime)?(" · "+iaRuntimeLabel(queued[0].runtime)):"")):"BUFFER WARMING"));
-      var start=current?0:1;
-      for(var i=0;i<3;i++){
-        var item=queued[start+i];
-        cells.push(item?((item.title||item.identifier)+(iaRuntimeLabel(item.runtime)?(" · "+iaRuntimeLabel(item.runtime)):"")):"BUFFER WARMING");
-      }
-    }
-    html+='<div class="epg-row" data-n="'+ch.num+'"><span class="epg-ch">'+ch.num+' <b>'+esch(ch.nm)+'</b></span>'+cells.map(function(txt){return '<span class="epg-cell">'+esch(txt)+'</span>';}).join("")+'</div>';
-  });
-  el.innerHTML=html;
-  el.querySelectorAll("[data-n]").forEach(function(r){ r.addEventListener("click",function(){ var n=+r.dataset.n;
-    var o=$("tvgOv"); if(o){guidePrimeRun++;o.classList.remove("show");}
-    if(!powered)powerOn(); tuneNum(n); }); });
-}
-function toggleTVGuide(){ var o=$("tvgOv"); if(!o){quickBanner("TV GUIDE UNAVAILABLE");return;}
-  if(o.classList.contains("show")){guidePrimeRun++;o.classList.remove("show");} else{o.classList.add("show");renderTVGuide();primeGuideQueues(CH);} }
 
 /* Weather Watch channel (feature #5): live NWS conditions + alerts via api.weather.gov (keyless, CORS-enabled) */
 var weatherTimer=null;
@@ -15456,29 +15174,8 @@ async function tuneWeather(ch,sl,my){
 
 updateBanBtn();
 
-/* ===== v11 desktop-only: esch, watch-later/VCR, share (mobile already has these) ===== */
+/* Escape text for HTML templates. */
 function esch(s){return (s==null?"":String(s)).replace(/[&<>"]/g,function(c){return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c];});}
-function saveCurrent(){ if(!curItem||!curItem.id){quickBanner("NOTHING TO SAVE");return;}
-  var saved=store.get("saved",[]); if(saved.some(function(x){return x.id===curItem.id;})){quickBanner("ALREADY SAVED");return;}
-  var sec=0; try{ if(curVideo&&isFinite(curVideo.currentTime)) sec=curVideo.currentTime; }catch(e){}
-  saved.unshift({id:curItem.id,t:curItem.title||"",ch:curItem.chName||"",ts:Date.now(),sec:sec}); if(saved.length>60)saved.length=60;
-  store.set("saved",saved); quickBanner("\ud83d\udcfc SAVED \u00b7 will resume at "+fmtTime(sec)); }
-function renderSaved(){ /* UPGRADED (feature: tape-shelf visual) — a shelf of cassette cards instead of a plain list */
-  var el=$("savedList"); if(!el)return; var saved=store.get("saved",[]);
-  if(!saved.length){el.innerHTML='<div class="pop-empty">Nothing saved yet \u2014 hit SAVE on a show you like.</div>';return;}
-  el.classList.add("tape-shelf"); el.innerHTML="";
-  saved.forEach(function(x){ var r=document.createElement("div"); r.className="tape-card"; r.tabIndex=0; r.setAttribute("role","button");
-    r.innerHTML='<div class="tape-icon">\ud83d\udcfc</div><div class="tape-info"><div class="tape-t">'+esch(x.t||x.id)+'</div>'+
-      '<div class="tape-meta">'+esch(x.ch||"")+' \u00b7 resume at '+fmtTime(x.sec||0)+'</div></div><div class="tape-play">\u25b6</div>';
-    r.addEventListener("click",function(){ var o=$("savedOv"); if(o)o.classList.remove("show"); tuneVCR(x.id,x.sec||0,"Resuming \u201c"+(x.t||x.id)+"\u201d"); });
-    el.appendChild(r); }); }
-function toggleSaved(){ var o=$("savedOv"); if(!o){quickBanner("SAVED LIST UNAVAILABLE");return;} if(o.classList.contains("show"))o.classList.remove("show"); else{renderSaved();o.classList.add("show");} }
-function shareCurrent(){ if(!curItem||!curItem.id){quickBanner("NOTHING TO SHARE");return;}
-  var url="https://archive.org/details/"+encodeURIComponent(curItem.id);
-  if(navigator.share){navigator.share({title:curItem.title||"RealSignal",url:url}).catch(function(){});}
-  else{ try{if(navigator.clipboard&&navigator.clipboard.writeText){var pr=navigator.clipboard.writeText(url);if(pr&&pr.catch)pr.catch(function(){});}}catch(e){} quickBanner("LINK COPIED"); } }
-
-
 /* fade the on-screen video to black before an ad-break transition (feature: commercial fade in/out) */
 function fadeOutCurrent(){ return new Promise(function(res){
   var v=screenArea.querySelector("video");
@@ -15487,255 +15184,81 @@ function fadeOutCurrent(){ return new Promise(function(res){
   setTimeout(res,300);
 }); }
 
-/* ===================== 1.2.1: SOAK MODE — the TV tests itself =====================
-   Automates the couch soak on the REAL browser/network/media stack (things the offline
-   harness cannot see). Auto-surfs a channel every ~75s; per tune it records: time-to-air,
-   signal outcome, audio-blocked state, title, JS errors, heap size. Survives refresh
-   (localStorage). SOAK REPORT summarizes and copies the full JSON for the engineer. */
-var soakTimer=null, soakPoll=null;
-var soakLog=store.get("soak",null)||{started:0,samples:[],audioBlocked:0,errors:0};
-window.addEventListener("error",function(e){ if(soakTimer){ soakLog.errors++;
-  (soakLog.errMsgs=soakLog.errMsgs||[]).push(String((e&&e.message)||"").slice(0,120)+" @"+String((e&&e.lineno)||"?"));
-  if(soakLog.errMsgs.length>10)soakLog.errMsgs.shift(); } });
-function soakSave(){ if(soakLog.samples.length>800)soakLog.samples=soakLog.samples.slice(-800); store.set("soak",soakLog); }
-function startSoak(){
-  if(!powered){quickBanner("TURN THE TV ON FIRST");return;}
-  soakLog={started:Date.now(),samples:[],audioBlocked:0,errors:0}; soakSave();
-  quickBanner("SOAK MODE ON \u2014 auto-surfing + logging; leave it running");
-  var tick=function(){
-    if(!powered){stopSoak();return;}
-    step(1);
-    var t0=Date.now(), ch=byNum(curNum);
-    clearInterval(soakPoll);
-    soakPoll=setInterval(function(){
-      if(!powered){clearInterval(soakPoll);return;}
-      var sig=sigText?sigText.textContent:"";
-      var done=(sig.indexOf("ON AIR")===0)||sig==="NO SIGNAL"||(Date.now()-t0>45000);
-      if(!done)return;
-      clearInterval(soakPoll);
-      var mem=(window.performance&&performance.memory)?Math.round(performance.memory.usedJSHeapSize/1048576):null;
-      var sample={t:Date.now(),ch:ch?ch.num:0,nm:ch?ch.nm:"?",sig:sig,ms:Date.now()-t0,
-        title:String((curItem&&curItem.title)||"").slice(0,50),aud:"pending",mem:mem,
-        /* bleed-audit enrichment: title alone can't distinguish on-theme from off-theme (a
-           "Home movie: farm" title on the Railroad channel needs its subject/collection to
-           confirm the bleed). Every field optional, empty for data channels. */
-        col:String((lastMeta&&lastMeta.collection)||"").slice(0,32),
-        subj:String((lastMeta&&lastMeta.subject)||"").slice(0,60),
-        cre:String((lastMeta&&lastMeta.creator)||"").slice(0,32),
-        id:String((lastMeta&&lastMeta.identifier)||"").slice(0,40)};
-      soakLog.samples.push(sample); soakSave();
-      setTimeout(function(){ /* 1.2.4: judge audio AFTER the heal window, not during it */
-        var v=curVideo;
-        sample.aud=(v&&!v.paused)?(v.muted?"muted":"on"):(soundBlocked?"muted":"n/a");
-        if(sample.aud==="muted")soakLog.audioBlocked++;
-        soakSave();
-      },10000);
-    },1000);
-  };
-  tick(); soakTimer=setInterval(tick,75000);
-}
-function stopSoak(){ clearInterval(soakTimer);soakTimer=null;clearInterval(soakPoll);soakPoll=null;soakSave();quickBanner("SOAK MODE OFF \u2014 report saved");}
-function toggleSoak(){ if(soakTimer)stopSoak(); else startSoak(); }
-function soakReport(){
-  var o=$("statsOv"), el=$("statsList"); if(!o||!el){quickBanner("REPORT UNAVAILABLE");return;}
-  var sm=soakLog.samples||[];
-  var on=sm.filter(function(x){return String(x.sig).indexOf("ON AIR")===0;}).length;
-  var ns=sm.filter(function(x){return x.sig==="NO SIGNAL";});
-  var slow=sm.filter(function(x){return x.ms>15000;});
-  var avg=sm.length?Math.round(sm.reduce(function(a,x){return a+x.ms;},0)/sm.length):0;
-  var mems=sm.map(function(x){return x.mem;}).filter(function(m){return m!=null;});
-  var byCh={}; ns.forEach(function(x){byCh[x.nm]=(byCh[x.nm]||0)+1;});
-  var html='<div class="hist-row"><span class="hist-t">Autoplay policy</span><span class="hist-a" style="color:'+(AUTOPLAY_FREE?"#7f7":"#f97")+'">'+(AUTOPLAY_FREE?"OPEN (launcher)":"RESTRICTED (plain browser)")+'</span></div>'+
-    '<div class="hist-row"><span class="hist-t">Soak samples</span><span class="hist-a">'+sm.length+'</span></div>'+
-    '<div class="hist-row"><span class="hist-t">Reached ON AIR</span><span class="hist-a">'+(sm.length?Math.round(on/sm.length*100):0)+'%</span></div>'+
-    '<div class="hist-row"><span class="hist-t">Avg time-to-air</span><span class="hist-a">'+(avg/1000).toFixed(1)+'s</span></div>'+
-    '<div class="hist-row"><span class="hist-t">Slow tunes (&gt;15s)</span><span class="hist-a">'+slow.length+'</span></div>'+
-    '<div class="hist-row"><span class="hist-t">Audio muted at +10s</span><span class="hist-a">'+soakLog.audioBlocked+'</span></div>'+
-    '<div class="hist-row"><span class="hist-t">JS errors during soak</span><span class="hist-a">'+soakLog.errors+'</span></div>'+
-    ((soakLog.errMsgs&&soakLog.errMsgs.length)?soakLog.errMsgs.map(function(m){return '<div class="hist-row"><span class="hist-t" style="color:#f99">'+esch(m)+'</span></div>';}).join(""):"")+
-    (mems.length>1?'<div class="hist-row"><span class="hist-t">Heap first &rarr; last</span><span class="hist-a">'+mems[0]+' &rarr; '+mems[mems.length-1]+' MB</span></div>':'');
-  var nsk=Object.keys(byCh).sort(function(a,b){return byCh[b]-byCh[a];}).slice(0,8);
-  if(nsk.length){ html+='<div class="hist-row" style="opacity:.7"><span class="hist-t">NO SIGNAL BY CHANNEL</span></div>';
-    nsk.forEach(function(k){ html+='<div class="hist-row"><span class="hist-t">'+esch(k)+'</span><span class="hist-a">'+byCh[k]+'x</span></div>'; }); }
-  html+='<div class="hist-row" role="button" tabindex="0" id="soakCopy" style="cursor:pointer;color:#ffd75e"><span class="hist-t">COPY FULL REPORT (JSON) FOR THE ENGINEER</span></div>';
-  el.innerHTML=html; o.classList.add("show");
-  var cp=$("soakCopy"); if(cp)cp.addEventListener("click",function(){
-    try{ soakLog.autoplayFree=AUTOPLAY_FREE; var pr=navigator.clipboard.writeText(JSON.stringify(soakLog)); if(pr&&pr.catch)pr.catch(function(){}); quickBanner("REPORT COPIED \u2014 paste it to me"); }
-    catch(e){ quickBanner("COPY FAILED"); }
-  });
-}
-
-/* ===================== CYCLE 5: on-screen TV menu (OSD) =====================
-   Replaces the 24-button EXTRAS panel. One MENU button; arrow-key navigable list with
-   live values, like a real set's OSD. Toggle items stay open and refresh; "opens a
-   panel" items close the menu first. */
-var OSD_ITEMS=[
- /* audit-fix Ship B 2026-08-09: restructured per audit report. New shape:
-      PICTURE & VIEW (4) - Fullscreen/Zoom/Picture Adjust/PiP
-      WHILE WATCHING (7) - Skip/Sleep/Night Dim/Commercials/Captions/Fav Surf/More Like This
-      THIS CHANNEL   (contextual) - shown only when curSl matches (weather/sports/livetv)
-      LIBRARY & INFO (10) - Marathon/Schedule/Save/Tape/Deep Cuts/Now-Next/Hist/Stats/Ban/Clear
-      SYSTEM         (5) - Open Archive/Feed Health/More Settings/Share/EAS Test
-      DEVELOPER      (hidden) - Soak Mode/Report/Reset Dead/Sports Era
-      HELP
-    Items support: dev:true (hidden unless window.__devMode) and ctx:fn (hidden unless truthy).
-    Toggle window.__devMode by tapping the build chip 5x rapidly (wired below). */
-  {h:"PICTURE"},
- {label:"FULLSCREEN",act:function(){closeOsd();toggleFullscreen();}},
- {label:"ZOOM",act:toggleAspect,val:function(){return aspectFill?"FILL":"FIT";}},
- {label:"PICTURE ADJUST",act:function(){closeOsd();togglePic();}},
- {label:"PICTURE-IN-PICTURE",act:function(){closeOsd();togglePip();}},
- {label:"PHOSPHOR TINT",act:function(){ if(typeof window.__cyclePhosphor==="function") window.__cyclePhosphor(); },val:function(){ try{return (typeof window.__getPhos==="function")?window.__getPhos():"GREEN";}catch(_){return "GREEN";} }},
-
-  {h:"PLAYBACK"},
- {label:"SKIP PROGRAM",act:function(){closeOsd();skipOne();}},
- {label:"SLEEP TIMER",act:cycleSleep,val:function(){return sleepMin>0?(sleepMin+" MIN"):"OFF";}},
- {label:"NIGHT DIM",act:cycleNight,val:function(){return nightMode.toUpperCase();}},
- {label:"COMMERCIALS",act:function(){adsOn=!adsOn;store.set("ads",adsOn);},val:function(){return adsOn?"ON":"OFF";}},
- {label:"CAPTIONS",act:toggleCC,val:function(){return (curItem&&curItem.hasCC)?(ccOn?"ON":"OFF"):"N/A";}},
- {label:"FAVORITE SURF",act:function(){closeOsd();favSurf();}},
- {label:"MORE LIKE THIS",act:function(){closeOsd();moreLikeThis();}},
-
-  {h:"CHANNEL TOOLS",ctx:function(){ try{ return !!(curSl&&(curSl.source==="weather"||curSl.source==="livetv"||curSl.source==="sports")); }catch(_){return false;} }},
- {label:"TV: SHOW/HIDE DEAD",ctx:function(){try{return !!(curSl&&curSl.source==="livetv");}catch(_){return false;}},act:function(){closeOsd();
-   var now=!tvHideDead(); store.set("tvHideDead",now);
-   quickBanner(now?"DEAD CHANNELS HIDDEN":"SHOWING ALL CHANNELS");
-   try{ if(window.__tvReload)window.__tvReload(); }catch(e){}
-   try{ if(curSl&&curSl.source==="livetv") tuneNum(curNum); }catch(e){} }},
-
-  {h:"LIBRARY"},
- {label:"MARATHON LOCK",act:marathonToggle,val:function(){var c=byNum(curNum);return (c&&marathonLock[c.num])?"ON":"OFF";}},
-  {label:"LIVE GUIDE",act:function(){closeOsd();toggleTVGuide();}},
- {label:"SAVE TO TAPE",act:function(){closeOsd();saveCurrent();}},
- {label:"TAPE SHELF",act:function(){closeOsd();toggleSaved();}},
- {label:"DEEP CUTS",act:toggleDeepCuts,val:function(){return deepCuts?"ON":"OFF";}},
- {label:"NOW / NEXT",act:function(){closeOsd();toggleInfo();}},
- {label:"TODAY IN HISTORY",act:function(){closeOsd();showTodayInHistory();}},
- {label:"HISTORY",act:function(){closeOsd();toggleHist();}},
- {label:"WATCH STATS",act:function(){closeOsd();toggleStats();}},
- {label:"BANISH PROGRAM",act:function(){closeOsd();banishCurrent();}},
- {label:"CLEAR BANS",act:clearBans,val:function(){return String(banned.length);}},
-
- {h:"SYSTEM"},
-  {label:"SOURCE PAGE",act:function(){closeOsd();openSource();}},
-  {label:"SYSTEM STATUS",act:function(){closeOsd();toggleSettings();
-   setTimeout(function(){ var b=document.getElementById("btnHealth"); if(b)b.click(); },220);}},
-  {label:"SETTINGS",act:function(){closeOsd();toggleSettings();}},
- {label:"SHARE",act:function(){closeOsd();shareCurrent();}},
- {label:"EAS TEST",act:function(){closeOsd(); if(!powered){quickBanner("TURN THE TV ON FIRST");return;}
-   var loc=store.get("homeLoc",null)||store.get("gpsLoc",null);
-   var areaDesc="your local area (set HOME ZIP in Settings for a county-specific test)";
-   if(loc){ if(loc.city&&loc.state) areaDesc=loc.city+", "+loc.state+" and surrounding counties";
-            else if(loc.label) areaDesc=loc.label+" and surrounding counties"; }
-   triggerEmergencyTakeover({event:"TORNADO WARNING",areaDesc:areaDesc,
-     headline:"THIS IS ONLY A TEST of the Afterglow Emergency Studio. No warning is in effect. If this had been an actual emergency, live radar, the warned counties, and official instructions would appear exactly like this.",
-     instruction:"This is a test of the Emergency Studio. No action is required.",
-     expires:new Date(Date.now()+3600000).toISOString(),_test:true});}},
-
- {h:"DEVELOPER",dev:true},
- {label:"SOAK MODE",dev:true,act:toggleSoak,val:function(){return soakTimer?"ON":"OFF";}},
- {label:"SOAK REPORT",dev:true,act:function(){closeOsd();soakReport();}},
- {label:"TV: RESET DEAD LIST",dev:true,act:function(){closeOsd();
-   try{ store.set("tvHealth",{}); }catch(e){}
-   quickBanner("CHANNEL HEALTH CLEARED");
-   try{ if(curSl&&curSl.source==="livetv") tuneNum(curNum); }catch(e){} }},
- {label:"SPORTS ERA",dev:true,act:cycleSportsEra,val:function(){return sportsEra.toUpperCase();}},
-
- {label:"HELP",act:function(){closeOsd();
-   if(typeof toggleHelp==="function") toggleHelp();
-   else if(window.__atvReplaySplash) window.__atvReplaySplash();
- }}
+/* The menu holds viewing actions. The dock owns tuning, guide, volume and Cast. */
+const OSD_ITEMS=[
+  {label:"Info",act:toggleInfo,modern:true},
+  {label:"Cast",act:()=>window.__rsCastRequest?.(),modern:true,standby:true},
+  {label:"Volume down",act:()=>setVol(-0.1),val:()=>Math.round(vol*100)+"%",modern:true},
+  {label:"Volume up",act:()=>setVol(0.1),val:()=>Math.round(vol*100)+"%",modern:true},
+  {label:"Mute",act:toggleMute,val:()=>muted?"On":"Off",modern:true},
+  {label:"Fullscreen",act:toggleFullscreen},
+  {label:"Screen fit",act:toggleAspect,val:()=>aspectFill?"Fill":"Fit"},
+  {label:"Picture-in-picture",act:togglePip,show:()=>!!document.pictureInPictureEnabled},
+  {label:"Captions",act:toggleCC,val:()=>ccOn?"On":"Off",show:()=>!!curItem?.hasCC},
+  {label:"Sleep timer",act:cycleSleep,val:()=>sleepMin?sleepMin+" min":"Off"},
+  {label:"Program source",act:openSource,show:()=>!!curItem?.id||!!curItem?.url},
+  {label:"Banish program",act:banishCurrent,show:()=>!!curItem?.id&&!byNum(curNum)?.source},
+  {label:"Settings",act:toggleSettings,standby:true},
+  {label:"Controls and shortcuts",act:toggleHelp,standby:true}
 ];
-var osdIdx=1;
-/* audit-fix Ship B 2026-08-09: dev-mode + contextual visibility. See mobile build for full comment. */
-try{ window.__devMode = !!store.get("devMode", false); }catch(_){ window.__devMode = false; }
-function osdVisible(it){
-  if(!it) return false;
-  if(it.dev && !window.__devMode) return false;
-  if(typeof it.ctx==="function"){ try{ if(!it.ctx()) return false; }catch(_){ return false; } }
-  return true;
+var osdOpener=null;
+function osdOpen(){return $("osdMenu")?.classList.contains("hide")===false;}
+function closeOsd(){
+  if(!osdOpen())return;
+  $("osdMenu").classList.add("hide");
+  if(osdOpener?.isConnected)osdOpener.focus({preventScroll:true});
+  osdOpener=null;
 }
-function osdOpen(){var o=$("osdMenu");return !!(o&&!o.classList.contains("hide"));}
-function osdStep(from,dir){var i=from;for(var k=0;k<OSD_ITEMS.length;k++){i=(i+dir+OSD_ITEMS.length)%OSD_ITEMS.length;var it=OSD_ITEMS[i];if(!it.h && osdVisible(it))return i;}return from;}
-function renderOsd(){
-  var o=$("osdMenu"); if(!o)return;
-  var html='<div class="osd-h"><span>&#9776; MENU</span><span class="osd-x" role="button" tabindex="0" aria-label="Close menu">&#10005;</span></div><div class="osd-list">';
-  OSD_ITEMS.forEach(function(it,i){
-    if(!osdVisible(it)) return;
-    if(it.h){ html+='<div class="osd-sec'+(it.dev?" osd-sec-dev":"")+'">'+esch(it.h)+'</div>'; return; }
-    var val=""; try{ val=it.val?String(it.val()):""; }catch(e){}
-    html+='<div class="osd-item'+(i===osdIdx?" cur":"")+(it.dev?" osd-item-dev":"")+'" data-i="'+i+'"><span>'+it.label+'</span>'+(val?('<span class="osd-val">'+esch(val)+'</span>'):'')+'</div>';
-  });
-  html+='</div><div class="osd-f">&#9650;&#9660; NAVIGATE &nbsp;&#8629; SELECT &nbsp;ESC CLOSE'+
-    (window.__devMode?' &nbsp;·&nbsp;<span style="color:#ffd75e">DEV MODE</span>':'')+'</div>';
-  o.innerHTML=html;
-  o.querySelectorAll(".osd-item").forEach(function(r){ r.addEventListener("click",function(){ osdIdx=+r.dataset.i; osdActivate(); }); });
-  var x=o.querySelector(".osd-x"); if(x){ x.addEventListener("click",closeOsd);
-    x.addEventListener("keydown",function(e){ if(e.key==="Enter"||e.key===" "){e.preventDefault();closeOsd();} }); }
-  var cur=o.querySelector(".osd-item.cur"); if(cur&&cur.scrollIntoView)cur.scrollIntoView({block:"nearest"});
-}
-/* Build-chip 5-tap gesture to toggle dev mode. Rapid taps within 1.5 s. */
-(function(){
-  var chips=["verChip","mVerChip"], hits=0, resetT=null;
-  function bump(){
-    hits++;
-    clearTimeout(resetT); resetT=setTimeout(function(){hits=0;},1500);
-    if(hits>=5){
-      hits=0;
-      window.__devMode = !window.__devMode;
-      try{ store.set("devMode", window.__devMode); }catch(_){}
-      try{ quickBanner(window.__devMode?"DEV MODE UNLOCKED":"DEV MODE OFF"); }catch(_){}
-      if(osdOpen()) renderOsd();
+function openOsd(){
+  var menu=$("osdMenu");
+  if(!menu)return;
+  osdOpener=document.activeElement;
+  var close=document.createElement("button");
+  close.type="button";close.className="osd-x";close.textContent="Close";
+  close.addEventListener("click",closeOsd);
+  var header=document.createElement("div");
+  header.className="osd-h";header.textContent="Menu";header.append(close);
+  var list=document.createElement("div");list.className="osd-list";
+  function updateValues(){
+    for(var button of list.querySelectorAll("button")){
+      var item=OSD_ITEMS[Number(button.dataset.menuAction)];
+      button.textContent=item.val?item.label+" · "+item.val():item.label;
     }
   }
-  chips.forEach(function(id){ var el=document.getElementById(id); if(el){ el.style.cursor="pointer"; el.addEventListener("click",bump); } });
-})();
+  var modern=document.documentElement.classList.contains("rs-guide-preview");
+  for(var item of OSD_ITEMS){
+    if((item.modern&&!modern)||(!powered&&!item.standby)||(item.show&&!item.show()))continue;
+    const action=item, button=document.createElement("button");
+    button.type="button";button.className="osd-item";
+    button.dataset.menuAction=String(OSD_ITEMS.indexOf(action));
+    button.addEventListener("click",function(){
+      if(!action.val)closeOsd();
+      action.act();
+      if(action.val)updateValues();
+    });
+    list.append(button);
+  }
+  updateValues();
+  menu.replaceChildren(header,list);
+  menu.classList.remove("hide");
+  (list.firstElementChild||close).focus({preventScroll:true});
+}
+function toggleOsd(){if(osdOpen())closeOsd();else openOsd();}
+function osdKey(event){
+  if(event.key==="Escape"||event.key.toLowerCase()==="n"){
+    event.preventDefault();closeOsd();return;
+  }
+  var menu=$("osdMenu"),buttons=Array.from(menu.querySelectorAll("button"));
+  var at=buttons.indexOf(document.activeElement);
+  if(event.key==="ArrowUp"||event.key==="ArrowDown"||event.key==="Tab"){
+    event.preventDefault();
+    var delta=event.key==="ArrowUp"||event.shiftKey?-1:1;
+    buttons[(at+delta+buttons.length)%buttons.length].focus();
+  }
+}
 
-/* audit-fix Ship B 2026-08-09: keyboard-shortcut ghost strip. See mobile build for full comment. */
-(function(){
-  if(document.getElementById("shortcutHintCss")) return;
-  var st=document.createElement("style"); st.id="shortcutHintCss";
-  st.textContent=".shortcut-hint{position:absolute;right:12px;bottom:60px;z-index:22;"+
-    "font:900 10px/1 'Arial Narrow','Helvetica Neue Condensed',Arial,sans-serif;"+
-    "letter-spacing:2px;padding:6px 10px;background:rgba(4,9,20,.75);color:#4dc8ff;"+
-    "border:1px solid rgba(77,200,255,.35);border-radius:2px;text-transform:uppercase;"+
-    "pointer-events:none;opacity:0;transition:opacity .4s ease}"+
-    ".shortcut-hint.show{opacity:1}"+
-    ".shortcut-hint kbd{background:rgba(255,204,0,.15);color:#ffcc00;border:1px solid rgba(255,204,0,.4);"+
-    "padding:1px 5px;border-radius:2px;font-family:'VT323','Courier New',monospace;font-size:12px;margin:0 2px 0 6px}"+
-    "@media (prefers-reduced-motion:reduce){.shortcut-hint{transition:none}}";
-  document.head.appendChild(st);
-})();
-var _shortcutHintT=null;
-function showShortcutHint(){
-  try{
-    if(document.documentElement.classList.contains("mob") && !window.matchMedia("(pointer:fine)").matches) return;
-    var host=document.getElementById("tube") || document.body;
-    var el=document.getElementById("shortcutHintEl");
-    if(!el){ el=document.createElement("div"); el.id="shortcutHintEl"; el.className="shortcut-hint";
-      el.innerHTML="<kbd>N</kbd> MENU <kbd>G</kbd> GUIDE <kbd>S</kbd> SURF <kbd>F</kbd> FAV";
-      host.appendChild(el); }
-    clearTimeout(_shortcutHintT);
-    setTimeout(function(){ el.classList.add("show"); },900);
-    _shortcutHintT=setTimeout(function(){ el.classList.remove("show"); },5200);
-  }catch(_){}
-}
-function openOsd(){ if(!powered){quickBanner("TURN THE TV ON FIRST");return;}
-  var o=$("osdMenu"); if(!o)return;
-  if(!OSD_ITEMS[osdIdx]||OSD_ITEMS[osdIdx].h)osdIdx=osdStep(0,1);
-  o.classList.remove("hide"); renderOsd(); }
-function closeOsd(){ var o=$("osdMenu"); if(o)o.classList.add("hide"); }
-function toggleOsd(){ if(osdOpen())closeOsd(); else openOsd(); }
-function osdActivate(){ var it=OSD_ITEMS[osdIdx]; if(!it||it.h)return; try{ it.act(); }catch(e){} if(osdOpen())renderOsd(); }
-function osdKey(e){
-  var k=(e.key||"").toLowerCase();
-  if(e.key==="Escape"||k==="n"){e.preventDefault();closeOsd();return;}
-  if(e.key==="ArrowUp"){e.preventDefault();osdIdx=osdStep(osdIdx,-1);renderOsd();return;}
-  if(e.key==="ArrowDown"){e.preventDefault();osdIdx=osdStep(osdIdx,1);renderOsd();return;}
-  if(e.key==="Enter"||e.key===" "){e.preventDefault();osdActivate();return;}
-}
 wire("rMenu",toggleOsd); wire("rInfo",toggleInfo);
-wire("rSkip",skipOne); wire("rSave",saveCurrent); /* CYCLE-12: SKIP moved onto the physical remote */
+wire("rSkip",skipOne);
 
 /* ---------- boot the v6 bits ---------- */
 applyTheme(); buildCatNav();
@@ -16011,7 +15534,7 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
 <script src="assets/release31-runtime.js?v=7.2.3"></script>
 <script src="assets/guide-contract.js?v=7.2.1"></script>
 <script src="assets/guide-contract-client.js?v=7.2.3"></script>
-<script src="assets/v6-watching-shell.js?v=7.2.3"></script>
-<script src="assets/v6-guide.js?v=7.2.3"></script>
+<script src="assets/v6-watching-shell.js?v=7.2.5"></script>
+<script src="assets/v6-guide.js?v=7.2.5"></script>
 </body>
 </html>

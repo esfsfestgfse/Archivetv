@@ -65,14 +65,10 @@
       tuned = number;
       if (rowRefs[tuned]) markTuned(rowRefs[tuned], true);
     }
-    put(refs.rsGuidePreviewStation, tuned == null ? 'STANDBY' : 'TUNED TO ' + tuned + ' · ' + s.channel.name);
-    put(refs.rsGuidePreviewNow, s.current ? s.current.title : tuned == null ? 'Press Power to start watching' : 'Waiting for the current program');
-    put(refs.rsGuidePreviewNext, s.next ? 'Up next · ' + s.next.title : '');
     var screen = document.getElementById('screenArea');
     var video = screen && screen.querySelector('video');
     var picture = s.state === 'playing' && screen && (video && video.videoWidth > 0 || screen.querySelector('iframe'));
     document.documentElement.classList.toggle('rs-guide-picture', !!picture);
-    put(refs.rsGuidePreviewVideo, tuned == null ? 'REAL SIGNAL / STANDBY' : 'REAL SIGNAL / CHANNEL ' + tuned);
   }
   function watch(number) {
     if (number == null || preview && active.state === 'standby') return;
@@ -110,7 +106,6 @@
       preview && entry && entry.number === tuned && active.current ? 'Return to watching ↗' :
       entry ? 'Watch channel ' + entry.number + ' →' : 'Watch channel');
     if (preview) {
-      panel.classList.toggle('is-showing-tuned', !!(entry && entry.number === tuned && active.current));
       var progress = refs.rsGuidePreviewProgress, duration = s.current && s.current.durationSeconds;
       progress.hidden = !(duration > 0 && s.position != null);
       if (!progress.hidden) { progress.max = duration; progress.value = s.position; }
@@ -205,7 +200,7 @@
     if (preview) panel.classList.add('rsg-preview');
     panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'true'); panel.setAttribute('aria-labelledby', 'rsV6GuideHeading');
     var header = el('header', '', '', panel, 'rsg-header');
-    el('span', '', '◉ REALSIGNAL', header, 'rsg-brand'); el('h1', 'rsV6GuideHeading', 'Program guide', header);
+    el('h1', 'rsV6GuideHeading', 'Program guide', header);
     if (guideMode === '1') el('span', '', 'PREVIEW', header, 'rsg-preview-tag');
     el('span', 'rsV6GuideCount', '', header, 'rsg-count');
     button('rsV6GuideClose', 'Close ✕', header, close);
@@ -239,17 +234,10 @@
     }, { passive: true });
     el('p', 'rsV6GuideEmpty', 'No channels match. Try All or clear the search.', main);
     var detail = el('aside', '', '', body, 'rsg-detail'); detail.setAttribute('aria-label', 'Selected channel');
-    if (preview) {
-      var onAir = el('section', '', '', detail, 'rsg-preview-onair');
-      onAir.setAttribute('aria-label', 'Now playing on your television');
-      el('div', 'rsGuidePreviewVideo', '', onAir, 'rsg-preview-video').setAttribute('aria-hidden', 'true');
-      el('small', 'rsGuidePreviewStation', '', onAir);
-      el('p', 'rsGuidePreviewNow', '', onAir);
-      el('p', 'rsGuidePreviewNext', '', onAir);
-    }
+    if (preview) el('div', '', '', detail, 'rsg-preview-video').setAttribute('aria-hidden', 'true');
     var copy = el('div', '', '', detail, 'rsg-detail-copy');
     el('small', 'rsV6GuideNumber', '', copy); el('h2', 'rsV6GuideChannelName', '', copy);
-    el('p', 'rsV6GuideDescription', '', copy); el('div', '', 'PROGRAM', copy, 'rsg-eyebrow');
+    el('p', 'rsV6GuideDescription', '', copy);
     el('h3', 'rsV6GuideProgram', '', copy); el('p', 'rsV6GuideRuntime', '', copy);
     if (preview) el('progress', 'rsGuidePreviewProgress', '', copy).setAttribute('aria-label', 'Selected program progress');
     el('p', 'rsV6GuideRemaining', '', copy); el('p', 'rsV6GuideFollowing', '', copy);

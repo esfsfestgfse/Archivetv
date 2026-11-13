@@ -101,7 +101,8 @@ test('the cable guide distinguishes what is tuned from what is selected and keep
   other.click();
   assert.equal(other.getAttribute('aria-pressed'), 'true');
   assert.equal(current.getAttribute('aria-current'), 'true');
-  assert.equal(h.ids.get('rsGuidePreviewNow').textContent, '<b>Duck Amuck</b>');
+  assert.equal(h.ids.get('rsV6GuideNow-150').textContent, '<b>Duck Amuck</b>');
+  assert.equal(h.ids.get('rsV6GuideChannelName').textContent, 'Documentary Hour');
   assert.deepEqual(h.calls, []);
   current.press('Enter');
   assert.deepEqual(h.calls, []);

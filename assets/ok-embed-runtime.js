@@ -55,7 +55,7 @@
         && !/\b(?:shorts?|clip|trailer|teaser|recap|reaction|review|podcast|how[ -]to|tutorial|fan[ -]?(?:made|film|edit|animation)|parody|amv|gacha|gameplay|porn|hentai|nsfw|audio only)\b/i.test(title)
         && (family[1] !== "anime" || /\b(?:english[ ._-]+dub(?:bed)?|dub(?:bed)?[ ._-]+english)\b/i.test(title));
     }
-    var curated = /^ok-(britannia|history-vault|factory-floor|black-tv|cookhouse|science-lab|gearhead|wildlife|casefiles|homestead|treasures|travel|rail|air|rescue)-channel$/.exec(String(profile.profileKey || ""));
+    var curated = /^ok-(britannia|history-vault|factory-floor|black-tv|cookhouse|science-lab|gearhead|wildlife|casefiles|homestead|treasures|travel|rail|air|rescue|craft|seas|mysteries)-channel$/.exec(String(profile.profileKey || ""));
     if (curated) {
       var expectedFamily = curated[1] === "history-vault" ? "history" : curated[1] === "factory-floor" ? "factory" : curated[1];
       if (expectedFamily === "cookhouse" && /\bessential[\s._-]+p[ée]pin\b/i.test(title)) return false;

@@ -60,10 +60,10 @@ const { pathToFileURL } = require('node:url');
   }),false,title);
   const source=await import(pathToFileURL(path.join(__dirname,'..','realsignal_source_catalog.js')));
   const shared=await import(pathToFileURL(path.join(__dirname,'..','ok_public_search.js')));
-  for(const family of ['factory-floor','cookhouse','science-lab','gearhead','wildlife','casefiles','homestead','treasures','travel','rail','air','rescue']){
+  for(const family of ['factory-floor','cookhouse','science-lab','gearhead','wildlife','casefiles','homestead','treasures','travel','rail','air','rescue','craft','seas','mysteries']){
     const profileKey='ok-'+family+'-channel', profile=source.sourceProfile({profileKey});
     const seeds=source.okVerifiedSeed(profile);
-    if (['wildlife','casefiles','homestead','treasures','travel','rail','air','rescue'].includes(family)) assert.ok(seeds.every(item => item.id.startsWith('ok:'+family+':')), 'station metadata must have separate storage IDs');
+    if (['wildlife','casefiles','homestead','treasures','travel','rail','air','rescue','craft','seas','mysteries'].includes(family)) assert.ok(seeds.every(item => item.id.startsWith('ok:'+family+':')), 'station metadata must have separate storage IDs');
     assert.ok(seeds.length>=25,profileKey+' cold-start catalog is shallow');
     assert.ok(new Set(seeds.map(item=>item.seriesId)).size>=(family==='air'?2:4),profileKey+' should have multiple shows');
     const ordered=shared.okBalancedCandidates([seeds],'tv',512);

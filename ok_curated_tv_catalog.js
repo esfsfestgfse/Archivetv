@@ -254,6 +254,42 @@ const CHANNELS = Object.freeze({
       ["24 Hours in A&E","24 Hours in AE"]
     ]
   },
+  "ok-craft-channel": {
+    family: "craft",
+    programs: [
+      ["The Great British Sewing Bee","Great British Sewing Bee"],
+      ["The Great Pottery Throw Down","Great Pottery Throw Down"],
+      ["Portrait Artist of the Year"],
+      ["Landscape Artist of the Year"],
+      ["All That Glitters Britain's Next Jewellery Star"]
+    ]
+  },
+  "ok-seas-channel": {
+    family: "seas",
+    programs: [
+      ["Mighty Cruise Ships"],
+      ["Mighty Ships"],
+      ["Deadliest Catch"],
+      ["Wicked Tuna"],
+      ["Bering Sea Gold"],
+      ["Drain the Oceans"],
+      ["Shipwreck Secrets"]
+    ]
+  },
+  "ok-mysteries-channel": {
+    family: "mysteries",
+    programs: [
+      ["The UnXplained","The UnXplained with William Shatner"],
+      ["In Search Of with Leonard Nimoy","In Search Of Leonard Nimoy"],
+      ["Mysteries at the Museum"],
+      ["Paranormal Witness"],
+      ["A Haunting"],
+      ["Haunted History"],
+      ["Fact or Faked Paranormal Files"],
+      ["My Ghost Story"],
+      ["Ancient Mysteries Leonard Nimoy"]
+    ]
+  },
   "ok-black-tv-channel": {
     family: "black-tv",
     programs: [
@@ -279,7 +315,7 @@ const clean = value => String(value || "").toLowerCase().replace(/[’']/g, "").
 const compact = value => clean(value).replace(/\s+/g, "");
 const canonical = aliases => aliases[0];
 
-const NEW_FAMILIES = new Set(["wildlife","casefiles","homestead","treasures","travel","rail","air","rescue"]);
+const NEW_FAMILIES = new Set(["wildlife","casefiles","homestead","treasures","travel","rail","air","rescue","craft","seas","mysteries"]);
 const SPECIALIST_FAMILIES = new Set(["factory", "cookhouse", "science-lab", "gearhead", ...NEW_FAMILIES]);
 
 export function okCuratedChannel(profile) {
@@ -398,6 +434,9 @@ export function okCuratedPrecheck(profile, item, checkAspect = true) {
   if (channel.family === "rail" && /\b(?:railway sound|train sounds|cab view|model railway|virtual walk|viyana|bölümü)\b/i.test(title)) return false;
   if (channel.family === "air" && /\b(?:flight simulator|plane spotting|aviation nation|the aviator|the aviators|air crash animation)\b/i.test(title)) return false;
   if (channel.family === "rescue" && /\b(?:reaction video|911 call audio|reenactment compilation)\b/i.test(title)) return false;
+  if (channel.family === "craft" && /\b(?:extra slice|after show|compilation|highlights)\b/i.test(title)) return false;
+  if (channel.family === "mysteries" && (!okEpisodeIdentity(title) || /\b(?:serial killers|outrageous robberies|devastating disasters)\b/i.test(title))) return false;
+  if (channel.family === "seas" && /\b(?:wreck fishing tips|ship simulator|the mighty ships movie)\b/i.test(title)) return false;
   if (channel.family === "travel" && Number(item.duration) > 7200) return false;
   if (channel.family === "travel" && /\b(?:sarkig|full movie|monty python|smart glasses|watch party)\b/i.test(title)) return false;
   if (channel.family === "cookhouse" && /\b(?:an extra slice|celebrity bake off|junior bake off)\b/i.test(title)) return false;
@@ -434,7 +473,7 @@ export async function okCuratedIdentity(profile, item) {
   const special = clean(item.title).replace(/^(?:bbc )?(?:top gear|bill nye the science guy|mega ?factories) /, "")
     .replace(/\b(?:dc |proper |hd |hq )?\d{3,4}(?:p|i)?(?: hd)?\b.*$/, "").replace(/\b(?:hdtv|webrip|bluray)\b.*$/, "").trim();
   const named = program === "Top Gear" || program === "Bill Nye the Science Guy" || program === "MegaFactories";
-  const yearKey = (program === "Great British Bake Off" || program === "Great British Menu" || channel.family === "homestead") && year && numbered.startsWith("episode") ? year : "";
+  const yearKey = (program === "Great British Bake Off" || program === "Great British Menu" || channel.family === "homestead" || channel.family === "craft") && year && numbered.startsWith("episode") ? year : "";
   const forensicName = program === "Forensic Files II" && episodeTitle && episodeTitle !== programTail && !/^\d/.test(episodeTitle)
     ? "title-" + compact(episodeTitle.replace(/\b(?:19|20)\d{2}\b.*$/, "")).slice(0,60) : "";
   // The Canadian, British and US releases of Mayday use different numbering.

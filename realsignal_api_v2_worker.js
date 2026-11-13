@@ -10,6 +10,7 @@ import { normalizeIaFileRecord, qualifyIaFileRecord, iaMinimumFileRuntimeSeconds
 import { EdgeRateLimiter } from "./realsignal_api_rate_limit.js";
 import { RokuSession } from "./realsignal_roku_session.js";
 import { okBalancedCandidates, okPlaybackIdentity, okPreferUnseenSeries, okSeriesIdentity } from "./ok_public_search.js";
+import { okCuratedChannel } from "./ok_curated_tv_catalog.js";
 import { okMusicBalanceDecades, okMusicChannel, okMusicProfileKey } from "./ok_music_catalog.js";
 import { OK_VERIFIED_SEARCH_SEED } from "./ok_verified_search_seed.js";
 import { vimeoBalancedItems } from "./vimeo_catalog.js";
@@ -2389,6 +2390,20 @@ async function handleGuide(request, env) {
   const blockedProvidersForGuide = sourceProfileForGuide ? await readSourceCooldowns(env, sourceProfileForGuide.profileKey) : new Set();
   const guideBody = sourceProfileForGuide ? sourceCatalogReadBody(sourceProfileForGuide) : { channel };
   const requalifySource = sourceProfileForGuide && !isOKSourceProfile(sourceProfileForGuide) && !/^vimeo-/.test(channel);
+  if (sourceProfileForGuide && okCuratedChannel(sourceProfileForGuide)) {
+    const catalog = await catalogFallback(env, { ...guideBody, count: limit }, SOURCE_LIMITS.SOURCE_MAX_ITEMS,
+      { blockedProviders: blockedProvidersForGuide });
+    const items = catalog?.items || [];
+    return json({
+      apiVersion: "v3", release: V3_RELEASE, channel,
+      current: items[0] || null, next: items[1] || null, items, verified: items.length > 0,
+      queueModel: "rolling-1-plus-2", catalogDepth: catalog?.catalogDepth || 0,
+      unseenCount: catalog?.unseenCatalogItems || 0, seenCount: catalog?.seenCatalogItems || 0,
+      catalogExhausted: catalog?.catalogExhausted === true, repeatAllowed: catalog?.repeatAllowed === true,
+      freshnessLedger: catalog?.freshnessLedger === true,
+      generatedAt: new Date().toISOString(), source: "d1-requalified-source-catalog",
+    }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=30", "X-RealSignal-Release": V3_RELEASE });
+  }
   const guideLimit = Math.min(96, Math.max(32, limit * Math.max(1, blockedProvidersForGuide.size + 1)));
   const items = [];
   let storedCatalogDepth = 0, storedUnseenCount = 0, readRows = 0, rejectedRows = 0, unseenRejected = 0;

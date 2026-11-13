@@ -6,7 +6,24 @@ const vm = require('node:vm');
   const root = path.resolve(__dirname,'..');
   for (const file of ['the_dial_desktop.html','the_dial_mobile.html']) {
     const html = fs.readFileSync(path.join(root,file),'utf8');
-    for (const profileKey of ['ok-soul-flow-channel','ok-country-video-channel','ok-video-hits-channel']) {
+    for (const profileKey of ['ok-soul-flow-channel','ok-country-video-channel','ok-video-hits-channel','ok-soul-flow-channel-2000-2019']) {
+      const playback = {
+        V2_PREVIEW_PROFILES: {[profileKey]: {profileKey,name:profileKey}},
+        v2PreviewState: {599: {items: [{id:'ok:current'},{id:'ok:next'},{id:'ok:third'}],cursor:0}},
+        token: 9,
+        V2_SOURCE_READY_BUFFER: 1,
+        v2CanPrepareYouTube: () => false,
+        v2PruneSourcePrograms() {},
+        v2FreshCursor: (profile,state) => {state.cursor=0;},
+        window: {},
+        playV2Embed: async item => { playback.started = item.id; return true; },
+        v2Remember() {}, refreshGuideData() {}, setChanStatus() {}
+      };
+      playback.v2PreviewState[599].items.forEach(item=>Object.assign(item,{type:'embed',provider:'OK.ru'}));
+      const tuneSource = html.slice(html.indexOf('async function tuneV2Preview('), html.indexOf('function v2TuneRefreshed('));
+      vm.runInNewContext(tuneSource,playback);
+      await playback.tuneV2Preview({num:599,previewKey:profileKey},{},9,'ok:next');
+      assert.equal(playback.started,'ok:next',file+' must start the program selected by Next even when the old one has not started');
       for (const scenario of ['exhausted','new-discovery','cancelled','manual']) {
         const profile={profileKey,name:profileKey}, ch={num:599,source:'v2preview',previewKey:profileKey};
         const a={id:'ok:a'},b={id:'ok:b'},fresh={id:'ok:c'};
@@ -17,7 +34,7 @@ const vm = require('node:vm');
           v2PreviewState:{599:state},v2PreviewAdvance:{},v2PreviewInflight:{},
           byNum:()=>ch,v2Recent:()=>[a.id,b.id],quickBanner(){},
           clearTimeout(){},setTimeout(fn){retries.push(fn);return 1;},
-          tuneNum(){tunes.push(state.items[state.cursor].id);},
+          tuneNum(number,programId){assert.equal(number,ch.num);tunes.push(programId);},
           v2LoadProfile:async()=>{
             if(scenario==='new-discovery')state.items=[a,b,fresh];
             if(scenario==='cancelled')context.token=10;
@@ -37,5 +54,5 @@ const vm = require('node:vm');
       }
     }
   }
-  console.log('Music EOF/Next passed: all three profiles, both clients, exhaustion, fresh discovery and cancelled handoff.');
+  console.log('Music EOF/Next passed on both clients: era station handoff, exhaustion, fresh discovery and cancelled tunes.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

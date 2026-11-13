@@ -16,7 +16,7 @@ import { createHash } from "node:crypto";
 import { okSearchRows, okSearchResultRows, okSearchPageRequest, okQueryOffset, okEmbedMetadata, okTitleSearchQueries, okPublicSearchUrl, okProgramIdentity, okProgramName, okMovieIdentities, okBalancedCandidates, okTVIndexTitles, okTVDecadeIndexTitles, okTVIndexPagePlan, okDiscoveryCursor, OK_TV_INDEX_DECADES, okTVWeakDecadeSeedShows } from "./ok_public_search.js";
 import { OK_VERIFIED_SEARCH_SEED } from "./ok_verified_search_seed.js";
 import { okAnimationFamily, okAnimationQueries, okAnimationIdentity, okAnimationPrecheck, okAnimationVerified } from "./ok_animation_catalog.js";
-import { okCuratedChannel, okCuratedQueries, okCuratedIdentity, okCuratedPrecheck, okCuratedVerified } from "./ok_curated_tv_catalog.js";
+import { okCuratedCatalogId, okCuratedChannel, okCuratedQueries, okCuratedIdentity, okCuratedPrecheck, okCuratedVerified } from "./ok_curated_tv_catalog.js";
 import { okMusicChannel, okMusicProfileKey, okMusicYears, okMusicQueries, okMusicPrecheck, okMusicVerified, okMusicIdentities } from "./ok_music_catalog.js";
 import { OK_ANIMATION_VERIFIED_SEED } from "./ok_animation_verified_seed.js";
 import { SOURCE_PROFILE_REGISTRY } from "./source_suite_profile_registry.js";
@@ -576,13 +576,21 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
   }
   const verified = await mapLimit(candidates, 3, async (item) => {
     try {
-      const identity = music ? musicIdentities.get(item.id) : animation ? await okAnimationIdentity(profile,item,url=>fetchJson(url,{},6000),identityCache) : curated ? await okCuratedIdentity(profile,item) : kind === "tv" ? await okProgramIdentity(item, "tv", (url) => fetchJson(url, {}, 6000), identityCache) : movieIdentities.get(item.id);
-      if (!identity) { if (animation && animationMisses.length < 8) animationMisses.push({title:item.title,programName:okProgramName(item.title,"tv"),stage:"show-identity"}); if (curated && curatedMisses.length < 8) curatedMisses.push({title:item.title,stage:"curated-program-identity"}); return null; }
+      const identity = music ? musicIdentities.get(item.id) : animation ? await okAnimationIdentity(profile,item,url=>fetchJson(url,{},6000),identityCache) : curated ? null : kind === "tv" ? await okProgramIdentity(item, "tv", (url) => fetchJson(url, {}, 6000), identityCache) : movieIdentities.get(item.id);
+      if (!identity && !curated) { if (animation && animationMisses.length < 8) animationMisses.push({title:item.title,programName:okProgramName(item.title,"tv"),stage:"show-identity"}); return null; }
       const html = await fetchText(item.embedUrl, { headers: { Accept: "text/html" } }, 6000);
       const metadata = okEmbedMetadata(html, item.rawId);
       if (!metadata) return null;
-      const hydrated = { ...item, ...metadata, ...identity, id: item.id };
-      return qualifySourceItem(profile,{...hydrated,provider:"OK.ru"});
+      const hydrated = { ...item, ...metadata, ...identity, id: item.id, provider: "OK.ru" };
+      if (curated) {
+        const verifiedIdentity = await okCuratedIdentity(profile, hydrated);
+        if (!verifiedIdentity) {
+          if (curatedMisses.length < 8) curatedMisses.push({ title: hydrated.title, stage: "curated-embed-identity" });
+          return null;
+        }
+        Object.assign(hydrated, verifiedIdentity);
+      }
+      return qualifySourceItem(profile, hydrated);
     } catch (_) { return null; }
   });
   return { provider: "OK.ru", items: verified.filter(Boolean), health: {
@@ -648,7 +656,10 @@ export function qualifySourceItem(profile, item) {
   const url = text(item.embedUrl || item.media?.url || item.mediaUrl || item.url, 1400);
   const okEmbed = item.provider === "OK.ru" && /^https:\/\/ok\.ru\/videoembed\/\d+(?:[?#]|$)/i.test(url);
   const candidate = okEmbed ? { ...item, type: "embed", url, embedUrl: url, embedAllowed: true } : item;
-  return accepted(profile, candidate, candidate.provider) ? normalized(candidate, candidate.provider, candidate.query) : null;
+  if (!accepted(profile, candidate, candidate.provider)) return null;
+  const verified = normalized(candidate, candidate.provider, candidate.query);
+  if (item.curatedVerified) verified.id = okCuratedCatalogId(profile, verified);
+  return verified;
 }
 
 function normalizedProfile(body) {
@@ -932,7 +943,7 @@ function normalized(item, provider, query) {
     identityProvider: text(item.identityProvider, 50),
     ...(item.musicVerified ? { musicVerified: true, musicVerificationVersion: item.musicVerificationVersion, musicFamily: item.musicFamily || "soul", musicArtist: text(item.musicArtist,100), musicArtistId: text(item.musicArtistId,80), musicTrack: text(item.musicTrack,160), musicTrackKey: text(item.musicTrackKey,300), musicRecordingId: text(item.musicRecordingId,80), musicReleaseYear: Number(item.musicReleaseYear) } : {}),
     ...(okAnimationFamily({profileKey:item.animationFamily ? `ok-${item.animationFamily}-channel` : ''}) ? {animationFamily:item.animationFamily,animationVerified:item.animationVerified===true,animationVerificationVersion:item.animationVerificationVersion,animationEpisodeRuntime:Number(item.animationEpisodeRuntime)||0} : {}),
-    ...(item.curatedFamily ? {curatedFamily:text(item.curatedFamily,40),curatedVerified:item.curatedVerified===true,curatedVerificationVersion:Number(item.curatedVerificationVersion)||0,episodeIdentity:text(item.episodeIdentity,40)} : {}),
+    ...(item.curatedFamily ? {curatedFamily:text(item.curatedFamily,40),curatedVerified:item.curatedVerified===true,curatedVerificationVersion:Number(item.curatedVerificationVersion)||0,episodeIdentity:text(item.episodeIdentity,80)} : {}),
   };
 }
 

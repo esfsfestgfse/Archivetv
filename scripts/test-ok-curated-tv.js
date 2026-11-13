@@ -14,6 +14,11 @@ const { pathToFileURL } = require('node:url');
     ['ok-factory-floor-channel', 'Mega Manufacturing S01E05 Volvo Truck Manufacturer', 'Mega Manufacturing'],
     ['ok-factory-floor-channel', 'Inside the Spitfire Factory S01E01 Making of an Icon', 'Inside the Spitfire Factory'],
     ['ok-cookhouse-channel', 'The French Chef with Julia Child Season 1', 'The French Chef'],
+    ['ok-wildlife-channel', 'The Life of Birds Episode 05', 'The Life of Birds'],
+    ['ok-casefiles-channel', 'Forensic Files S13E36 Writing on the Wall', 'Forensic Files'],
+    ['ok-homestead-channel', 'Gardeners World S54E17', "Gardeners' World"],
+    ['ok-treasures-channel', 'Salvage Hunters S16E15', 'Salvage Hunters'],
+    ['ok-travel-channel', 'Globe Trekker S15E07 West Texas', 'Globe Trekker'],
     ['ok-science-lab-channel', 'NOVA | PBS The Case of ESP S11E01', 'PBS NOVA'],
     ['ok-gearhead-channel', "1966 Buick Riviera - Jay Leno's Garage", "Jay Leno's Garage"],
   ];
@@ -47,17 +52,21 @@ const { pathToFileURL } = require('node:url');
     ['gearhead',"The Tonight Show with Jay Leno's Garage",1800],
     ['science-lab','Bill Nye the Science Guy - Stop The Rock (PC Game)',5515],
     ['cookhouse','Great British Bake Off: An Extra Slice S02E01',1700],
+    ['cookhouse','Essential Pepin.Ep.23-Eggs-quisite',1491],
+    ['wildlife','BBC Planet Earth 07 Great Plains - ปฐพีชีวิต ตอน 7',2500],
+    ['travel','Anthony Bourdain Parts Unknown Iran Watch Party',2200],
   ]) assert.equal(catalog.okCuratedPrecheck({profileKey:'ok-'+key+'-channel'},{
     id:'ok:1', title, duration, aspectRatio:16/9
   }),false,title);
   const source=await import(pathToFileURL(path.join(__dirname,'..','realsignal_source_catalog.js')));
   const shared=await import(pathToFileURL(path.join(__dirname,'..','ok_public_search.js')));
-  for(const family of ['factory-floor','cookhouse','science-lab','gearhead']){
+  for(const family of ['factory-floor','cookhouse','science-lab','gearhead','wildlife','casefiles','homestead','treasures','travel']){
     const profileKey='ok-'+family+'-channel', profile=source.sourceProfile({profileKey});
     const seeds=source.okVerifiedSeed(profile);
+    if (['wildlife','casefiles','homestead','treasures','travel'].includes(family)) assert.ok(seeds.every(item => item.id.startsWith('ok:'+family+':')), 'station metadata must have separate storage IDs');
     assert.ok(seeds.length>=25,profileKey+' cold-start catalog is shallow');
     assert.ok(new Set(seeds.map(item=>item.seriesId)).size>=4,profileKey+' should have multiple shows');
-    const ordered=shared.okBalancedCandidates([seeds],'tv',100);
+    const ordered=shared.okBalancedCandidates([seeds],'tv',512);
     assert.equal(ordered.length,seeds.length,profileKey+' includes alternate copies');
     for(let offset=0;offset<15;offset+=5){
       const shelf=ordered.slice(offset,offset+5);

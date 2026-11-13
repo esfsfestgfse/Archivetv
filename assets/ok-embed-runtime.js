@@ -55,9 +55,10 @@
         && !/\b(?:shorts?|clip|trailer|teaser|recap|reaction|review|podcast|how[ -]to|tutorial|fan[ -]?(?:made|film|edit|animation)|parody|amv|gacha|gameplay|porn|hentai|nsfw|audio only)\b/i.test(title)
         && (family[1] !== "anime" || /\b(?:english[ ._-]+dub(?:bed)?|dub(?:bed)?[ ._-]+english)\b/i.test(title));
     }
-    var curated = /^ok-(britannia|history-vault|factory-floor|black-tv|cookhouse|science-lab|gearhead)-channel$/.exec(String(profile.profileKey || ""));
+    var curated = /^ok-(britannia|history-vault|factory-floor|black-tv|cookhouse|science-lab|gearhead|wildlife|casefiles|homestead|treasures|travel)-channel$/.exec(String(profile.profileKey || ""));
     if (curated) {
       var expectedFamily = curated[1] === "history-vault" ? "history" : curated[1] === "factory-floor" ? "factory" : curated[1];
+      if (expectedFamily === "cookhouse" && /\bessential[\s._-]+p[ée]pin\b/i.test(title)) return false;
       return item.curatedVerified === true && item.curatedVerificationVersion === 1 && item.curatedFamily === expectedFamily
         && item.language === "en" && String(item.seriesId || "").indexOf("realsignal-ok:" + expectedFamily + ":") === 0
         && /^https:\/\/ok\.ru\/videoembed\/\d+(?:[?#]|$)/.test(String(item.embedUrl || item.url || ""))

@@ -49,6 +49,7 @@ export function okEmbedMetadata(html, expectedId) {
     const width = Number(movie.width), height = Number(movie.height);
     if (!(width > 0 && height > 0)) return null;
     return { id: String(expectedId), title: String(movie.title || ""),
+      compilationTitle: String(metadata.compilationTitle || "").slice(0, 160),
       duration: Number(movie.duration) || 0, width, height, aspectRatio: width / height,
       embedAllowed: true, type: "embed", url: `https://ok.ru/videoembed/${expectedId}`,
       embedUrl: `https://ok.ru/videoembed/${expectedId}`,

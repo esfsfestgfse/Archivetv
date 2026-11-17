@@ -38,6 +38,11 @@ const { pathToFileURL } = require('node:url');
   }
   assert.equal(helper.okAnimationPrecheck(profiles[2],{id:'ok:99',title:'Cowboy Bebop S01E01 English Sub',duration:1500,aspectRatio:1.33}),false);
   assert.ok(await helper.okAnimationIdentity(profiles[2],{id:'ok:98',title:'Anime Sabikui Bisco English-DUB - Ep_11',duration:1500,aspectRatio:1.33},async()=>[{show:{id:98,name:'Sabikui Bisco',type:'Animation',language:'Japanese',url:'https://www.tvmaze.com/shows/98/sabikui',network:{country:{code:'JP'}}}}]));
+  const alternate={id:'ok:100',title:'F0 Race GP Legend ep 8 English dub.mp4',duration:1440,aspectRatio:1.77};
+  const canonical={id:49258,name:'F-Zero: GP Legend',type:'Animation',language:'Japanese',runtime:25,network:{country:{code:'JP'}}};
+  const alias=await helper.okAnimationIdentity(profiles[2],alternate,async()=>[{show:canonical}]);
+  assert.equal(alias?.seriesId,'tvmaze:49258','a verified release alias must resolve to its exact Japanese series');
+  assert.equal(await helper.okAnimationIdentity(profiles[2],{...alternate,title:alternate.title.replace('English dub','English sub')},async()=>[{show:canonical}]),null);
   const avatar={id:'ok:97',title:'Avatar The Last Airbender - Season 2 Episode 4',duration:3700,aspectRatio:1.77};
   const ambiguous=async()=>[{show:{id:97,name:'Avatar: The Last Airbender',type:'Animation',language:'English',runtime:24,network:{country:{code:'US'}}}},{show:{id:96,name:'Avatar: The Last Airbender',type:'Scripted',language:'English',runtime:60}}];
   assert.equal(await helper.okAnimationIdentity(profiles[0],avatar,ambiguous),null,'live-action duration must not borrow a cartoon identity');

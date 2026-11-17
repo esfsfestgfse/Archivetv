@@ -1631,7 +1631,9 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
     };
   };
   const items = (result.results || []).map(fromCatalogRow);
-  if (okCatalog && (derivedMusicYears || catalogProfile?.intent === "television")) items.push(...okVerifiedSeed(catalogProfile));
+  if (okCatalog && (derivedMusicYears || catalogProfile?.intent === "television" || catalogProfile?.intent === "animation")) {
+    items.push(...okVerifiedSeed(catalogProfile));
+  }
   let catalogReadRows = items.length, catalogReadPages = 1;
   // SQL can prioritize transport facts, but editorial rules remain the same
   // shared JS gate. Rejected records must not silently use up the entire

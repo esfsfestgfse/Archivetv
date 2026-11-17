@@ -1482,8 +1482,10 @@ async function okApi(profile, rotation, env, options = {}) {
 }
 
 export function okVerifiedSeed(profile) {
-  if (!profile || !(okMusicChannel(profile) || okCuratedChannel(profile))) return [];
-  return (OK_VERIFIED_SEARCH_SEED[okMusicProfileKey(profile)] || []).map(item => qualifySourceItem(profile, item)).filter(Boolean);
+  if (!profile) return [];
+  const items = okAnimationFamily(profile) ? OK_ANIMATION_VERIFIED_SEED[profile.profileKey]
+    : okMusicChannel(profile) || okCuratedChannel(profile) ? OK_VERIFIED_SEARCH_SEED[okMusicProfileKey(profile)] : [];
+  return (items || []).map(item => qualifySourceItem(profile, item)).filter(Boolean);
 }
 
 function okPublicManifest(profile, rotation, options = {}) {

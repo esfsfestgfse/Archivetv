@@ -4,17 +4,36 @@ import { okProgramName } from './ok_public_search.js';
 export const OK_ANIMATION_SHOWS = Object.freeze({
   kids:['The Flintstones','The Jetsons','Scooby-Doo, Where Are You!','The New Scooby-Doo Movies','The Smurfs','The Garfield Show','Garfield and Friends','DuckTales','Darkwing Duck','Chip n Dale Rescue Rangers','TaleSpin','Animaniacs','Tiny Toon Adventures','Batman: The Animated Series','Superman: The Animated Series','Justice League','X-Men','Spider-Man','SpongeBob SquarePants','Hey Arnold!','Rugrats','Dexter\'s Laboratory','The Powerpuff Girls','Courage the Cowardly Dog','Ed, Edd n Eddy','Johnny Bravo','The Wild Thornberrys','Recess','Arthur','The Magic School Bus','Avatar: The Last Airbender','The Adventures of Jimmy Neutron, Boy Genius','The Fairly OddParents','Doug','Rocko\'s Modern Life','Teenage Mutant Ninja Turtles','ThunderCats','He-Man and the Masters of the Universe'],
   adult:['The Simpsons','Futurama','King of the Hill','Family Guy','American Dad!','Bob\'s Burgers','South Park','The Boondocks','Daria','Beavis and Butt-Head','Archer','Rick and Morty','BoJack Horseman','The Venture Bros.','Harvey Birdman, Attorney at Law','Aqua Teen Hunger Force','Home Movies','Mission Hill','The Critic','The Oblongs','Duckman','Metalocalypse','Disenchantment','F Is for Family'],
-  anime:['Cowboy Bebop','Trigun','Dragon Ball Z','Naruto','Naruto: Shippuden','Bleach','One Piece','Fullmetal Alchemist','Fullmetal Alchemist: Brotherhood','Death Note','Yu Yu Hakusho','Inuyasha','Sailor Moon','Pokemon','Digimon: Digital Monsters','Samurai Champloo','Rurouni Kenshin','Gundam Wing','Mobile Suit Gundam','Outlaw Star','The Big O','Neon Genesis Evangelion','Attack on Titan','My Hero Academia','Demon Slayer: Kimetsu no Yaiba']
+  anime:['Cowboy Bebop','Trigun','Dragon Ball Z','Naruto','Naruto: Shippuden','Bleach','One Piece','Fullmetal Alchemist','Fullmetal Alchemist: Brotherhood','Death Note','Yu Yu Hakusho','Inuyasha','Sailor Moon','Pokemon','Digimon: Digital Monsters','Samurai Champloo','Rurouni Kenshin','Gundam Wing','Mobile Suit Gundam','Outlaw Star','The Big O','Neon Genesis Evangelion','Attack on Titan','My Hero Academia','Demon Slayer: Kimetsu no Yaiba','F-Zero: GP Legend','Azur Lane','Lucky Star','Inazuma Eleven','Crayon Shin-chan','Karin','Is This a Zombie?','Tenchi in Tokyo','Tenchi Universe','Ultimate Otaku Teacher','Thundersub','Mazinger Z','GetBackers']
 });
+// TVmaze catalogs these releases under alternate titles. Each alias maps to
+// one series, so search still requires an exact TVmaze identity and anime origin.
+const ANIME_RELEASE_ALIASES = Object.freeze({
+  azurlanetheanimation: 'Azur Lane',
+  fzeroracegplegend: 'F-Zero: GP Legend',
+  f0racegplegend: 'F-Zero: GP Legend',
+  crayonshinchanvitellodub: 'Crayon Shin-chan',
+  thundersubbluenoah: 'Uchu Kubo Blue Noah',
+  tenchiuniverse: 'Tenchi Muyou!',
+  ultimateotakuteacher: 'Denpa Kyoushi',
+  getbackers: 'GetBackers',
+  problemchildrenarecomingfromanotherworldarentthey: 'Mondai-Ji-tachi ga Isekai kara Kuru Sou Desu yo?'
+});
+const ANIME_GENERAL_QUERIES = ['anime English dubbed','English dub anime','English dubbed episode','anime English dub','English dub episode','English dubbed anime series'];
+
 const compact = value => String(value||'').toLowerCase().replace(/^the\s+/,'').replace(/[^a-z0-9]/g,'');
 export function okAnimationFamily(profile) { return /^ok-(kids|adult|anime)-channel$/.exec(profile?.profileKey||'')?.[1] || ''; }
 export function okAnimationQueries(profile,cursor) {
   const family=okAnimationFamily(profile),titles=OK_ANIMATION_SHOWS[family]||[];
-  return Array.from({length:Math.min(4,titles.length)},(_,index)=>{
-    if (family==='anime' && index===3) return ['anime English dubbed','anime English dub','English dubbed anime episode'][Math.abs(Number(cursor)||0)%3];
-    const title=titles[(Math.abs(Number(cursor)||0)*4+index)%titles.length];
-    return family==='anime' ? `${title} English dub` : title;
-  });
+  const window=Math.abs(Math.floor(Number(cursor)||0));
+  if (family==='anime') {
+    const suffix=window%2 ? ' English dubbed episode' : ' English dub';
+    return [
+      ...Array.from({length:3},(_,index)=>titles[(window*3+index)%titles.length]+suffix),
+      ANIME_GENERAL_QUERIES[window%ANIME_GENERAL_QUERIES.length]
+    ];
+  }
+  return Array.from({length:Math.min(4,titles.length)},(_,index)=>titles[(window*4+index)%titles.length]);
 }
 export function okAnimationPrecheck(profile,item,checkAspect=true) {
   const family=okAnimationFamily(profile),title=String(item?.title||''),hay=[title,item?.description,item?.tags,item?.category].join(' ');
@@ -28,8 +47,9 @@ export function okAnimationPrecheck(profile,item,checkAspect=true) {
 export async function okAnimationIdentity(profile,item,getJson,cache=new Map()) {
   const family=okAnimationFamily(profile);
   if (!okAnimationPrecheck(profile,item)) return null;
-  const name=okProgramName(item.title,'tv').replace(/^anime[ :._-]+/i,'').split(/\b(?:ep|e)[ ._-]*\d+\b/i)[0].replace(/\b(?:english[ ._-]+dub(?:bed)?|dub(?:bed)?[ ._-]+english|compilation|marathon|complete series|complete season|all episodes|full series|full season|mega comp)\b.*$/i,'').replace(/[ :._-]+$/,'').trim();
-  if (!name) return null;
+  const releaseName=okProgramName(item.title,'tv').replace(/^anime[ :._-]+/i,'').split(/\b(?:ep|e)[ ._-]*\d+\b/i)[0].replace(/\b(?:english[ ._-]+dub(?:bed)?|dub(?:bed)?[ ._-]+english|compilation|marathon|complete series|complete season|all episodes|full series|full season|mega comp)\b.*$/i,'').replace(/[ :._-]+$/,'').trim();
+  if (!releaseName) return null;
+  const name=family==='anime' ? ANIME_RELEASE_ALIASES[compact(releaseName)] || releaseName : releaseName;
   const key=compact(name);
   if(!cache.has(key)) cache.set(key,getJson(`https://api.tvmaze.com/search/shows?q=${encodeURIComponent(name)}`));
   const rows=await cache.get(key);

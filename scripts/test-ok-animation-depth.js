@@ -26,6 +26,12 @@ const {pathToFileURL}=require('node:url');
       sql.prepare("INSERT INTO programs (id,provider,title,duration_seconds,aspect_ratio,media_type,media_url,metadata_json,first_seen_at,last_seen_at,status) VALUES (?,?,?,?,?,?,?,?,?,?,'active')").run(id,'OK.ru',title,1500,1.33,'embed',item.url,JSON.stringify(compact),1,1);
       sql.prepare('INSERT INTO channel_programs (channel_key,program_id,score,last_seen_at) VALUES (?,?,0,1)').run(key,id);
     }
+    if(family==='anime'){
+      const status=await worker.fetch(new Request('https://api.example/api/v3/source/status?profileKey='+key),{realsignal_catalog:db},ctx);
+      const {items}=await status.json();
+      assert.ok(items.some(item=>item.seriesTitle==='Sabikui Bisco'),'verified anime seed episodes must join an already populated D1 catalog');
+      assert.ok(items.some(item=>item.seriesTitle==='Show 0'),'existing D1 episodes must stay in the same catalog');
+    }
     const seen=[];
     for(let rotation=0;rotation<16;rotation++){
       const response=await worker.fetch(new Request('https://api.example/api/v3/source/catalog',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({profileKey:key,count:5,rotation,recentIds:seen})}),{realsignal_catalog:db},ctx);

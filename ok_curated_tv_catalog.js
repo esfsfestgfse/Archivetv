@@ -82,6 +82,16 @@ const CHANNELS = Object.freeze({
   "ok-science-lab-channel": {
     family: "science-lab",
     programs: [
+      ["The Story of Science","BBC The Story of Science"],
+      ["Bang Goes the Theory"],
+      ["The Secret Life of Machines"],
+      ["Your Inner Fish"],
+      ["Forces of Nature with Brian Cox","Brian Cox Forces of Nature"],
+      ["The Fabric of the Cosmos"],
+      ["The Elegant Universe"],
+      ["Stephen Hawking's Grand Design"],
+      ["How Earth Made Us"],
+      ["Rise of the Continents"],
       ["Horizon","BBC Horizon"],
       ["The Secret Life of Chaos"],
       ["The Day the Universe Changed","James Burke The Day the Universe Changed"],
@@ -221,6 +231,13 @@ const CHANNELS = Object.freeze({
   "ok-rail-channel": {
     family: "rail",
     programs: [
+      ["Great Alaskan Railroad Journeys"],
+      ["The Railway 24 7"],
+      ["Railroad Australia"],
+      ["Train Truckers"],
+      ["Chris Tarrant Extreme Railways","Extreme Railways with Chris Tarrant","Extreme Railways"],
+      ["Steam Train Britain"],
+      ["Railways of the Great War"],
       ["Great British Railway Journeys"],
       ["Great Continental Railway Journeys"],
       ["Great Japanese Railway Journeys"],
@@ -257,6 +274,14 @@ const CHANNELS = Object.freeze({
   "ok-craft-channel": {
     family: "craft",
     programs: [
+      ["The Joy of Painting","The Joy of Painting with Bob Ross"],
+      ["The Woodwright's Shop","Woodwright's Shop"],
+      ["The New Yankee Workshop","New Yankee Workshop"],
+      ["Handmade Britain's Best Woodworker","Britain's Best Woodworker"],
+      ["Handmade in Japan"],
+      ["Handmade in Bolton"],
+      ["Make It At Market"],
+      ["Kirstie's Handmade Christmas"],
       ["The Great British Sewing Bee","Great British Sewing Bee"],
       ["The Great Pottery Throw Down","Great Pottery Throw Down"],
       ["Portrait Artist of the Year"],
@@ -267,6 +292,12 @@ const CHANNELS = Object.freeze({
   "ok-seas-channel": {
     family: "seas",
     programs: [
+      ["Wicked Tuna Outer Banks"],
+      ["Disasters at Sea"],
+      ["Ocean Wreck Investigation","Ocean Wrecks Investigation"],
+      ["Lost Ships of World War II","Lost Ships of WW2"],
+      ["The World's Most Scenic River Journeys","World's Most Scenic River Journeys"],
+      ["Extreme Fishing with Robson Green","Robson Green Extreme Fishing"],
       ["Mighty Cruise Ships"],
       ["Mighty Ships"],
       ["Deadliest Catch"],
@@ -279,6 +310,14 @@ const CHANNELS = Object.freeze({
   "ok-mysteries-channel": {
     family: "mysteries",
     programs: [
+      ["The Proof Is Out There"],
+      ["Beyond Belief Fact or Fiction","Beyond Belief Fact or Fiction with Jonathan Frakes"],
+      ["MonsterQuest"],
+      ["Destination Truth"],
+      ["Expedition Unknown"],
+      ["Unexplained Caught on Camera"],
+      ["Haunted Highway"],
+      ["Ghost Adventures"],
       ["The UnXplained","The UnXplained with William Shatner"],
       ["In Search Of with Leonard Nimoy","In Search Of Leonard Nimoy"],
       ["Mysteries at the Museum"],
@@ -293,6 +332,8 @@ const CHANNELS = Object.freeze({
   "ok-black-tv-channel": {
     family: "black-tv",
     programs: [
+      ["227"],
+      ["Roc","Roc Charles S Dutton"],
       ["Sister Sister"],
       ["Family Matters"],
       ["Good Times"],
@@ -381,7 +422,7 @@ function programLeadsTitle(channel, program, title) {
   value = value.replace(/^(?:episode\s+\d+|ep\s*\d+)\s+/, "");
   value = value.replace(/^asa\s+/, "");
   if (channel.family === "factory") value = value.replace(/^(?:national geographic|discovery channel)\s+/, "");
-  if (["gearhead","homestead","wildlife","travel","rail","air","rescue","history"].includes(channel.family)) value = value.replace(/^bbc(?: one| two)?\s+/, "");
+  if (["gearhead","homestead","wildlife","travel","rail","air","rescue","history","science-lab"].includes(channel.family) && !value.startsWith("bbc horizon ")) value = value.replace(/^bbc(?: one| two)?\s+/, "");
   if (SPECIALIST_FAMILIES.has(channel.family)) value = value.replace(/^(?:19|20)\d{2} /, "");
   const name = clean(program);
   const boundary = " " + value + " ";
@@ -429,13 +470,16 @@ export function okCuratedPrecheck(profile, item, checkAspect = true) {
   if (channel.family === "casefiles" && (Number(item.duration) > 5400 || !okEpisodeIdentity(title) && !/\b(?:s\d{1,2}|episode|season|with robert stack)\b/i.test(title))) return false;
   if (channel.family === "homestead" && /\b(?:love your garden for less|blossom)\b/i.test(title)) return false;
   if (/\b(?:bonus|outtakes|gag reel|behind the scenes)\b/i.test(title)) return false;
-  if (["Cracker", "Horizon", "Mayday", "Counting Cars", "Good Times", "One on One"].includes(program)
+  if (["Cracker", "Horizon", "Mayday", "Counting Cars", "Good Times", "One on One", "227", "Roc"].includes(program)
     && !okEpisodeIdentity(title)) return false;
+  if (channel.family === "rail" && /\b(?:gameplay|railway simulator|train sim world|train simulator|railcam|in real time)\b/i.test(title)) return false;
   if (channel.family === "rail" && /\b(?:railway sound|train sounds|cab view|model railway|virtual walk|viyana|bölümü)\b/i.test(title)) return false;
   if (channel.family === "air" && /\b(?:flight simulator|plane spotting|aviation nation|the aviator|the aviators|air crash animation)\b/i.test(title)) return false;
   if (channel.family === "rescue" && /\b(?:reaction video|911 call audio|reenactment compilation)\b/i.test(title)) return false;
+  if (["The Joy of Painting", "The Woodwright's Shop", "The New Yankee Workshop"].includes(program)
+    && (Number(item.duration) > 3900 || !/\b(?:s\d{1,2}|episode|series|season|bob ross|norm abram|roy underhill)\b/i.test(title))) return false;
   if (channel.family === "craft" && /\b(?:extra slice|after show|compilation|highlights)\b/i.test(title)) return false;
-  if (channel.family === "mysteries" && (!okEpisodeIdentity(title) || /\b(?:serial killers|outrageous robberies|devastating disasters)\b/i.test(title))) return false;
+  if (channel.family === "mysteries" && ((!okEpisodeIdentity(title) && !/\b(?:episode|part)\s*\d+\b/i.test(title)) || /\b(?:serial killers|outrageous robberies|devastating disasters)\b/i.test(title))) return false;
   if (channel.family === "seas" && /\b(?:wreck fishing tips|ship simulator|the mighty ships movie)\b/i.test(title)) return false;
   if (channel.family === "travel" && Number(item.duration) > 7200) return false;
   if (channel.family === "travel" && /\b(?:sarkig|full movie|monty python|smart glasses|watch party)\b/i.test(title)) return false;

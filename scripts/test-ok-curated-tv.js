@@ -7,6 +7,12 @@ const { pathToFileURL } = require('node:url');
   const catalog = await import(pathToFileURL(path.join(__dirname, '..', 'ok_curated_tv_catalog.js')));
   const worker = await import(pathToFileURL(path.join(__dirname, '..', 'realsignal_api_v2_worker.js')));
   const profiles = [
+    ['ok-factory-floor-channel', "Dr. Karl's How Things Work S01E01", "Dr Karl's How Things Work"],
+    ['ok-factory-floor-channel', 'Super Factories S01E02 McLaren Supercar', 'Super Factories'],
+    ['ok-rail-channel', 'Secrets of the London Underground S02E02 Waterloo and City', 'Secrets of the London Underground'],
+    ['ok-craft-channel', 'Bob Ross: The Joy of Painting - Cabin in the Hollow (Season 31 Episode 05)', 'The Joy of Painting'],
+    ['ok-craft-channel', 'Bob Ross - Mystic Mountain - The Joy of Painting (Season 20 Episode 1)', 'The Joy of Painting'],
+    ['ok-craft-channel', "Game of Wool Britain's Best Knitter episode 2", "Game of Wool: Britain's Best Knitter"],
     ['ok-britannia-channel', 'Only Fools and Horses S02E03 DVDRip', 'Only Fools and Horses'],
     ['ok-history-vault-channel', 'The World at War S01E02 1080p', 'The World at War'],
     ['ok-factory-floor-channel', "How It's Made S04E11 DVDRip", "How It's Made"],
@@ -45,7 +51,13 @@ const { pathToFileURL } = require('node:url');
       { title: `${title} VOSTFR`, duration: 1800 },
     ]) assert.equal(catalog.okCuratedPrecheck(profile, { ...item, ...bad }), false, `${profileKey} rejects contaminated/short/portrait material`);
   }
+  const railEpisode = { id: 'ok:999', title: 'Secrets of the Railways Episode 5 The Liverpool to Manchester Line', duration: 2640, aspectRatio: 16 / 9 };
+  const railIdentity = await catalog.okCuratedIdentity({ profileKey: 'ok-rail-channel' }, railEpisode);
+  assert.equal(railIdentity.episodeIdentity, 's01e05', 'standalone episode numbers must collapse with the numbered season upload');
   for (const [key,title,duration] of [
+    ['rail','The Architecture the Railways Built episode 3',2600],
+    ['factory-floor','National.Geographic.Super.Factories.Caterpillar.720p.HDTV',2400],
+    ['rail',"World's Greatest Train Journeys From Above Copper Canyon Live Streaming Nat Geo TV Online Indonesia",2600],
     ['factory-floor','Inside the Factory: A Leapfrog Story',1800],
     ['factory-floor','Inside the Factory S01E01 AI Generated Future Cars',1800],
     ['gearhead','The Wheeler Dealers (1963)',6333],

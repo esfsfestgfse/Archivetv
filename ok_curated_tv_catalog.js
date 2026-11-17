@@ -48,6 +48,8 @@ const CHANNELS = Object.freeze({
   "ok-factory-floor-channel": {
     family: "factory",
     programs: [
+      ["Dr Karl's How Things Work","Dr Karl How Things Work"],
+      ["Super Factories"],
       ["Building Giants"],
       ["Impossible Engineering"],
       ["Extreme Engineering"],
@@ -231,6 +233,14 @@ const CHANNELS = Object.freeze({
   "ok-rail-channel": {
     family: "rail",
     programs: [
+      ["The Architecture the Railways Built"],
+      ["Secrets of the London Underground"],
+      ["Secrets of the Railways"],
+      ["Walking Britain's Lost Railways"],
+      ["Britain's Railway Empire in Colour","Britain's Railway Empire in Color"],
+      ["World's Greatest Train Journeys From Above"],
+      ["The Secrets of the Flying Scotsman","Secrets of Flying Scotsman"],
+      ["Ian Hislop's Trains That Changed the World","Ian Hislop The Trains That Changed the World"],
       ["Great Alaskan Railroad Journeys"],
       ["The Railway 24 7"],
       ["Railroad Australia"],
@@ -274,7 +284,10 @@ const CHANNELS = Object.freeze({
   "ok-craft-channel": {
     family: "craft",
     programs: [
-      ["The Joy of Painting","The Joy of Painting with Bob Ross"],
+      ["Game of Wool: Britain's Best Knitter","Game of Wool"],
+      ["The Great Big Tiny Design Challenge"],
+      ["The Big Flower Fight"],
+      ["The Joy of Painting","The Joy of Painting with Bob Ross","Bob Ross The Joy of Painting"],
       ["The Woodwright's Shop","Woodwright's Shop"],
       ["The New Yankee Workshop","New Yankee Workshop"],
       ["Handmade Britain's Best Woodworker","Britain's Best Woodworker"],
@@ -427,6 +440,7 @@ function programLeadsTitle(channel, program, title) {
   const name = clean(program);
   const boundary = " " + value + " ";
   return boundary.startsWith(" " + name + " ") || boundary.startsWith(" the " + name + " ")
+    || (channel.family === "craft" && name === "the joy of painting" && /^bob ross .+ the joy of painting season \d+ episode \d+\b/.test(value))
     || (channel.family === "gearhead" && name === "jay lenos garage" && boundary.endsWith(" jay lenos garage "))
     || (channel.family === "cookhouse" && name === "the french chef" && /(?:^| )the french chef (?:with julia child|season \d+|s\d{1,2}e\d{1,3})\b/.test(value));
 }
@@ -462,6 +476,8 @@ export function okCuratedPrecheck(profile, item, checkAspect = true) {
   if (program === "Bill Nye the Science Guy" && (Number(item.duration) > 2100 || /\b(?:pc game|stop the rock)\b/i.test(title))) return false;
   if (program === "How the Universe Works" && Number(item.duration) > 5400) return false;
   if (program === "PBS NOVA" && /\b(?:manhunt|boston bombers|escape from nazi alcatraz)\b/i.test(title)) return false;
+  if (["Super Factories", "World's Greatest Train Journeys From Above"].includes(program) && !okEpisodeIdentity(title)) return false;
+  if (program === "The Architecture the Railways Built" && !okEpisodeIdentity(title).startsWith("s")) return false;
   if (program === "Mega Manufacturing" && /\b\d+of\d+\b/i.test(title)) return false;
   if (NEW_FAMILIES.has(channel.family) && /\b(?:fan fiction|audiobook|reaction video|full movie|stop motion)\b/i.test(title)) return false;
   if (program === "Life Story" && !/\b(?:bbc|s\d{1,2}[ ._-]*e\d{1,3}|\d+of\d+|attenborough)\b/i.test(title)) return false;
@@ -498,7 +514,10 @@ export async function okCuratedIdentity(profile, item) {
   const slug = compact(program);
   // Non-numbered specials still need a stable identity across alternate uploads.
   // Include a tagged year when an uploader supplies only a standalone episode number.
-  const number = okEpisodeIdentity(item.title);
+  const parsedEpisode = okEpisodeIdentity(item.title);
+  // This series has one season. OK uploads of the same episode use both numbering styles.
+  const number = program === "Secrets of the Railways" && parsedEpisode.startsWith("episode")
+    ? "s01e" + parsedEpisode.slice(7).padStart(2, "0") : parsedEpisode;
   const normalizedTitle = clean(item.title);
   const aliases = channel.programs.find(entry => canonical(entry) === program) || [program];
   const normalizedProgram = aliases.map(clean).find(alias => (" " + normalizedTitle + " ").includes(" " + alias + " ")) || clean(program);

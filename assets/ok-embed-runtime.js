@@ -17,6 +17,11 @@
   function qualify(profile, item) {
     if (!profile || String(profile.profileKey || "").indexOf("ok-") !== 0) return true;
     if (!item) return false;
+    if (profile.profileKey === "ok-war-movies") {
+      return item.genreVerified === true && item.recoveryVerified === true && item.provider === "OK.ru"
+        && item.embedAllowed === true && Number(item.duration) >= 3600 && Number(item.aspectRatio) >= 1.2
+        && /^https:\/\/ok\.ru\/videoembed\/\d+$/.test(String(item.embedUrl || item.url || ""));
+    }
     var title = String(item.title || ""), lower = title.toLowerCase();
     if (musicProfile(profile)) {
       var clean = function (value) { return String(value || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, ""); };

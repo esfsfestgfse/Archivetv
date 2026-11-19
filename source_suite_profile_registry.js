@@ -2250,6 +2250,9 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "match": ["independent feature film", "independent movie", "indie feature", "festival feature", "arthouse feature", "public domain movie", "free feature film", "cult independent film", "full length movie", "complete feature film", "movie", "film"],
     "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "fan made", "fanmade", "fan animation", "unofficial", "parody", "mashup", "amv", "gacha", "roleplay", "my little pony", "pony", "music video", "commercial", "movie commentary", "documentary", "film explained", "filmrise", "popcornflix", "movie central"]
   },
+  "ok-war-movies": {"name":"OK War Movies","providers":["ok-manifest"],"intent":"film","serverOnly":true,"minRuntimeSeconds":3600,"deepCatalog":true,"formatRelaxed":true,"queries":["war feature films"],"match":["war movie","war film","feature film"]},
+  "youtube-war-movies": {"name":"YouTube War Movies","providers":["youtube"],"intent":"film","serverOnly":true,"minRuntimeSeconds":3600,"deepCatalog":true,"formatRelaxed":true,"queries":["war feature films"],"match":["war movie","war film","feature film"]},
+  "ia-war-movies": {"name":"Archive War Movies","providers":["internet-archive"],"intent":"film","serverOnly":true,"minRuntimeSeconds":3600,"deepCatalog":true,"formatRelaxed":true,"queries":["war feature films"],"match":["war movie","war film","feature film"]},
   "ok-movie-channel": {
     "name": "OK Movie Channel",
     "queryLimit": 32,

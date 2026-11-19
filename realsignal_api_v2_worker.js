@@ -14,6 +14,7 @@ import { okCuratedChannel } from "./ok_curated_tv_catalog.js";
 import { okMusicBalanceDecades, okMusicChannel, okMusicProfileKey } from "./ok_music_catalog.js";
 import { OK_VERIFIED_SEARCH_SEED } from "./ok_verified_search_seed.js";
 import { vimeoBalancedItems } from "./vimeo_catalog.js";
+import { reviewedWarFilms } from "./war_film_catalog.js";
 import { mergeSourceLanes, sourceCatalogTasks, sourceRefreshTasks, sourceProfile, sourceCatalogKey, okVerifiedSeed, qualifySourceItem, isOKSourceProfile, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
 import Sports from "./assets/sports-programs.js";
 import SourcePrograms from "./assets/source-program-policy.js";
@@ -872,7 +873,7 @@ function catalogFallbackAllowed(item, body) {
   if (!iaGameShowEraAllowed(item, body && body.channel)) return false;
   if (body && body.iaRepair === true && body.sourceCatalog !== true && !qualifyIaFileRecord(item, body).accepted) return false;
   const catalogProfile = body && body.sourceCatalog === true ? sourceProfile({ profileKey: body.channel }) : null;
-  if (body && body.sourceCatalog === true && (isOKSourceProfile(catalogProfile) || /^vimeo-(?:movie|tv)-channel$/.test(String(body.channel || "")) || catalogProfile && /^(?:cartoon-time-machine|garden-ledger|nascar-classics)$/.test(catalogProfile.profileKey))) {
+  if (body && body.sourceCatalog === true && (reviewedWarFilms(catalogProfile?.profileKey) || isOKSourceProfile(catalogProfile) || /^vimeo-(?:movie|tv)-channel$/.test(String(body.channel || "")) || catalogProfile && /^(?:cartoon-time-machine|garden-ledger|nascar-classics)$/.test(catalogProfile.profileKey))) {
     return !!qualifySourceItem(catalogProfile, item);
   }
   const title = String(item && item.title || "").toLowerCase();
@@ -1489,7 +1490,8 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   const okCatalog = effectiveBody.sourceCatalog === true && isOKSourceProfile(catalogProfile);
   const vimeoCatalog = effectiveBody.sourceCatalog === true && /^vimeo-(?:movie|tv)-channel$/.test(channel);
   const repairCatalog = effectiveBody.iaRepair === true && effectiveBody.sourceCatalog !== true;
-  const deepCatalog = okCatalog || vimeoCatalog;
+  const warFilms = reviewedWarFilms(catalogProfile?.profileKey);
+  const deepCatalog = okCatalog || vimeoCatalog || Boolean(warFilms);
   const rotatingSourceCatalog = !deepCatalog && catalogProfile?.providers?.some(provider => provider === "youtube" || provider === "peertube" || provider === "nascar");
   const limit = repairCatalog ? IA_REPAIR_CATALOG_WINDOW : deepCatalog ? OK_CATALOG_WINDOW : Math.max(1, Math.min(SOURCE_LIMITS.SOURCE_MAX_ITEMS, Number(requestedLimit) || SOURCE_LIMITS.SOURCE_MAX_ITEMS));
   // The database keeps the full union. This bounded playback window prefers
@@ -1631,6 +1633,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
     };
   };
   const items = (result.results || []).map(fromCatalogRow);
+  if (warFilms) items.push(...warFilms);
   if (okCatalog && (derivedMusicYears || catalogProfile?.intent === "television" || catalogProfile?.intent === "animation")) {
     items.push(...okVerifiedSeed(catalogProfile));
   }
@@ -1651,7 +1654,9 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
      it here would make the guide and ready shelf suggest the exact provider
      that just timed out. Filter it before requalification and rotation. */
   const eligibleItems = items.filter((item) => !blockedProviders.has(sourceProviderKey(item && item.provider)));
-  const filtered = stableCatalogItems(derivedMusicYears ? okMusicBalanceDecades(eligibleItems) : eligibleItems, effectiveBody, limit);
+  // Let OK TV balance by series before cutting to the playback window.
+  const qualificationLimit = channel === "ok-tv-channel" ? eligibleItems.length : limit;
+  const filtered = stableCatalogItems(derivedMusicYears ? okMusicBalanceDecades(eligibleItems) : eligibleItems, effectiveBody, qualificationLimit);
   /* A catalog row without a resolved media URL is useful evidence for a
      background repair, but it is not a playable program. Keep it in the
      candidate union while measuring depth/freshness and selecting the public
@@ -2759,6 +2764,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
     persistedMatch: profile.persistedMatch,
     themeMinScore: 1,
     recentIds: sourceRecentIds,
+    recentSeries: body.recentSeries,
     freshnessLedger: true,
   }, SOURCE_LIMITS.SOURCE_MAX_ITEMS, { blockedProviders: disabledProviders }).catch((error) => {
     console.warn(JSON.stringify({ event: "source-catalog-read-failed", requestId: id, error: String(error).slice(0, 160) }));

@@ -22,6 +22,8 @@ on:
       - 'assets/ok-embed-runtime.js'
       - 'ok_animation_verified_seed.js'
       - 'ok_verified_search_seed.js'
+      - 'war_film_catalog.js'
+      - 'scripts/test-war-film-channels.js'
       - 'ia_canonical_station.mjs'
       - 'ia_canonical_pilot_manifest.js'
       - 'source_suite_profile_registry.js'
@@ -69,6 +71,7 @@ jobs:
           node scripts/test-ok-animation.js
           node scripts/test-ok-animation-depth.js
           node scripts/test-ok-curated-tv.js
+          node scripts/test-war-film-channels.js
           node scripts/test-ok-tv-decades.js
           node scripts/test-ok-tv-decade-backfill.mjs
           node scripts/test-ok-music.js

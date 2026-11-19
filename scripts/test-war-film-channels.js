@@ -1,0 +1,74 @@
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const { DatabaseSync } = require("node:sqlite");
+
+(async () => {
+  const { default: worker } = await import("../realsignal_api_v2_worker.js");
+  const { qualifySourceItem, sourceProfile } = await import("../realsignal_source_catalog.js");
+  const sql = new DatabaseSync(":memory:");
+  try {
+    for (const file of ["0001_realsignal_catalog.sql", "0002_realsignal_v3_observability.sql", "0003_realsignal_v4_adaptive_catalog.sql"]) {
+      sql.exec(fs.readFileSync(path.resolve(__dirname, "../migrations", file), "utf8"));
+    }
+    const db = {
+      prepare(query) {
+        return { bind(...args) {
+          return { query, args, async all() { return { results: sql.prepare(query).all(...args) }; } };
+        } };
+      },
+      async batch(statements) {
+        return statements.map(statement => sql.prepare(statement.query).all(...statement.args));
+      }
+    };
+    const background = [];
+    const ctx = { waitUntil(promise) { background.push(promise); } };
+    const env = { realsignal_catalog: db };
+    const endpoint = "https://example.test/api/v3/source/";
+    const listings = [
+      ["ok-war-movies", "OK.ru", 622],
+      ["youtube-war-movies", "YouTube", 623],
+      ["ia-war-movies", "Internet Archive", 624]
+    ];
+    const firstFilms = [];
+    for (const [profileKey, provider, channel] of listings) {
+      for (const surface of ["desktop", "mobile"]) {
+        const body = fs.readFileSync(path.resolve(__dirname, "../the_dial_" + surface + ".html"), "utf8");
+        assert.match(body, new RegExp('num:' + channel + '[^\\n]+previewKey:"' + profileKey + '"'));
+      }
+      const profile = sourceProfile({ profileKey });
+      assert.equal(profile.minRuntimeSeconds, 3600);
+      const status = await worker.fetch(new Request(endpoint + "status?profileKey=" + profileKey), env, ctx);
+      assert.equal(status.status, 200);
+      const { items } = await status.json();
+      assert.ok(items.length >= 5, profileKey + " must have a usable catalog");
+      assert.equal(new Set(items.map(item => item.title)).size, items.length);
+      for (const item of items) {
+        assert.equal(item.provider, provider);
+        assert.ok(item.duration >= 3600 && item.aspectRatio >= 1.2);
+        assert.ok(item.genreVerified && item.recoveryVerified, "the client must receive reviewed film evidence");
+      }
+      const request = history => new Request(endpoint + "catalog", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ profileKey, count: 5, recentIds: history })
+      });
+      const initial = await (await worker.fetch(request([]), env, ctx)).json();
+      assert.equal(initial.items.length, 5);
+      const next = await (await worker.fetch(request([initial.items[0].id]), env, ctx)).json();
+      assert.equal(next.items.length, 5);
+      assert.ok(!next.items.some(item => item.id === initial.items[0].id), "history must exclude the first film");
+      firstFilms.push([profile, initial.items[0]]);
+    }
+    for (const [profile, film] of firstFilms) {
+      for (const [other, otherFilm] of firstFilms) {
+        if (profile !== other) assert.equal(qualifySourceItem(profile, otherFilm), null);
+      }
+      assert.equal(qualifySourceItem(profile, { ...film, id: "unreviewed-trailer" }), null);
+    }
+    await Promise.all(background);
+    console.log("Three war film stations pass provider isolation, runtime, catalog depth and Next.");
+  } finally {
+    sql.close();
+  }
+})().catch(error => { console.error(error); process.exitCode = 1; });

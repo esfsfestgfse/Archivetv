@@ -20,6 +20,7 @@ import { okCuratedCatalogId, okCuratedChannel, okCuratedQueries, okCuratedIdenti
 import { okMusicChannel, okMusicProfileKey, okMusicYears, okMusicQueries, okMusicPrecheck, okMusicVerified, okMusicIdentities } from "./ok_music_catalog.js";
 import { OK_ANIMATION_VERIFIED_SEED } from "./ok_animation_verified_seed.js";
 import { SOURCE_PROFILE_REGISTRY } from "./source_suite_profile_registry.js";
+import { reviewedWarFilms } from "./war_film_catalog.js";
 import { nascarCatalog, nascarReplayAllowed } from "./nascar_catalog.js";
 import SourcePrograms from "./assets/source-program-policy.js";
 import PeerTubeMedia from "./assets/peertube-media.js";
@@ -637,6 +638,10 @@ export function isOKSourceProfile(value) {
 
 export function qualifySourceItem(profile, item) {
   if (!profile || !item) return null;
+  const warFilms = reviewedWarFilms(profile.profileKey);
+  if (warFilms) {
+    return warFilms.find(film => film.id === item.id && film.provider === item.provider && film.url === (item.embedUrl || item.url)) || null;
+  }
   if (profile.derivedCatalogOnly === true && !profile.musicYears && Number(item.seriesDecade) !== Number(profile.seriesDecade)) return null;
   if (okAnimationFamily(profile) && !okAnimationVerified(profile,item)) return null;
   if (okCuratedChannel(profile) && !okCuratedVerified(profile,item)) return null;
@@ -1484,7 +1489,8 @@ async function okApi(profile, rotation, env, options = {}) {
 export function okVerifiedSeed(profile) {
   if (!profile) return [];
   const items = okAnimationFamily(profile) ? OK_ANIMATION_VERIFIED_SEED[profile.profileKey]
-    : okMusicChannel(profile) || okCuratedChannel(profile) ? OK_VERIFIED_SEARCH_SEED[okMusicProfileKey(profile)] : [];
+    : okMusicChannel(profile) || okCuratedChannel(profile) || profile.profileKey === "ok-tv-channel"
+      ? OK_VERIFIED_SEARCH_SEED[okMusicProfileKey(profile)] : [];
   return (items || []).map(item => qualifySourceItem(profile, item)).filter(Boolean);
 }
 
@@ -1581,6 +1587,13 @@ export function sourceRefreshTasks(body, env, rotation = 0, options = {}) {
    inherit already-qualified Christmas/Halloween material without inventing a
    second discovery path or weakening any item-level filters. */
 function sourceTasks(profile, env, rotation, options = {}) {
+  const warFilms = reviewedWarFilms(profile.profileKey);
+  if (warFilms) {
+    const provider = warFilms[0]?.provider;
+    const providerKey = provider === "OK.ru" ? "ok" : String(provider || "").toLowerCase().replace(" ", "-");
+    const disabled = new Set(options.disabledProviders || []);
+    return [Promise.resolve({ provider, items: disabled.has(providerKey) ? [] : rotate(warFilms, rotation), health: { manifest: true } })];
+  }
   const tasks = providers(profile, rotation, env, options);
   /* Deep maintenance is an editorial rebuild of this lane, not a family
      fallback merge. Searching fallback profiles here made the movie lanes

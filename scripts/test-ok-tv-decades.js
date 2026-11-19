@@ -233,8 +233,10 @@ function insertEpisode(sql, { id, series, seriesIndex, decade, episode, seenAt }
     }), { realsignal_catalog: d1(sql) }, { waitUntil() {} });
     assert.equal(response.status, 200);
     const payload = await response.json();
-    assert.equal(payload.items[0].seriesStartYear, 1984, 'D1 playback reconstruction must retain the canonical premiere year');
-    assert.equal(payload.items[0].seriesDecade, 1980, 'D1 playback reconstruction must retain the canonical decade');
+    const storedEpisode = payload.candidateItems.find(item => item.id === compact.id);
+    assert.ok(storedEpisode, 'the persisted episode survives merging with the reviewed TV catalog');
+    assert.equal(storedEpisode.seriesStartYear, 1984, 'D1 playback reconstruction must retain the canonical premiere year');
+    assert.equal(storedEpisode.seriesDecade, 1980, 'D1 playback reconstruction must retain the canonical decade');
   } finally {
     sql.close();
   }

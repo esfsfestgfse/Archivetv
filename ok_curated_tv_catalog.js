@@ -65,6 +65,9 @@ const CHANNELS = Object.freeze({
   "ok-cookhouse-channel": {
     family: "cookhouse",
     programs: [
+      ["The Little Paris Kitchen", "The Little Paris Kitchen Cooking with Rachel Khoo"],
+      ["Martha Stewart's Cooking School"],
+      ["The Hairy Bikers Home for Christmas"],
       ["Mary Makes It Easy"],
       ["Mary Berry Love to Cook"],
       ["Rick Stein's Secret France","Rick Stein Secret France"],
@@ -514,7 +517,12 @@ export async function okCuratedIdentity(profile, item) {
   const slug = compact(program);
   // Non-numbered specials still need a stable identity across alternate uploads.
   // Include a tagged year when an uploader supplies only a standalone episode number.
-  const parsedEpisode = okEpisodeIdentity(item.title);
+  const parisNumber = program === "The Little Paris Kitchen"
+    ? String(item.title || "").match(/\bKhoo[.\s]+0?([1-6])\b/i)?.[1] : null;
+  const rawEpisode = okEpisodeIdentity(item.title);
+  const parsedEpisode = parisNumber ? "s01e0" + parisNumber
+    : program === "The Little Paris Kitchen" && rawEpisode.startsWith("episode")
+      ? "s01e" + rawEpisode.slice(7).padStart(2, "0") : rawEpisode;
   // This series has one season. OK uploads of the same episode use both numbering styles.
   const number = program === "Secrets of the Railways" && parsedEpisode.startsWith("episode")
     ? "s01e" + parsedEpisode.slice(7).padStart(2, "0") : parsedEpisode;

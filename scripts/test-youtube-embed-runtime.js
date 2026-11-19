@@ -53,6 +53,12 @@ function handler(player,name){return player.listeners&&player.listeners.get(name
   assert.equal(suspendedPlayer.loads,undefined,'late readiness while suspended cannot start hidden media');assert.equal(suspendedFrame.hidden,true);
   suspendedPlay=h.api.play(h.options);assert.equal(h.players.length,1);suspendedPlayer.emit('onStateChange',1);suspendedPlayer.time=1;h.tick();suspendedPlayer.time=1.4;h.tick();assert.equal((await suspendedPlay).status,'playing');h.api.stop();
   h=harness();
+  const direct=harness();
+  const directPlay=direct.api.play({...direct.options,openSelectedEmbed:true});
+  assert.equal(new URL(direct.players[0].frame.src).pathname,'/embed/RQinquBq338','an opened film must reach its own iframe on a cold tune');
+  direct.players[0].emit('onReady');
+  assert.equal(direct.counts().started,0,'a directly opened iframe still waits for a playing video clock');
+  direct.api.stop();await directPlay;
   const cold=harness(false);assert.equal(cold.nodes.filter(n=>n.tagName==='SCRIPT').length,1,'SDK loading starts before Power/catalog selection, not after iframe creation');
   let coldPlay=cold.api.play(cold.options);cold.api.volume(0.2,true);assert.equal(cold.players.length,0);
   cold.window.YT={Player:cold.Player};cold.window.onYouTubeIframeAPIReady();await flush();

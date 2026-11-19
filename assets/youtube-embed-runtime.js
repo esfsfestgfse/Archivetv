@@ -132,7 +132,8 @@
     if(state&&state.ready){try{state.player.stopVideo();}catch(_){}}
     if(!state){
       var frame=document.createElement('iframe');
-      frame.src='https://www.youtube-nocookie.com/embed/?autoplay=0&controls=1&enablejsapi=1&playsinline=1&origin='+encodeURIComponent(root.location.origin);
+      const initialUrl=options.initialVideoUrl || 'https://www.youtube-nocookie.com/embed/';
+      frame.src=initialUrl+'?autoplay=0&controls=1&enablejsapi=1&playsinline=1&origin='+encodeURIComponent(root.location.origin);
       frame.title='YouTube television player';frame.allow='autoplay; encrypted-media; picture-in-picture; fullscreen';frame.allowFullscreen=true;
       frame.referrerPolicy='strict-origin-when-cross-origin';frame.dataset.playbackState='preparing';
       state={frame:frame,container:options.container,player:null,ready:false,level:options.volume,muted:!!options.muted};
@@ -161,7 +162,7 @@
     var url;
     try{url=new URL(options.item.embedUrl||options.item.url);}catch(_){return Promise.resolve({status:'unavailable'});}
     if(!/^https:\/\/www\.youtube(?:-nocookie)?\.com$/.test(url.origin)||!/^\/embed\/[A-Za-z0-9_-]{11}$/.test(url.pathname))return Promise.resolve({status:'unavailable'});
-    prepare(options);
+    prepare(options.openSelectedEmbed ? {...options, initialVideoUrl:url.origin+url.pathname} : options);
     return new Promise(function(resolve){
       var job={transport:transport,options:options,videoId:url.pathname.split('/').pop(),resolve:resolve,lastTime:null};owner=job;
       transport.frame.title=options.item.title||'YouTube program';transport.frame.dataset.playbackState='loading';

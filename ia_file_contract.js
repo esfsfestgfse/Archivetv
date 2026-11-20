@@ -271,6 +271,8 @@ export function iaReviewedFileAllowed(item, channel) {
   let file = String(media.fileName || item.fileName || id.split('::')[1] || '');
   if (!file) { try { file = decodeURIComponent(new URL(media.url || item.mediaUrl || item.url).pathname.split('/').pop()); } catch (_) {} }
   file = file.split('/').pop();
+  // This original opens in Chromium without a video track. Keep the playable IA derivative.
+  if (source === 'get-smart' && file === 'Get Smart S01E01 (Mr. Big).mp4') return false;
   // This parent's numbered original MP4 names were playlist labels, not files.
   // Only the separately listed numbered .ia.mp4 derivatives actually exist.
   if (source === 'halloween-cartoon-collection_20231022' && /^\d{2}-(?:19|20)\d{2}\b/.test(file) && !/\.ia\.mp4$/i.test(file)) return false;

@@ -203,6 +203,8 @@ test('reviewed editorial admission rejects the reproduced contamination in every
     ['905',{identifier:'talking-blues',title:'Talking Blues',type:'audio',language:'fra',subject:'blues music'},true],
     ['905',{identifier:'PinkFloyd-LiveBootlegSampler::119TheFinalCut_RadioAdvert.mp3',title:'Pink Floyd - Live Bootleg Sampler · The Final Cut Radio Advert',type:'audio'},false],
     ['905',{identifier:'blues-radio-concert',title:'Muddy Waters — Radio Session Concert',type:'audio',subject:'blues music'},true],
+    ['10',{identifier:'get-smart::Get Smart S01E01 (Mr. Big).mp4',title:'Get Smart – Mr. Big'},false],
+    ['10',{identifier:'get-smart::Get Smart S01E01 (Mr. Big).ia.mp4',title:'Get Smart – Mr. Big'},true],
     ['202',{identifier:'peter-kay-live',title:'Peter Kay Live',subject:'stand-up comedy'},true],
   ];
   const gates=[iaReviewedFileAllowed];

@@ -2683,7 +2683,7 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
   ],
   "10": [
     iaDirectRecovery("theloneranger_201705::s01e01_EntertheLoneRanger.mp4", "theloneranger_201705", "s01e01_EntertheLoneRanger.mp4", "The Lone Ranger · Enter the Lone Ranger", "classic television western television series", 1949),
-    iaDirectRecovery("get-smart::Get Smart S01E01 (Mr. Big).mp4", "get-smart", "Get Smart S01E01 (Mr. Big).mp4", "Get Smart · Mr. Big", "classic television sitcom spy comedy television series", 1965),
+    iaDirectRecovery("get-smart::Get Smart S01E01 (Mr. Big).ia.mp4", "get-smart", "Get Smart S01E01 (Mr. Big).ia.mp4", "Get Smart · Mr. Big", "classic television sitcom spy comedy television series", 1965, "video", 1535.49, 576, 432),
     iaDirectRecovery("GreenAcresCompleteSeries::Green Acres Season 1/Green Acres - 001 - Oliver Buys A Farm.mp4", "GreenAcresCompleteSeries", "Green Acres Season 1/Green Acres - 001 - Oliver Buys A Farm.mp4", "Green Acres · Oliver Buys a Farm", "classic television sitcom family comedy television series", 1965),
     iaDirectRecovery("Bonanza_-_The_Trail_Gang::Bonanza_-_The_Trail_Gang_512kb.mp4", "Bonanza_-_The_Trail_Gang", "Bonanza_-_The_Trail_Gang_512kb.mp4", "Bonanza · The Trail Gang", "classic television western television series", 1959),
     iaDirectRecovery("Bonanza_-_Day_Of_Reckoning::Bonanza_-_Day_Of_Reckoning_512kb.mp4", "Bonanza_-_Day_Of_Reckoning", "Bonanza_-_Day_Of_Reckoning_512kb.mp4", "Bonanza · Day of Reckoning", "classic television western television series", 1959),
@@ -6033,6 +6033,8 @@ function iaReviewedFileAllowed(item, channel) {
   let file = String(media.fileName || item.fileName || id.split('::')[1] || '');
   if (!file) { try { file = decodeURIComponent(new URL(media.url || item.mediaUrl || item.url).pathname.split('/').pop()); } catch (_) {} }
   file = file.split('/').pop();
+  // This original opens in Chromium without a video track. Keep the playable IA derivative.
+  if (source === 'get-smart' && file === 'Get Smart S01E01 (Mr. Big).mp4') return false;
   // This parent's numbered original MP4 names were playlist labels, not files.
   // Only the separately listed numbered .ia.mp4 derivatives actually exist.
   if (source === 'halloween-cartoon-collection_20231022' && /^\d{2}-(?:19|20)\d{2}\b/.test(file) && !/\.ia\.mp4$/i.test(file)) return false;

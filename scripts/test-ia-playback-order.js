@@ -408,6 +408,31 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file 
   assert.deepEqual(loads, [next.media.url], 'a superseded tune must not stage media');
 });
 
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file + ': an Archive skip gives the new tune ownership of the refill', async () => {
+  const source = fs.readFileSync(path.join(root, file), 'utf8');
+  const calls = [], pending = new Map();
+  const scope = {
+    preloadInFlight: null,
+    iaRepairEnabled: ch => ch.num === 10,
+    preloadNext: (channel, slot, token) => {
+      calls.push(token);
+      return new Promise(resolve => pending.set(token, resolve));
+    }
+  };
+  vm.createContext(scope);
+  vm.runInContext(source.slice(source.indexOf('function schedulePreload('), source.indexOf('function schedGet(')), scope);
+  const channel = { num: 10 };
+  const older = scope.schedulePreload(channel, {}, 1);
+  assert.equal(scope.schedulePreload(channel, {}, 1), older, 'the same tune still coalesces callbacks');
+  const latest = scope.schedulePreload(channel, {}, 2);
+  assert.deepEqual(calls, [1, 2], 'a pending refill cannot suppress the newer tune’s staging');
+  pending.get(1)();
+  await older;
+  assert.equal(scope.schedulePreload(channel, {}, 2), latest, 'a superseded completion cannot clear the new owner');
+  pending.get(2)();
+  await latest;
+});
+
 test('classic pilot reserves one copy per episode, rotates eras, and keeps viewer history separate', async () => {
   const { SessionRotation } = await import('../realsignal_api_rotation.js');
   const make = (id, title, year, seriesTitle) => ({...item(id), title, broadcastYear: year, seriesTitle});

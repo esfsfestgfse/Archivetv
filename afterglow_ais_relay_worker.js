@@ -6033,6 +6033,9 @@ function iaReviewedFileAllowed(item, channel) {
   let file = String(media.fileName || item.fileName || id.split('::')[1] || '');
   if (!file) { try { file = decodeURIComponent(new URL(media.url || item.mediaUrl || item.url).pathname.split('/').pop()); } catch (_) {} }
   file = file.split('/').pop();
+  // Both uploads of the 1950 premiere repeatedly failed the first-frame check.
+  // Other Jack Benny episodes remain eligible.
+  if (String(channel) === '10' && /^(?:501028TheJackBennyProgramS01e01PremiereShow|19501028TheJackBennyProgramDinahShore)$/i.test(source)) return false;
   // This original opens in Chromium without a video track. Keep the playable IA derivative.
   if (source === 'get-smart' && file === 'Get Smart S01E01 (Mr. Big).mp4') return false;
   // This parent's numbered original MP4 names were playlist labels, not files.

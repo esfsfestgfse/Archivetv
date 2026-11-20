@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 7.3.0</title>
+<title>REALSIGNAL · Retro Cable 7.3.1</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
@@ -1702,7 +1702,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="7.3.0-desktop-retro-cable";
+window.__ATV_BUILD="7.3.1-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7890,6 +7890,9 @@ function iaReviewedFileAllowed(item, channel) {
   let file = String(media.fileName || item.fileName || id.split('::')[1] || '');
   if (!file) { try { file = decodeURIComponent(new URL(media.url || item.mediaUrl || item.url).pathname.split('/').pop()); } catch (_) {} }
   file = file.split('/').pop();
+  // Both uploads of the 1950 premiere repeatedly failed the first-frame check.
+  // Other Jack Benny episodes remain eligible.
+  if (String(channel) === '10' && /^(?:501028TheJackBennyProgramS01e01PremiereShow|19501028TheJackBennyProgramDinahShore)$/i.test(source)) return false;
   // This original opens in Chromium without a video track. Keep the playable IA derivative.
   if (source === 'get-smart' && file === 'Get Smart S01E01 (Mr. Big).mp4') return false;
   // This parent's numbered original MP4 names were playlist labels, not files.
@@ -9612,8 +9615,10 @@ async function preloadNext(ch,sl,my){
   }catch(e){ nlog("preload",false,(e&&e.message)||e); }
 }
 function schedulePreload(ch,sl,my){
-  if(preloadInFlight&&preloadInFlight.chNum===ch.num&&Date.now()-preloadInFlight.at<15000)return preloadInFlight.promise;
-  var promise=preloadNext(ch,sl,my),entry={chNum:ch.num,promise:promise,at:Date.now()};
+  const current=preloadInFlight;
+  // The Archive shelf shares the network request, while the newest tune owns media staging.
+  if(current&&current.chNum===ch.num&&Date.now()-current.at<15000&&(!iaRepairEnabled(ch)||current.token===my))return current.promise;
+  const promise=preloadNext(ch,sl,my),entry={chNum:ch.num,promise:promise,at:Date.now(),token:my};
   preloadInFlight=entry;
   promise.then(function(){if(preloadInFlight===entry)preloadInFlight=null;},function(){if(preloadInFlight===entry)preloadInFlight=null;});
   return promise;

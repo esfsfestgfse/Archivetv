@@ -17,7 +17,6 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     ['Source Suite refresh does not fall back to a played item', source.includes('function v2TuneRefreshed') && !source.includes('if(next<0)next=state.items.findIndex(function(item){return String(item&&item.id||"")!==currentId;});')],
     ['Source Suite Next does not replay a played item when the shelf is exhausted', source.includes('window.__v2PreviewNext=function') && !source.includes('if(next<0)next=state.items.findIndex(function(item){return String(item&&item.id||"")!==currentId;});')],
     ['manual Source Suite Next has an available-item recovery path', source.includes('window.__v2PreviewNext=function(manual)') && source.includes('SOURCE SUITE · NEXT AVAILABLE PROGRAM')],
-    ['Source Suite tunes away from a retained recently played item', source.includes('function v2FreshCursor') && source.includes('v2FreshCursor(profile,state);')],
     ['cartoon era gate accepts explicit full episodes without printed years', source.includes('20\\d\\d') && source.includes('full|complete)\\s+(?:cartoon|episode)')],
   ];
   for (const [label, pass] of checks) {
@@ -63,6 +62,36 @@ const assert = require('node:assert/strict');
     assert.equal(scope.v2NextFreshIndex(profile,state,candidates[0].id),29,'confirmed exhaustion rotates to the oldest watched program instead of stopping at EOF');
     state.items.push(candidates[30]);
     assert.equal(scope.v2NextFreshIndex(profile,state,candidates[0].id),30,'new unseen programs always outrank exhausted fallback');
+
+
+    const tuneStart=source.indexOf('async function tuneV2Preview(');
+    const tuneEnd=source.indexOf('\nfunction v2TuneRefreshed(',tuneStart);
+    const cursorStart=source.indexOf('function v2FreshCursor(');
+    const cursorEnd=source.indexOf('\n',cursorStart);
+    const played=[], refreshes=[];
+    Object.assign(scope,{
+      token:1, V2_SOURCE_READY_BUFFER:5, v2PreviewInflight:{}, V2_PREVIEW_PROFILES:{darkroom:profile},
+      v2PreviewState:{503:{items:candidates.slice(0,6),cursor:0}},
+      v2CanPrepareYouTube:()=>false, v2PruneSourcePrograms:()=>{}, v2YouTubeSDKEnabled:()=>true,
+      playV2Embed:async(item)=>{played.push(item.id);return true;},
+      v2TuneRefreshed:async(ch)=>{refreshes.push(ch.num);}, showOv:()=>{},
+      refreshGuideData:()=>{}, setChanStatus:()=>{}
+    });
+    vm.runInContext(fs.readFileSync(path.join(root,'assets/ok-embed-runtime.js'),'utf8'),scope);
+    vm.runInContext(source.slice(cursorStart,cursorEnd),scope);
+    vm.runInContext(source.slice(tuneStart,tuneEnd),scope);
+    values.set('v2recent:The Darkroom',[candidates[0].id]);
+    await scope.tuneV2Preview({num:503,nm:'The Darkroom',previewKey:'darkroom'},{},1);
+    assert.deepEqual(played,[candidates[1].id],file+': tuning chooses the next unseen program over the retained cursor');
+
+    const cookhouse={name:'OK Cookhouse',profileKey:'ok-cookhouse-channel',intent:'television'};
+    const retained=Array.from({length:6},(_,i)=>({id:'ok:'+i,title:'Cooking '+i,canonicalProgramKey:'cooking:episode:'+i,type:'embed',provider:'OK.ru'}));
+    scope.V2_PREVIEW_PROFILES[cookhouse.profileKey]=cookhouse;
+    scope.v2PreviewState[608]={items:retained,cursor:0,catalogExhausted:false};
+    values.set('v2recentPrograms:OK Cookhouse',retained.map(item=>item.canonicalProgramKey));
+    await scope.tuneV2Preview({num:608,nm:cookhouse.name,previewKey:cookhouse.profileKey},{},1);
+    assert.deepEqual(played,[candidates[1].id],file+': Cookhouse never starts a retained watched upload while waiting for an unseen program');
+    assert.deepEqual(refreshes,[608],file+': a fully watched local shelf asks the server for new programs');
 
   }
   console.log('Source Suite candidate handoff and long actual-play history: passed');

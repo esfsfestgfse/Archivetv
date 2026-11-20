@@ -329,3 +329,26 @@ for (const file of ['the_dial_mobile.html', 'the_dial_desktop.html']) {
     assert.equal(JSON.stringify(context.__v2PreviewState), before);
   });
 }
+
+for (const file of ['the_dial_desktop.html','the_dial_mobile.html']) test(file + ': the pilot guide and Next agree on a decoded and stable reservation', async () => {
+  const {api,context} = browserAdapter(file);
+  const shelf={rows:()=>[b,c],peek:()=>b};
+  context.iaRepairEnabled=()=>true;
+  context.RealSignalIAShelf={enabled:true,tracksRoutes:()=>true,client:()=>shelf};
+  context.iaCachedProgramAllowed=(_ch,program)=>program.media.runtime>=120;
+  context.iaDisplayTitle=item=>item.title;
+  context.token=1;
+  actualFunctions(file,context,['iaPilotBuffered']);
+  assert.equal(api.snapshot(150).next,null,'a transport URL alone cannot be a guide promise');
+  const prepared=(readyOrder,videoWidth=640,duration=1440)=>({readyOrder,el:{readyState:2,videoWidth,videoHeight:480,duration}});
+  context.iaMediaWarmers['150:'+b.identifier]=prepared(1,0);
+  context.iaMediaWarmers['150:'+c.identifier]=prepared(2);
+  assert.equal(api.snapshot(150).next.id,c.identifier,'a pictureless candidate remains pending');
+  context.iaMediaWarmers['150:'+b.identifier]=prepared(3);
+  assert.equal(api.snapshot(150).next.id,c.identifier,'a newer buffer cannot displace the listed title');
+  context.playFile=async (program)=>{assert.equal(program.id,c.identifier);return true;};
+  const source=fs.readFileSync(path.join(root,file),'utf8');
+  const start=source.indexOf('async function tuneIARepair('),end=source.indexOf('async function tuneIA(',start);
+  vm.runInContext(source.slice(start,end),context);
+  await context.tuneIARepair(channel,{},1);
+});

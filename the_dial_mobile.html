@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · Retro Cable 7.2.23</title>
+<title>REALSIGNAL · Retro Cable 7.2.24</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
@@ -1741,7 +1741,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="7.2.23-mobile-retro-cable";
+window.__ATV_BUILD="7.2.24-mobile-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7628,14 +7628,43 @@ function iaMarkProgramFailed(id){if(id)iaProgramFailures[id]=Date.now()+IA_PROGR
    for a small set of explicitly requested neighboring stations, then hand that
    exact element to the player. Six is enough for channel surfing without turning
    the dial into a background download farm. */
-var iaMediaWarmers={}, iaMediaWarmerOrder=[], iaMediaWarmByChannel={}, iaWarmWanted={}, IA_MEDIA_WARM_MAX=6;
+var iaMediaWarmers={}, iaMediaWarmerOrder=[], iaMediaWarmByChannel={}, iaWarmWanted={}, IA_MEDIA_WARM_MAX=6, iaReadyOrder=0;
 function iaQueueKey(ch){return String((ch&&ch.num)||((ch&&ch.nm)||""));}
 function iaQueueRotationFor(ch){var key=iaQueueKey(ch);if(!Object.prototype.hasOwnProperty.call(iaQueueRotation,key)){var hash=iaRotationSessionSeed;for(var i=0;i<key.length;i++)hash=((hash*33)^key.charCodeAt(i))>>>0;iaQueueRotation[key]=hash%128;}return Math.max(0,Math.min(4095,Math.floor(Number(iaQueueRotation[key])||0)));}
 function iaAdvanceQueueRotation(ch){var key=iaQueueKey(ch);iaQueueRotation[key]=(iaQueueRotationFor(ch)+1)%4096;store.set("iaQueueRotation",iaQueueRotation);}
 function iaMediaWarmKey(ch,item){return iaQueueKey(ch)+":"+String(item&&item.identifier||item&&item.id||"");}
 function releaseIAMediaWarmer(key,keepElement){var w=iaMediaWarmers[key];if(!w)return null;delete iaMediaWarmers[key];if(iaMediaWarmByChannel[w.channel]===key)delete iaMediaWarmByChannel[w.channel];clearTimeout(w.timer);var i=iaMediaWarmerOrder.indexOf(key);if(i>=0)iaMediaWarmerOrder.splice(i,1);if(!keepElement){try{w.el.pause();w.el.removeAttribute("src");w.el.load();}catch(e){}}return w.el;}
 function takeIAMediaWarmer(ch,item){return releaseIAMediaWarmer(iaMediaWarmKey(ch,item),true);}
-function stageIAMediaWarmer(ch,item,pl){var ck=iaQueueKey(ch);if(!pl||!pl.url||!iaWarmWanted[ck]||iaWarmWanted[ck]<Date.now())return;var key=iaMediaWarmKey(ch,item),prior=iaMediaWarmByChannel[ck];if(!key||iaMediaWarmers[key])return;if(prior&&prior!==key){var pw=iaMediaWarmers[prior];if(pw&&pw.el.readyState>=2)return;releaseIAMediaWarmer(prior,false);}try{var el=document.createElement(pl.type==="audio"?"audio":"video");el.preload="auto";el.muted=true;el.playsInline=true;el.src=pl.url;el.load();iaMediaWarmerOrder.push(key);iaMediaWarmByChannel[ck]=key;iaMediaWarmers[key]={el:el,channel:ck,timer:setTimeout(function(){releaseIAMediaWarmer(key,false);},90000)};while(iaMediaWarmerOrder.length>IA_MEDIA_WARM_MAX)releaseIAMediaWarmer(iaMediaWarmerOrder[0],false);nlog("first-frame",true,"staging CH "+ck);}catch(e){}}
+function stageIAMediaWarmer(ch,item,pl){
+  var ck=iaQueueKey(ch);
+  if(!pl||!pl.url||!iaWarmWanted[ck]||iaWarmWanted[ck]<Date.now())return;
+  var key=iaMediaWarmKey(ch,item),prior=iaMediaWarmByChannel[ck];
+  if(!key||iaMediaWarmers[key])return;
+  var pilot=window.RealSignalIAShelf?.tracksRoutes?.(ch.num)&&iaRepairEnabled(ch);
+  if(pilot){
+    if(Object.values(iaMediaWarmers).filter(function(w){return w.channel===ck;}).length>=2)return;
+  }else if(prior&&prior!==key){
+    var previous=iaMediaWarmers[prior];
+    if(previous&&previous.el.readyState>=2)return;
+    releaseIAMediaWarmer(prior,false);
+  }
+  try{
+    var el=document.createElement(pl.type==="audio"?"audio":"video");
+    el.preload="auto";el.muted=true;el.playsInline=true;
+    var warmer={el:el,channel:ck,timer:setTimeout(function(){releaseIAMediaWarmer(key,false);},90000)};
+    iaMediaWarmers[key]=warmer;iaMediaWarmerOrder.push(key);iaMediaWarmByChannel[ck]=key;
+    if(pilot){
+      el.addEventListener("loadeddata",function(){
+        if(iaMediaWarmers[key]!==warmer||el.readyState<2||!(el.videoWidth>0))return;
+        warmer.readyOrder=++iaReadyOrder;
+        try{window.RealSignalGuide?.refresh();}catch(e){}
+      },{once:true});
+    }
+    el.src=pl.url;el.load();
+    while(iaMediaWarmerOrder.length>IA_MEDIA_WARM_MAX)releaseIAMediaWarmer(iaMediaWarmerOrder[0],false);
+    nlog("first-frame",true,"staging CH "+ck);
+  }catch(e){releaseIAMediaWarmer(key,false);}
+}
 function warmIAQueueHead(ch){var q=iaProgramQueues[iaQueueKey(ch)]||[],item=null;for(var i=0;i<q.length;i++){var ready=iaProgramMedia[q[i].identifier];if(ready&&typeof ready.then!=="function"&&ready.url){item=q[i];break;}}item=item||q[0];if(!item)return;var pl=iaProgramMedia[item.identifier];if(pl&&typeof pl.then==="function")pl.then(function(ready){stageIAMediaWarmer(ch,item,ready);});else stageIAMediaWarmer(ch,item,pl);}
 function iaRuntimeSeconds(v){if(typeof v==="number")return v;var s=String(v||""),p=s.split(":");if(p.length===3)return (+p[0]||0)*3600+(+p[1]||0)*60+(+p[2]||0);if(p.length===2)return (+p[0]||0)*60+(+p[1]||0);var h=s.match(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)/i),m=s.match(/(\d+(?:\.\d+)?)\s*(?:minutes?|mins?)/i);if(h||m)return Math.round(((h?+h[1]:0)*3600)+((m?+m[1]:0)*60));return parseFloat(s)||0;}
 function iaRuntimeLabel(v){var s=Math.round(iaRuntimeSeconds(v));if(!s)return "";return s>=3600?Math.floor(s/3600)+"h "+Math.round((s%3600)/60)+"m":Math.max(1,Math.round(s/60))+"m";}
@@ -8831,7 +8860,9 @@ function guidePlaybackSnapshot(ch,viewing){
       if(index>=0)queue=(profile.personalRotation===true?[preview.items[index]]:preview.items.slice(index).concat(preview.items.slice(0,index))).filter(function(item){return !(item&&item.meta&&item.meta.verification&&item.meta.verification.playback===false);});
     }
   }else if(ch&&!ch.source){
-    if(iaRepairEnabled(ch))queue=window.RealSignalIAShelf.client().rows(iaQueueKey(ch));
+    if(iaRepairEnabled(ch))queue=window.RealSignalIAShelf.tracksRoutes?.(ch.num)
+      ? iaPilotBuffered(ch,slotFor(ch,0,{preview:true}))
+      : window.RealSignalIAShelf.client().rows(iaQueueKey(ch));
     else{
       var sl=slotFor(ch,0,{preview:true});
       queue=(iaProgramQueues[iaQueueKey(ch)]||[]).filter(function(item){return iaProgramAllowed(item,sl,true)&&iaProgramMedia[item.identifier]!==null&&!iaPendingTooLong(item.identifier);}).map(function(item,index){
@@ -9567,16 +9598,29 @@ async function preloadNext(ch,sl,my){
       iaWarmWanted[key]=Date.now()+120000;
       stageIAMediaWarmer(ch,next,window.RealSignalIAShelf.rankedMedia?.(ch.num,next)||next.media);
     }
+
+    var pilot=window.RealSignalIAShelf.tracksRoutes?.(ch.num);
+    function stagePilotReservations(){
+      var candidates=new Map();
+      iaPilotBuffered(ch,sl).concat(shelf.rows(key)).forEach(function(row){
+        if(candidates.size<2)candidates.set(iaMediaWarmKey(ch,row),row);
+      });
+      Object.keys(iaMediaWarmers).forEach(function(warmKey){
+        if(iaMediaWarmers[warmKey].channel===key&&!candidates.has(warmKey))releaseIAMediaWarmer(warmKey,false);
+      });
+      candidates.forEach(stage);
+    }
     try {
       var queued=shelf.peek(key);
-      stage(queued);
+      if(pilot)stagePilotReservations();else stage(queued);
       // Refill behind both ready programs so consecutive skips have a head start.
       if(shelf.rows(key).length>=3)return;
       await shelf.reserve(key,iaRepairBody(ch,sl));
       if(!powered||curNum!==ch.num)return;
       var next=shelf.peek(key);
+      if(my===token&&pilot)stagePilotReservations();
       if(next&&next.identifier!==(queued&&queued.identifier)){
-        if(my===token)stage(next);
+        if(my===token&&!pilot)stage(next);
         refreshGuideData();
         if(window.RealSignalGuide)window.RealSignalGuide.refresh();
       }
@@ -9695,6 +9739,20 @@ function iaRepairBody(ch,sl){
   iaRepairPlans[key]={profile:profile,body:body};return body;
 }
 function iaRepairEvent(ch,it,event){if(!iaRepairEnabled(ch)||!it||it.isAd||it.isSignoff||it.ch!=null&&Number(it.ch)!==Number(ch.num))return Promise.resolve();return window.RealSignalIAShelf.client().event(iaQueueKey(ch),it,event).catch(function(error){nlog("ia-repair-event",false,String(error));});}
+
+function iaPilotBuffered(ch,sl){
+  if(!window.RealSignalIAShelf?.tracksRoutes?.(ch.num))return [];
+  var rows=window.RealSignalIAShelf.client().rows(iaQueueKey(ch)),prepared=[];
+  for(var item of rows){
+    var warm=iaMediaWarmers[iaMediaWarmKey(ch,item)],video=warm?.el;
+    if(!warm?.readyOrder||video.error||video.readyState<2||!(video.videoWidth>video.videoHeight&&video.videoHeight>0)||!(Number.isFinite(video.duration)&&video.duration>0))continue;
+    var media={...item.media,url:video.src||item.media.url,runtime:video.duration,width:video.videoWidth,height:video.videoHeight};
+    var decoded={...item,media,duration:video.duration};
+    if(iaCachedProgramAllowed(ch,decoded,sl))prepared.push({item:decoded,order:warm.readyOrder});
+  }
+  // A later file becoming ready must not replace the title already displayed.
+  return prepared.sort(function(a,b){return a.order-b.order;}).map(function(row){return row.item;});
+}
 function iaRepairSpare(ch,currentId){
   return window.RealSignalIAShelf.client().rows(iaQueueKey(ch)).find(function(item){
     return item.identifier!==currentId&&item.media.type==="video";
@@ -9705,8 +9763,8 @@ async function tuneIARepair(ch,sl,my){
   try{
     for(var attempt=0;attempt<3;attempt++){
       if(my!==token||!powered||curNum!==ch.num)return;
-      var item=shelf.peek(key);
-      if(!item){await shelf.reserve(key,iaRepairBody(ch,sl));if(my!==token||!powered||curNum!==ch.num)return;item=shelf.peek(key);}
+      var item=iaPilotBuffered(ch,sl)[0]||shelf.peek(key);
+      if(!item){await shelf.reserve(key,iaRepairBody(ch,sl));if(my!==token||!powered||curNum!==ch.num)return;item=iaPilotBuffered(ch,sl)[0]||shelf.peek(key);}
       if(!item)break;
       var media={...(window.RealSignalIAShelf.rankedMedia?.(ch.num,item)||item.media),id:item.identifier,title:iaDisplayTitle(item,ch),year:item.year,meta:item};
       var handoff={};

@@ -9,13 +9,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 7.2.20</title>
+<title>REALSIGNAL · Retro Cable 7.2.21</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=7.2.19"></script>
-<script src="assets/ia-playback-shelf.js?v=7.2.20"></script>
+<script src="assets/ia-playback-shelf.js?v=7.2.21"></script>
 <script src="assets/sports-programs.js?v=7.0.0"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
 <script src="assets/youtube-embed-runtime.js?v=7.2.1"></script>
@@ -1702,7 +1702,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="7.2.20-desktop-retro-cable";
+window.__ATV_BUILD="7.2.21-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -9513,7 +9513,7 @@ async function preloadNext(ch,sl,my){
     function stage(next){
       if(!next)return;
       iaWarmWanted[key]=Date.now()+120000;
-      stageIAMediaWarmer(ch,next,next.media);
+      stageIAMediaWarmer(ch,next,window.RealSignalIAShelf.rankedMedia?.(ch.num,next)||next.media);
     }
     try {
       var queued=shelf.peek(key);
@@ -9656,7 +9656,7 @@ async function tuneIARepair(ch,sl,my){
       var item=shelf.peek(key);
       if(!item){await shelf.reserve(key,iaRepairBody(ch,sl));if(my!==token||!powered||curNum!==ch.num)return;item=shelf.peek(key);}
       if(!item)break;
-      var media={...item.media,id:item.identifier,title:iaDisplayTitle(item,ch),year:item.year,meta:item};
+      var media={...(window.RealSignalIAShelf.rankedMedia?.(ch.num,item)||item.media),id:item.identifier,title:iaDisplayTitle(item,ch),year:item.year,meta:item};
       if(await playFile(media,ch,sl,my,0))return;
       if(my!==token||!powered||curNum!==ch.num)return;
       // Removing the failure from the local shelf is synchronous. Try a reserved spare
@@ -9892,6 +9892,9 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl){return new Promise(r
     setCurItem(it,ch,sl,false);showNow(ch,sl,it.title||ch.nm,it.year?("· "+it.year):(it.source||""));bug.classList.remove("hide");
     return res(true);
   }
+  const routeHealth=window.RealSignalIAShelf;
+  const learnRoute=routeHealth?.tracksRoutes?.(ch.num)&&!isAudio&&!it.isAd&&!it.isSignoff&&iaRepairEnabled(ch);
+  let routeStarted=learnRoute?performance.now():0;
   soundBlocked=false; // flag only set if the muted fallback fires
   const staged=(!it.isAd&&!it.isSignoff&&ch&&ch.num>0)?takeIAMediaWarmer(ch,it):null;
   const outgoing=(curVideo&&curVideo.tagName==="VIDEO"&&curVideo.parentNode===screenArea&&curVideo!==staged)?curVideo:null;
@@ -9904,7 +9907,7 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl){return new Promise(r
   }else{try{outgoing.muted=true;}catch(e){}}
   const av=acquireVideo(staged,preservePicture), v=av.v, sig=av.sig; /* stage cold media behind the outgoing picture, then swap atomically */
   const sourceHls=!staged&&!isAudio&&ch&&ch.source==="v2preview"&&/peertube|nascar classics/i.test(String(it.provider||""))&&/\.m3u8(?:[?#]|$)/i.test(it.url)&&window.RealSignalPeerTubeMedia;
-  if(!staged&&!sourceHls)v.src=it.url; v.autoplay=true; v.controls=!isAudio; v.playsInline=true; v.setAttribute("playsinline","");v.setAttribute("webkit-playsinline","");
+  if(!sourceHls&&(!staged||(learnRoute&&staged.readyState<2&&staged.src!==it.url)))v.src=it.url; v.autoplay=true; v.controls=!isAudio; v.playsInline=true; v.setAttribute("playsinline","");v.setAttribute("webkit-playsinline","");
   const castReceiverMode=document.body.classList.contains("cast-receiver");
   v.muted=castReceiverMode||muted||((Date.now()-lastGesture)>4000); /* The hidden director stays muted on TV; CAF owns the audible/video output. */
   v.volume=castReceiverMode?0:vol;
@@ -9930,7 +9933,8 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl){return new Promise(r
       const spare=boundedIaStart&&!sportsControl&&my===token&&iaRepairSpare(ch,it.id);
       const warm=spare&&iaMediaWarmers[iaMediaWarmKey(ch,spare)];
       const hasPicture=warm&&!warm.el.error&&warm.el.readyState>=2&&warm.el.videoWidth>0;
-      if(boundedIaStart&&nativeAudit)nativeAudit("archive-start-timeout",{id:it.id,readyState:v.readyState,spareReady:!!hasPicture});
+      const failedRoute=learnRoute&&my===token&&powered&&!document.hidden&&v.readyState<2?routeHealth.recordRoute(ch.num,it,v.src,null):"";
+      if(boundedIaStart&&nativeAudit)nativeAudit("archive-start-timeout",{id:it.id,readyState:v.readyState,spareReady:!!hasPicture,host:failedRoute||undefined});
       if(boundedIaStart&&!hasPicture&&tryAlternate())return;
       fin(false);
     },timeout);
@@ -9942,7 +9946,7 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl){return new Promise(r
       const spare=iaRepairSpare(ch,it.id);
       if(!spare)return;
       iaWarmWanted[iaQueueKey(ch)]=Date.now()+120000;
-      stageIAMediaWarmer(ch,spare,spare.media);
+      stageIAMediaWarmer(ch,spare,routeHealth?.rankedMedia?.(ch.num,spare)||spare.media);
     },1500);
   }
   const nativeAudit=window.__rsPlaybackAudit?.source(ch.num);
@@ -10002,14 +10006,23 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl){return new Promise(r
       showNow(ch,sl,it.title||ch.nm, it.year?("· "+it.year):(it.source||""));
       bug.classList.remove("hide");
       v.style.opacity="1"; // Reveal the validated current picture without a throttled animation-frame wait.
+      if(learnRoute&&typeof v.requestVideoFrameCallback==="function"){
+        const url=v.src, started=routeStarted;
+        v.requestVideoFrameCallback(function(now){
+          if(my!==token||curVideo!==v||document.hidden||!v.videoWidth||v.src!==url)return;
+          const firstFrameMs=Math.round(now-started), host=routeHealth.recordRoute(ch.num,it,url,firstFrameMs);
+          if(host&&nativeAudit)nativeAudit("archive-route-first-frame",{id:it.id,host,firstFrameMs});
+        });
+      }
     } else {if(my===token){try{v.pause();}catch(e){}}av.rollback();}
     res(ok);
   }
   v.addEventListener("loadeddata",()=>{ if(sportsControl&&sportsControl.seekSeconds>0){try{v.currentTime=Math.min(sportsControl.seekSeconds,Math.max(0,Number(v.duration)-1));}catch(e){}}else if(resumeSeekSec>0){ try{v.currentTime=resumeSeekSec;}catch(e){} resumeSeekSec=0; } },{signal:sig});
   // Older catalog rows can have a verified direct URL without its same-file download route.
   const archiveAlternate=boundedIaStart?window.RealSignalIAShelf?.sameFileAlternate?.(it):"";
-  const altQ=(it.alts||(it.alt?[it.alt]:[])).concat(archiveAlternate).filter(function(url,index,all){return url&&url!==it.url&&all.indexOf(url)===index;}).slice(0,boundedIaStart?1:8);
-  function tryAlternate(){if(done||my!==token||!powered||!altQ.length)return false;const nx=altQ.shift();try{nlog("video",true,"retrying the same program on an alternate origin");v.src=nx;v.load();}catch(e){}if(boundedIaStart){if(nativeAudit)nativeAudit("archive-same-file-retry",{id:it.id});armStart(3500);}tryPlay();return true;}
+  const initialRoute=learnRoute?v.src:it.url;
+  const altQ=(learnRoute?[it.url]:[]).concat(it.alts||(it.alt?[it.alt]:[]),archiveAlternate).filter(function(url,index,all){return url&&url!==initialRoute&&all.indexOf(url)===index;}).slice(0,boundedIaStart?1:8);
+  function tryAlternate(){if(done||my!==token||!powered||!altQ.length)return false;const nx=altQ.shift();try{nlog("video",true,"retrying the same program on an alternate origin");if(learnRoute)routeStarted=performance.now();v.src=nx;v.load();}catch(e){}if(boundedIaStart){if(nativeAudit)nativeAudit("archive-same-file-retry",{id:it.id});armStart(3500);}tryPlay();return true;}
   v.addEventListener("error",()=>{try{nlog("video",false,"err"+((v.error&&v.error.code)||"?")+" "+((v.src||"").split("/").pop().slice(-40)));}catch(e){}
     if(it.isAd&&done&&finishAd())return;
     if(tryAlternate())return;

@@ -43,8 +43,8 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     assert.equal(audio.video.style.opacity, '0');
   });
 }
-function runtime(search = '?iaRepair=1', pilot = '', castConnected) {
-  const scope = { window: { __rsCastIsConnected: castConnected }, URL, URLSearchParams, location: { search }, document: { querySelector: () => pilot ? { content: pilot } : null }, Date, Promise, setTimeout, clearTimeout };
+function runtime(search = '?iaRepair=1', pilot = '', castConnected, localStorage, clock = Date) {
+  const scope = { window: { __rsCastIsConnected: castConnected }, URL, URLSearchParams, location: { search }, document: { querySelector: () => pilot ? { content: pilot } : null }, Date:clock, localStorage, Promise, setTimeout, clearTimeout };
   vm.createContext(scope);
   vm.runInContext(fs.readFileSync(path.join(root, 'assets/ia-playback-shelf.js'), 'utf8'), scope);
   return scope.window.RealSignalIAShelf;
@@ -291,7 +291,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     const spare = item('different-reserved-episode'), primary = { identifier:'series::Season 1/Pilot.mp4',
       media:{ type:'video', url:'https://dn600301.us.archive.org/0/items/series/Season%201/Pilot.mp4' } };
     const warmer = {}, load = [];
-    const scope = { window: { RealSignalIAShelf: { ...runtime(), client: () => ({ rows: () => hasSpare ? [primary, spare] : [primary] }) } },
+    const scope = { window: { RealSignalIAShelf: { ...runtime(), tracksRoutes: () => false, client: () => ({ rows: () => hasSpare ? [primary, spare] : [primary] }) } },
       iaQueueKey: ch => String(ch.num), iaMediaWarmKey: (ch, row) => ch.num + ':' + row.identifier, iaMediaWarmers: warmer, iaWarmWanted: {},
       stageIAMediaWarmer: (ch, row, media) => { load.push(media.url); warmer[ch.num + ':' + row.identifier] = { el: { readyState: 4, videoWidth: 640 } }; }, document: { createElement: () => video, body: { classList: { contains: () => false } } },
       theVideo: video, videoCtl: null, AbortController, curVideo: null, screenArea: { innerHTML: '', appendChild() {} },
@@ -462,4 +462,59 @@ test('Classic Rerun excludes alternate episode uploads and balances into the 198
   const next = await (await viewer.reservation({mode:'reserve',stationChannel,items:[copy,otherEpisode,otherDecade],count:2})).json();
   assert.equal(next.catalog.length,3, 'alternate encodes count as one episode');
   assert.deepEqual(next.items.map(row=>row.identifier),[otherDecade.identifier,otherEpisode.identifier]);
+});
+
+test('measured route outcomes rank exact-file mirrors across page loads within the pilot', () => {
+  const saved = new Map(), storage = {getItem: k => saved.get(k), setItem: (k,v) => saved.set(k,v)};
+  let now = 100000;
+  const clock = {now: () => now};
+  const api = runtime('', '', undefined, storage, clock);
+  const primary = 'https://dn600301.us.archive.org/0/items/series/Season%201/Pilot.mp4';
+  const mirror = 'https://dn711407.ca.archive.org/0/items/series/Season%201/Pilot.mp4';
+  const wrongFile = mirror.replace('Pilot.mp4','Second.mp4');
+  const program = {identifier:'series::Season 1/Pilot.mp4',media:{url:primary,alts:[mirror,wrongFile],type:'video'}};
+  assert.equal(api.rankedMedia(10, program).url, primary, 'a fresh profile follows the published route');
+  api.recordRoute(10, program, wrongFile, 17);
+  api.recordRoute(11, program, mirror, 20);
+  assert.equal(api.rankedMedia(10,program).url,primary);
+  api.recordRoute(10, program, primary, null);
+  api.recordRoute(10, program, mirror, 810);
+  const nextPage = runtime('', '', undefined, storage, clock);
+  const ranked = nextPage.rankedMedia(150, program);
+  assert.equal(ranked.url,mirror);
+  assert.ok(ranked.alts.includes(primary), 'the original route remains eligible for fallback');
+  assert.ok(!ranked.alts.includes(wrongFile));
+  assert.equal(program.media.url,primary, 'ranking must not mutate the catalog');
+  assert.equal(nextPage.rankedMedia(12,program).url,primary, 'route ranking stays inside the two pilots');
+  api.recordRoute(10,program,api.sameFileAlternate(program),650);
+  const unrelated = {identifier:'other::Show.mp4',media:{url:'https://dn600700.us.archive.org/0/items/other/Show.mp4'}};
+  assert.equal(api.rankedMedia(10,unrelated).url,unrelated.media.url,'a fast redirect for one file cannot rate unrelated Archive redirects');
+  now += 25 * 60 * 60 * 1000;
+  assert.equal(nextPage.rankedMedia(10,program).url,primary, 'old observations expire');
+});
+
+test('a pilot records an owned first frame and ignores the same callback after a retune', async () => {
+  for (const file of ['the_dial_desktop.html','the_dial_mobile.html']) {
+    for (const superseded of [false,true]) {
+      const h = readyVideoFixture(file), observed = [];
+      h.scope.iaRepairEnabled = () => true;
+      h.scope.iaRepairSpare = () => null;
+      h.scope.performance = {now: () => 100};
+      h.scope.window.RealSignalIAShelf = {
+        tracksRoutes: () => true,
+        recordRoute: (...args) => observed.push(args),
+        lifecycle: runtime().lifecycle
+      };
+      let firstFrame;
+      h.video.requestVideoFrameCallback = cb => { firstFrame = cb; };
+      const pending = h.start();
+      h.handlers.playing();
+      assert.equal(await pending,true);
+      assert.deepEqual(observed,[], 'metadata and playing alone provide no first-frame evidence');
+      if(superseded) h.scope.token++;
+      firstFrame(950);
+      assert.equal(observed.length,superseded?0:1);
+      if(!superseded) assert.equal(observed[0][3],850);
+    }
+  }
 });

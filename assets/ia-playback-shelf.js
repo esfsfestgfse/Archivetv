@@ -63,17 +63,74 @@
     }
     return { reserve: reserve, event: event, rows: rows, peek: function (key) { return rows(key)[0] || null; } };
   }
-  function sameFileAlternate(item) {
+  function archiveRoute(item, url) {
     var identifier = String(item.identifier || item.id || ''), separator = identifier.indexOf('::');
-    if (separator <= 0) return '';
+    if (separator <= 0 || !url) return null;
     var source = identifier.slice(0, separator).replace(/^ia:/i, ''), file = identifier.slice(separator + 2);
     try {
-      var primary = new URL((item.media || item).url);
-      if (primary.protocol !== 'https:' || !primary.hostname.endsWith('.archive.org')) return '';
-      var path = primary.pathname.match(/^\/\d+\/items\/([^/]+)\/(.+)$/);
-      if (!path || decodeURIComponent(path[1]) !== source || decodeURIComponent(path[2]) !== file) return '';
-      return 'https://archive.org/download/' + encodeURIComponent(source) + '/' + file.split('/').map(encodeURIComponent).join('/');
-    } catch (_) { return ''; }
+      var parsed = new URL(url);
+      if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.port) return null;
+      var path = parsed.hostname === 'archive.org' ? parsed.pathname.match(/^\/download\/([^/]+)\/(.+)$/)
+        : parsed.hostname.endsWith('.archive.org') && parsed.pathname.match(/^\/\d+\/items\/([^/]+)\/(.+)$/);
+      if (path && decodeURIComponent(path[1]) === source && decodeURIComponent(path[2]) === file) {
+        return { host: parsed.hostname, source: source, file: file };
+      }
+    } catch (_) {}
+    return null;
+  }
+  function sameFileAlternate(item) {
+    var route = archiveRoute(item, (item.media || item).url);
+    if (!route || route.host === 'archive.org') return '';
+    return 'https://archive.org/download/' + encodeURIComponent(route.source) + '/' + route.file.split('/').map(encodeURIComponent).join('/');
+  }
+
+  // Connection quality is viewer-specific. Keep a bounded local history of
+  // requested routes, including the delay of Archive's download redirect.
+  var routeStorageKey = 'realsignal:archive-route-history:v1', routeHistory;
+  function tracksRoutes(channel) { return Number(channel) === 10 || Number(channel) === 150; }
+  function routeStats() {
+    if (!routeHistory) {
+      routeHistory = Object.create(null);
+      try { Object.assign(routeHistory, JSON.parse(localStorage.getItem(routeStorageKey)) || {}); } catch (_) {}
+    }
+    return routeHistory;
+  }
+  function routeKey(route) {
+    // The download entry point can send unrelated files to different servers.
+    return route.host === 'archive.org' ? route.host + ':' + route.source + '::' + route.file : route.host;
+  }
+  function routeSample(key, now) {
+    var row = routeStats()[key];
+    return row && Number.isFinite(row.ms) && now >= row.at && now - row.at < (row.timedOut ? 30 * 60_000 : 86400_000) ? row : null;
+  }
+  function recordRoute(channel, item, url, firstFrameMs) {
+    if (!tracksRoutes(channel)) return '';
+    var route = archiveRoute(item, url);
+    if (!route || (firstFrameMs !== null && !Number.isFinite(firstFrameMs))) return '';
+    var stats = routeStats(), key = routeKey(route), now = Date.now(), old = routeSample(key, now);
+    var measured = firstFrameMs === null ? 5000 : Math.max(600, Math.min(4000, firstFrameMs));
+    stats[key] = {
+      at: now, timedOut: firstFrameMs === null,
+      ms: old && !old.timedOut && firstFrameMs !== null ? Math.round(old.ms * 0.4 + measured * 0.6) : measured
+    };
+    Object.keys(stats).sort(function (a, b) { return stats[b].at - stats[a].at; }).slice(32)
+      .forEach(function (host) { delete stats[host]; });
+    try { localStorage.setItem(routeStorageKey, JSON.stringify(stats)); } catch (_) {}
+    return route.host;
+  }
+  function rankedMedia(channel, item) {
+    var media = item.media || item;
+    if (!tracksRoutes(channel) || !archiveRoute(item, media.url)) return media;
+    var now = Date.now(), used = new Set();
+    var choices = [media.url].concat(media.alts || (media.alt ? [media.alt] : []), sameFileAlternate(item))
+      .flatMap(function (url) {
+        var route = archiveRoute(item, url);
+        if (!route || used.has(route.host)) return [];
+        used.add(route.host);
+        var sample = routeSample(routeKey(route), now);
+        return [{ url: url, score: sample ? sample.ms : 4000 }];
+      }).sort(function (a, b) { return a.score - b.score; });
+    return Object.assign({}, media, { url: choices[0].url, alts: choices.slice(1).map(function (choice) { return choice.url; }) });
   }
   function lifecycle(active, recover) {
     var started = false, failed = false;
@@ -109,6 +166,7 @@
   }
   window.RealSignalIAShelf = {
     enabled: enabled, enabledForChannel: enabledForChannel, create: create, lifecycle: lifecycle, sameFileAlternate: sameFileAlternate,
+    tracksRoutes: tracksRoutes, rankedMedia: rankedMedia, recordRoute: recordRoute,
     queue: function (body) { return request('/ia/queue', Object.assign({}, body, { iaRepair: true, serverCatalog: true })); },
     client: function () { return client || (client = create({ queue: function (body) { return window.RealSignalIAShelf.queue(body); }, report: function (body) { return request('/ia/playback', body); } })); }
   };

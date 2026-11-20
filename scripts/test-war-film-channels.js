@@ -1,6 +1,8 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const vm = require("node:vm");
+const sourcePolicy = require("../assets/source-program-policy.js");
 const { DatabaseSync } = require("node:sqlite");
 
 (async () => {
@@ -41,6 +43,26 @@ const { DatabaseSync } = require("node:sqlite");
       for (const surface of ["desktop", "mobile"]) {
         const body = fs.readFileSync(path.resolve(__dirname, "../the_dial_" + surface + ".html"), "utf8");
         assert.match(body, new RegExp('num:' + channel + '[^\\n]+previewKey:"' + profileKey + '"'));
+        const saved = new Map();
+        const browser = {
+          window: { RealSignalSourcePrograms: sourcePolicy },
+          V2_SOURCE_READY_BUFFER: 5,
+          store: { get: key => saved.get(key), set: (key, value) => saved.set(key, value) },
+        };
+        vm.createContext(browser);
+        for (const name of ["v2Shuffle", "v2Recent", "v2Rejected", "v2Shelf", "v2CatalogOrder"]) {
+          vm.runInContext(body.match(new RegExp("^function " + name + "\\(.*$", "m"))[0], browser);
+        }
+        vm.runInContext(body.match(/^function v2WarFilmOrder\([\s\S]*?^}/m)[0], browser);
+        const movies = reviewedWarFilms(profileKey);
+        const watched = movies.find(item => item.year >= 2000);
+        saved.set("v2recent:" + profileKey, [watched.id]);
+        const ordered = browser.v2CatalogOrder(profileKey, movies, profileKey);
+        assert.ok(ordered.slice(0, 5).some(item => item.year < 1980), "viewer shelf keeps the classics");
+        if (profileKey !== "ia-war-movies") {
+          assert.ok(ordered.slice(0, 5).filter(item => item.year >= 2000).length >= 2, "client shuffle keeps a modern mix");
+        }
+        assert.equal(ordered.at(-1).id, watched.id, "viewer history wins over era balancing");
       }
       const profile = sourceProfile({ profileKey });
       assert.equal(sourceProfile({ channel })?.profileKey, profileKey, "API must use the shared channel-to-source mapping");

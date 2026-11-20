@@ -63,6 +63,18 @@
     }
     return { reserve: reserve, event: event, rows: rows, peek: function (key) { return rows(key)[0] || null; } };
   }
+  function sameFileAlternate(item) {
+    var identifier = String(item.identifier || item.id || ''), separator = identifier.indexOf('::');
+    if (separator <= 0) return '';
+    var source = identifier.slice(0, separator).replace(/^ia:/i, ''), file = identifier.slice(separator + 2);
+    try {
+      var primary = new URL((item.media || item).url);
+      if (primary.protocol !== 'https:' || !primary.hostname.endsWith('.archive.org')) return '';
+      var path = primary.pathname.match(/^\/\d+\/items\/([^/]+)\/(.+)$/);
+      if (!path || decodeURIComponent(path[1]) !== source || decodeURIComponent(path[2]) !== file) return '';
+      return 'https://archive.org/download/' + encodeURIComponent(source) + '/' + file.split('/').map(encodeURIComponent).join('/');
+    } catch (_) { return ''; }
+  }
   function lifecycle(active, recover) {
     var started = false, failed = false;
     return {
@@ -96,7 +108,7 @@
     } finally { clearTimeout(timer); }
   }
   window.RealSignalIAShelf = {
-    enabled: enabled, enabledForChannel: enabledForChannel, create: create, lifecycle: lifecycle,
+    enabled: enabled, enabledForChannel: enabledForChannel, create: create, lifecycle: lifecycle, sameFileAlternate: sameFileAlternate,
     queue: function (body) { return request('/ia/queue', Object.assign({}, body, { iaRepair: true, serverCatalog: true })); },
     client: function () { return client || (client = create({ queue: function (body) { return window.RealSignalIAShelf.queue(body); }, report: function (body) { return request('/ia/playback', body); } })); }
   };

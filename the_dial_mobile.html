@@ -16,13 +16,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · Retro Cable 7.2.19</title>
+<title>REALSIGNAL · Retro Cable 7.2.20</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=7.2.19"></script>
-<script src="assets/ia-playback-shelf.js?v=7.2.19"></script>
+<script src="assets/ia-playback-shelf.js?v=7.2.20"></script>
 <script src="assets/sports-programs.js?v=7.0.0"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
 <script src="assets/youtube-embed-runtime.js?v=7.2.19"></script>
@@ -1741,7 +1741,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="7.2.19-mobile-retro-cable";
+window.__ATV_BUILD="7.2.20-mobile-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -9712,6 +9712,7 @@ async function tuneIARepair(ch,sl,my){
       // Removing the failure from the local shelf is synchronous. Try a reserved spare
       // immediately; reserve() still flushes events before asking for more items.
       iaRepairEvent(ch,media,"failed");
+      try{window.RealSignalGuide?.refresh();}catch(e){}
     }
   }catch(error){nlog("ia-repair-tune",false,String(error));}
   if(my===token&&powered&&curNum===ch.num)iaRetry(ch,my);
@@ -9972,15 +9973,16 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl){return new Promise(r
   let done=false,to,adRecoveryTimer,spareTimer;
   const startTimeout=ch?.source==="onthisday"?3000:(boundedIaStart||sportsControl)?4000:(it.isAd?900:(ch&&ch.source==="v2preview"&&/peertube/i.test(String(it.provider||""))?15000:(isFallback>0?7000:(isAudio?9000:12000))));
   function finishAd(){if(!it.isAd||my!==token||!powered||curVideo!==v)return false;clearTimeout(adRecoveryTimer);try{v.pause();}catch(e){}v.dispatchEvent(new Event("ended"));return true;}
-  function armStart(){
+  function armStart(timeout=startTimeout){
     clearTimeout(to);
     to=setTimeout(function(){
       const spare=boundedIaStart&&!sportsControl&&my===token&&iaRepairSpare(ch,it.id);
       const warm=spare&&iaMediaWarmers[iaMediaWarmKey(ch,spare)];
       const hasPicture=warm&&!warm.el.error&&warm.el.readyState>=2&&warm.el.videoWidth>0;
+      if(boundedIaStart&&nativeAudit)nativeAudit("archive-start-timeout",{id:it.id,readyState:v.readyState,spareReady:!!hasPicture});
       if(boundedIaStart&&!hasPicture&&tryAlternate())return;
       fin(false);
-    },startTimeout);
+    },timeout);
   }
   armStart();
   if(boundedIaStart&&!sportsControl&&iaRepairSpare(ch,it.id)){
@@ -9992,7 +9994,8 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl){return new Promise(r
       stageIAMediaWarmer(ch,spare,spare.media);
     },1500);
   }
-  if(window.__rsPlaybackAudit)window.__rsPlaybackAudit.source(ch.num)("native-source",{id:it.id,provider:it.provider,hls:!!sourceHls,preloadedReadyState:staged?staged.readyState:null});
+  const nativeAudit=window.__rsPlaybackAudit?.source(ch.num);
+  if(nativeAudit)nativeAudit("native-source",{id:it.id,provider:it.provider,hls:!!sourceHls,preloadedReadyState:staged?staged.readyState:null});
   if(sourceHls)window.RealSignalPeerTubeMedia.attach(v,it.url,{signal:sig,isCurrent:function(){return my===token&&powered;},loadHls:loadHlsLib,onReady:tryPlay,onError:function(){if(done&&typeof sportsControl!=="undefined"&&sportsControl){sportsControl.onFailure(sportsControl.stallPosition==null?v.currentTime:sportsControl.stallPosition,v.duration);return;}if(done)v2RejectEmbed(it,ch,my);else fin(false);}});
   function tryPlay(){ try{const p=v.play&&v.play();
     if(p&&p.catch)p.catch(()=>{ /* audible autoplay blocked -> mute & retry so the queue continues */
@@ -10052,8 +10055,10 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl){return new Promise(r
     res(ok);
   }
   v.addEventListener("loadeddata",()=>{ if(sportsControl&&sportsControl.seekSeconds>0){try{v.currentTime=Math.min(sportsControl.seekSeconds,Math.max(0,Number(v.duration)-1));}catch(e){}}else if(resumeSeekSec>0){ try{v.currentTime=resumeSeekSec;}catch(e){} resumeSeekSec=0; } },{signal:sig});
-  const altQ=(it.alts||(it.alt?[it.alt]:[])).filter(function(url,index,all){return url&&url!==it.url&&all.indexOf(url)===index;}).slice(0,boundedIaStart?2:8);
-  function tryAlternate(){if(done||my!==token||!powered||!altQ.length)return false;const nx=altQ.shift();try{nlog("video",true,"retrying the same program on an alternate origin");v.src=nx;v.load();}catch(e){}if(boundedIaStart)armStart();tryPlay();return true;}
+  // Older catalog rows can have a verified direct URL without its same-file download route.
+  const archiveAlternate=boundedIaStart?window.RealSignalIAShelf?.sameFileAlternate?.(it):"";
+  const altQ=(it.alts||(it.alt?[it.alt]:[])).concat(archiveAlternate).filter(function(url,index,all){return url&&url!==it.url&&all.indexOf(url)===index;}).slice(0,boundedIaStart?1:8);
+  function tryAlternate(){if(done||my!==token||!powered||!altQ.length)return false;const nx=altQ.shift();try{nlog("video",true,"retrying the same program on an alternate origin");v.src=nx;v.load();}catch(e){}if(boundedIaStart){if(nativeAudit)nativeAudit("archive-same-file-retry",{id:it.id});armStart(3500);}tryPlay();return true;}
   v.addEventListener("error",()=>{try{nlog("video",false,"err"+((v.error&&v.error.code)||"?")+" "+((v.src||"").split("/").pop().slice(-40)));}catch(e){}
     if(it.isAd&&done&&finishAd())return;
     if(tryAlternate())return;

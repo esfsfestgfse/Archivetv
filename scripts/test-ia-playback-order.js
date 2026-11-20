@@ -44,11 +44,22 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
   });
 }
 function runtime(search = '?iaRepair=1', pilot = '', castConnected) {
-  const scope = { window: { __rsCastIsConnected: castConnected }, URLSearchParams, location: { search }, document: { querySelector: () => pilot ? { content: pilot } : null }, Date, Promise, setTimeout, clearTimeout };
+  const scope = { window: { __rsCastIsConnected: castConnected }, URL, URLSearchParams, location: { search }, document: { querySelector: () => pilot ? { content: pilot } : null }, Date, Promise, setTimeout, clearTimeout };
   vm.createContext(scope);
   vm.runInContext(fs.readFileSync(path.join(root, 'assets/ia-playback-shelf.js'), 'utf8'), scope);
   return scope.window.RealSignalIAShelf;
 }
+test('same-file fallback restores an Archive download URL for a precise reserved file only', () => {
+  const make = (identifier, url) => ({ identifier, media: { url } });
+  const alternate = runtime().sameFileAlternate;
+  const primary = 'https://dn600301.us.archive.org/0/items/series/Season%201/Pilot.mp4';
+  assert.equal(alternate(make('series::Season 1/Pilot.mp4', primary)), 'https://archive.org/download/series/Season%201/Pilot.mp4');
+  assert.equal(alternate(make('series::Season 1/Other.mp4', primary)), '');
+  assert.equal(alternate(make('series::Pilot.mp4', 'https://other.example/0/items/series/Pilot.mp4')), '');
+  assert.equal(alternate(make('series', primary)), '');
+  assert.equal(alternate(make('series::Season 1/Pilot.mp4', 'https://archive.org/download/series/Season%201/Pilot.mp4')), '');
+});
+
 const item = id => ({ identifier: id, title: id, media: { type: 'video', url: 'https://archive.org/download/series/' + id + '.mp4' } });
 
 for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': video playback cannot reuse the audio-only player left by a music channel',()=>{
@@ -277,7 +288,8 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     : ': a stalled origin can still try its alternate when no reserve is ready'), async () => {
     const source = fs.readFileSync(path.join(root, file), 'utf8'), timers = [], handlers = {};
     const video = { tagName: 'VIDEO', style: {}, classList: { toggle() {} }, pause() {}, removeAttribute() {}, load() {}, remove() {}, setAttribute() {}, play: () => Promise.resolve(), addEventListener: (type, fn) => { handlers[type] = fn; } };
-    const spare = item('different-reserved-episode'), primary = item('stalled-primary');
+    const spare = item('different-reserved-episode'), primary = { identifier:'series::Season 1/Pilot.mp4',
+      media:{ type:'video', url:'https://dn600301.us.archive.org/0/items/series/Season%201/Pilot.mp4' } };
     const warmer = {}, load = [];
     const scope = { window: { RealSignalIAShelf: { ...runtime(), client: () => ({ rows: () => hasSpare ? [primary, spare] : [primary] }) } },
       iaQueueKey: ch => String(ch.num), iaMediaWarmKey: (ch, row) => ch.num + ':' + row.identifier, iaMediaWarmers: warmer, iaWarmWanted: {},
@@ -292,7 +304,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     const repairStart = source.indexOf('function iaRepairEvent(');
     vm.runInContext(source.slice(repairStart, source.indexOf('async function tuneIA(ch,sl,my)', repairStart)), scope);
     vm.runInContext(source.slice(source.indexOf('function playFile('), source.indexOf('function showNow(')), scope);
-    const pending = scope.playFile({ id: primary.identifier, ...primary.media, alts: ['https://ia800001.us.archive.org/12/items/series/episode.mp4'] }, { num: 10 }, {}, 1, 0);
+    const pending = scope.playFile({ id: primary.identifier, ...primary.media }, { num: 10 }, {}, 1, 0);
     assert.ok(timers[0].ms <= 4000, 'a stalled origin must not hold Next for twelve seconds');
     assert.deepEqual(load, [], 'a fast startup should never need to load the spare');
     if (hasSpare) {
@@ -306,7 +318,8 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
       return;
     }
     timers[0].fn();
-    assert.match(video.src, /ia800001/);
+    assert.equal(video.src, 'https://archive.org/download/series/Season%201/Pilot.mp4');
+    assert.ok(timers[1].ms < timers[0].ms, 'an alternate cannot double the startup wait');
     timers[1].fn();
     assert.equal(await pending, false, 'exhaustion is bounded, not a reconnecting loop');
   });

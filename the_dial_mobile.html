@@ -16,13 +16,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · Retro Cable 7.2.21</title>
+<title>REALSIGNAL · Retro Cable 7.2.22</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=7.2.19"></script>
-<script src="assets/ia-playback-shelf.js?v=7.2.21"></script>
+<script src="assets/ia-playback-shelf.js?v=7.2.22"></script>
 <script src="assets/sports-programs.js?v=7.0.0"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
 <script src="assets/youtube-embed-runtime.js?v=7.2.19"></script>
@@ -1741,7 +1741,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="7.2.21-mobile-retro-cable";
+window.__ATV_BUILD="7.2.22-mobile-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -9707,7 +9707,13 @@ async function tuneIARepair(ch,sl,my){
       if(!item){await shelf.reserve(key,iaRepairBody(ch,sl));if(my!==token||!powered||curNum!==ch.num)return;item=shelf.peek(key);}
       if(!item)break;
       var media={...(window.RealSignalIAShelf.rankedMedia?.(ch.num,item)||item.media),id:item.identifier,title:iaDisplayTitle(item,ch),year:item.year,meta:item};
-      if(await playFile(media,ch,sl,my,0))return;
+      var handoff={};
+      if(await playFile(media,ch,sl,my,0,handoff))return;
+      if(handoff.prepared){
+        if(my!==token||!powered||curNum!==ch.num){handoff.prepared.removeAttribute("src");handoff.prepared.load();return;}
+        var sameFile={...media,url:handoff.prepared.src,alts:[]};
+        if(await playFile(sameFile,ch,sl,my,0,handoff))return;
+      }
       if(my!==token||!powered||curNum!==ch.num)return;
       // Removing the failure from the local shelf is synchronous. Try a reserved spare
       // immediately; reserve() still flushes events before asking for more items.
@@ -9902,9 +9908,9 @@ function unlockMedia(){ /* must be called from inside a real user gesture (power
 }
 
 /* play a direct media file in a <video> (audio uses it too) */
-function playFile(it,ch,sl,my,isFallback){
+function playFile(it,ch,sl,my,isFallback,archiveHandoff){
   var sports=window.RealSignalSports;
-  if(!sports||!ch||!sports.enabled(ch.num)||!it||it.isAd||it.isSignoff||ch.audio||(typeof document!=="undefined"&&document.body.classList.contains("cast-receiver"))||(typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected()))return playFileOnce(it,ch,sl,my,isFallback);
+  if(!sports||!ch||!sports.enabled(ch.num)||!it||it.isAd||it.isSignoff||ch.audio||(typeof document!=="undefined"&&document.body.classList.contains("cast-receiver"))||(typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected()))return playFileOnce(it,ch,sl,my,isFallback,undefined,archiveHandoff);
   function playable(row){var media=row.media||{},meta=Object.assign({},row.meta||{},row);
     delete meta.sportsCopies;
     return Object.assign({},row,{id:row.identifier||row.id,type:media.type||row.type||"video",url:media.url||row.url,
@@ -9924,7 +9930,7 @@ function playFile(it,ch,sl,my,isFallback){
   });
   return session.start();
 }
-function playFileOnce(it,ch,sl,my,isFallback,sportsControl){return new Promise(res=>{
+function playFileOnce(it,ch,sl,my,isFallback,sportsControl,archiveHandoff){return new Promise(res=>{
   if(ch&&String(ch.num)==="905"&&!iaReviewedFileAllowed(it,"905"))return res(false);
   const expectedType=(ch&&ch.audio)?"audio":"video";
   if(!it||!it.url||it.type!==expectedType){try{nlog("media",false,"rejected "+(it&&it.type||"unknown")+" for "+expectedType+" channel");}catch(e){}return res(false);}
@@ -9944,9 +9950,10 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl){return new Promise(r
   }
   const routeHealth=window.RealSignalIAShelf;
   const learnRoute=routeHealth?.tracksRoutes?.(ch.num)&&!isAudio&&!it.isAd&&!it.isSignoff&&iaRepairEnabled(ch);
-  let routeStarted=learnRoute?performance.now():0;
+  let routeStarted=learnRoute?(archiveHandoff?.startedAt??performance.now()):0;
   soundBlocked=false; // flag only set if the muted fallback fires
-  const staged=(!it.isAd&&!it.isSignoff&&ch&&ch.num>0)?takeIAMediaWarmer(ch,it):null;
+  const prepared=archiveHandoff?.prepared;
+  const staged=prepared||((!it.isAd&&!it.isSignoff&&ch&&ch.num>0)?takeIAMediaWarmer(ch,it):null);
   const outgoing=(curVideo&&curVideo.tagName==="VIDEO"&&curVideo.parentNode===screenArea&&curVideo!==staged)?curVideo:null;
   const preservePicture=!!outgoing;
   const retainedYouTube=(!isAudio&&!it.isAd&&!it.isSignoff&&ch&&ch.source==='v2preview'&&v2CanPrepareYouTube(V2_PREVIEW_PROFILES[ch.previewKey])&&window.RealSignalYouTubeEmbed&&typeof window.RealSignalYouTubeEmbed.suspend==='function')?window.RealSignalYouTubeEmbed.suspend():null;
@@ -9973,9 +9980,17 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl){return new Promise(r
      instances take several seconds to expose the first decoded frame. Do not
      discard a good Source Suite item at the generic IA timeout. */
   const boundedIaStart=iaRepairEnabled(ch)&&!isAudio&&!it.isAd&&!it.isSignoff;
-  let done=false,to,adRecoveryTimer,spareTimer;
-  const startTimeout=ch?.source==="onthisday"?3000:(boundedIaStart||sportsControl)?4000:(it.isAd?900:(ch&&ch.source==="v2preview"&&/peertube/i.test(String(it.provider||""))?15000:(isFallback>0?7000:(isAudio?9000:12000))));
+  let done=false,to,adRecoveryTimer,spareTimer,mirror;
+  const startTimeout=ch?.source==="onthisday"?3000:(boundedIaStart||sportsControl)?(prepared?1800:4000):(it.isAd?900:(ch&&ch.source==="v2preview"&&/peertube/i.test(String(it.provider||""))?15000:(isFallback>0?7000:(isAudio?9000:12000))));
   function finishAd(){if(!it.isAd||my!==token||!powered||curVideo!==v)return false;clearTimeout(adRecoveryTimer);try{v.pause();}catch(e){}v.dispatchEvent(new Event("ended"));return true;}
+  function moveToMirror(){
+    if(!mirror||mirror.video.error||done||my!==token||!powered||curNum!==ch.num)return false;
+    archiveHandoff.startedAt=mirror.startedAt;
+    archiveHandoff.prepared=mirror.release(true);mirror=null;
+    if(nativeAudit)nativeAudit("archive-warmed-mirror",{id:it.id});
+    fin(false);
+    return true;
+  }
   function armStart(timeout=startTimeout){
     clearTimeout(to);
     to=setTimeout(function(){
@@ -9984,14 +9999,20 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl){return new Promise(r
       const hasPicture=warm&&!warm.el.error&&warm.el.readyState>=2&&warm.el.videoWidth>0;
       const failedRoute=learnRoute&&my===token&&powered&&!document.hidden&&v.readyState<2?routeHealth.recordRoute(ch.num,it,v.src,null):"";
       if(boundedIaStart&&nativeAudit)nativeAudit("archive-start-timeout",{id:it.id,readyState:v.readyState,spareReady:!!hasPicture,host:failedRoute||undefined});
-      if(boundedIaStart&&!hasPicture&&tryAlternate())return;
+      if(boundedIaStart&&!hasPicture&&(moveToMirror()||tryAlternate()))return;
       fin(false);
     },timeout);
   }
   armStart();
-  if(boundedIaStart&&!sportsControl&&iaRepairSpare(ch,it.id)){
+  if(boundedIaStart&&!sportsControl&&!prepared&&(learnRoute&&archiveHandoff||iaRepairSpare(ch,it.id))){
     spareTimer=setTimeout(function(){
       if(done||my!==token||!powered||curNum!==ch.num||!iaRepairEnabled(ch))return;
+      // Give the advertised file one head start on a second route while
+      // the primary continues loading. Only one extra video is prepared.
+      if(learnRoute&&archiveHandoff&&v.readyState<2&&altQ.length){
+        mirror=routeHealth.warmMirror?.(it,altQ[0],function(){if(v.readyState<2)moveToMirror();});
+        if(mirror){if(nativeAudit)nativeAudit("archive-mirror-preload",{id:it.id});return;}
+      }
       const spare=iaRepairSpare(ch,it.id);
       if(!spare)return;
       iaWarmWanted[iaQueueKey(ch)]=Date.now()+120000;
@@ -10024,6 +10045,7 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl){return new Promise(r
     return !iaKnownVideoPolicyViolation(decoded,{channel:ch.num,minRuntimeSeconds:sl&&sl.program&&sl.program.minRuntimeSeconds});
   }
   function fin(ok){ if(done)return; if(ok&&!programFits())ok=false; done=true; clearTimeout(to); clearTimeout(spareTimer);
+    if(mirror){mirror.release(false);mirror=null;}
     if(ok&&recovery&&!recovery.start()){av.rollback();return res(false);}
     if(ok){
       if(my!==token){av.rollback();return res(true);} // superseded; keep the newer tune's picture intact
@@ -10070,10 +10092,11 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl){return new Promise(r
   // Older catalog rows can have a verified direct URL without its same-file download route.
   const archiveAlternate=boundedIaStart?window.RealSignalIAShelf?.sameFileAlternate?.(it):"";
   const initialRoute=learnRoute?v.src:it.url;
-  const altQ=(learnRoute?[it.url]:[]).concat(it.alts||(it.alt?[it.alt]:[]),archiveAlternate).filter(function(url,index,all){return url&&url!==initialRoute&&all.indexOf(url)===index;}).slice(0,boundedIaStart?1:8);
+  const altQ=prepared?[]:(learnRoute?[it.url]:[]).concat(it.alts||(it.alt?[it.alt]:[]),archiveAlternate).filter(function(url,index,all){return url&&url!==initialRoute&&all.indexOf(url)===index;}).slice(0,boundedIaStart?1:8);
   function tryAlternate(){if(done||my!==token||!powered||!altQ.length)return false;const nx=altQ.shift();try{nlog("video",true,"retrying the same program on an alternate origin");if(learnRoute)routeStarted=performance.now();v.src=nx;v.load();}catch(e){}if(boundedIaStart){if(nativeAudit)nativeAudit("archive-same-file-retry",{id:it.id});armStart(3500);}tryPlay();return true;}
   v.addEventListener("error",()=>{try{nlog("video",false,"err"+((v.error&&v.error.code)||"?")+" "+((v.src||"").split("/").pop().slice(-40)));}catch(e){}
     if(it.isAd&&done&&finishAd())return;
+    if(!done&&moveToMirror())return;
     if(tryAlternate())return;
     if(done&&typeof sportsControl!=="undefined"&&sportsControl){sportsControl.onFailure(sportsControl.stallPosition==null?v.currentTime:sportsControl.stallPosition,v.duration);return;}
     if(recovery&&recovery.fail())return;fin(false);},{signal:sig});

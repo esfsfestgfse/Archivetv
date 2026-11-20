@@ -518,3 +518,24 @@ test('a pilot records an owned first frame and ignores the same callback after a
     }
   }
 });
+
+for (const file of ['the_dial_desktop.html','the_dial_mobile.html']) test(file + ': a decoded same-file mirror becomes the next attempt without dismissing the episode', async () => {
+  const pending={identifier:'parent::Episode.mp4',media:{type:'video',url:'https://archive.org/download/parent/Episode.mp4'}};
+  const prepared={src:'https://ia800101.us.archive.org/20/items/parent/Episode.mp4'};
+  const calls=[];
+  const shelf={peek:()=>pending};
+  const scope={window:{RealSignalIAShelf:{enabled:true,client:()=>shelf}},powered:true,token:1,curNum:10,
+    iaQueueKey:()=> '10',iaDisplayTitle:()=> 'Episode',nlog(){},
+    iaRetry(){assert.fail('should stay on the listed episode');},
+    playFile:async (media,_ch,_sl,_my,_fallback,handoff)=>{
+      calls.push([media.id,media.url]);
+      if(calls.length===1){assert.ok(handoff);handoff.prepared=prepared;return false;}
+      assert.equal(handoff.prepared,prepared);
+      return true;
+    }};
+  const source=fs.readFileSync(path.join(root,file),'utf8'),start=source.indexOf('function iaRepairEnabled(');
+  vm.createContext(scope);
+  vm.runInContext(source.slice(start,source.indexOf('async function tuneIA(ch,sl,my)',start)),scope);
+  await scope.tuneIARepair({num:10},{},1);
+  assert.deepEqual(calls,[[pending.identifier,pending.media.url],[pending.identifier,prepared.src]]);
+});

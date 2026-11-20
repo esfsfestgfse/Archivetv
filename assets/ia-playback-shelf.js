@@ -132,6 +132,29 @@
       }).sort(function (a, b) { return a.score - b.score; });
     return Object.assign({}, media, { url: choices[0].url, alts: choices.slice(1).map(function (choice) { return choice.url; }) });
   }
+  function warmMirror(item, url, onReady) {
+    if (!archiveRoute(item, url)) return null;
+    var video = document.createElement('video');
+    video.preload = 'auto';
+    video.muted = true;
+    video.playsInline = true;
+    function loaded() { if (video.readyState >= 2 && video.videoWidth > 0) onReady(); }
+    video.addEventListener('loadeddata', loaded);
+    var startedAt = performance.now();
+    video.src = url;
+    video.load();
+    return {
+      video: video, startedAt: startedAt,
+      release: function (keep) {
+        video.removeEventListener('loadeddata', loaded);
+        if (!keep) {
+          video.removeAttribute('src');
+          video.load();
+        }
+        return video;
+      }
+    };
+  }
   function lifecycle(active, recover) {
     var started = false, failed = false;
     return {
@@ -166,7 +189,7 @@
   }
   window.RealSignalIAShelf = {
     enabled: enabled, enabledForChannel: enabledForChannel, create: create, lifecycle: lifecycle, sameFileAlternate: sameFileAlternate,
-    tracksRoutes: tracksRoutes, rankedMedia: rankedMedia, recordRoute: recordRoute,
+    tracksRoutes: tracksRoutes, rankedMedia: rankedMedia, recordRoute: recordRoute, warmMirror: warmMirror,
     queue: function (body) { return request('/ia/queue', Object.assign({}, body, { iaRepair: true, serverCatalog: true })); },
     client: function () { return client || (client = create({ queue: function (body) { return window.RealSignalIAShelf.queue(body); }, report: function (body) { return request('/ia/playback', body); } })); }
   };

@@ -447,6 +447,17 @@ export class SessionRotation {
         };
         for (const pool of pools) pool.sort((a,b) => eraPriority(a) - eraPriority(b));
       }
+      if (!selected.length && !seen.size && Number.isSafeInteger(body.openingSeed) && body.openingSeed >= 0) {
+        const families = new Map();
+        for (const item of pools.find(pool => pool.length) || []) {
+          const family = familyId(item);
+          if (!families.has(family)) families.set(family, item);
+        }
+        if (families.size) {
+          const openers = [...families.values()];
+          selected.push(openers[body.openingSeed % openers.length]);
+        }
+      }
       // Priority does not waive diversity. Try every eligible series before
       // filling duplicate-series slots from a genuinely constrained catalog.
       for (const pool of pools) {
@@ -476,4 +487,4 @@ export class SessionRotation {
   }
 }
 
-export { itemId, cleanItems, mergeCatalog };
+export { itemId, cleanItems, familyId, mergeCatalog };

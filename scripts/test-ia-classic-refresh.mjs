@@ -36,3 +36,71 @@ test('a shallow Classic TV catalog imports repairs promptly without blocking pla
     elapsed=62000;await tune();await drain();assert.equal(calls,2,'a deep healthy catalog returns to the conservative refresh cadence');
   }finally{Date.now=originalNow;}
 });
+
+test('a prepared start keeps the foreground off D1 and the relay and retains viewer reservations', async () => {
+  const oldCaches = globalThis.caches;
+  const cache = new Map(), objects = new Map(), rotationModes = [];
+  let catalogReads = 0, relayReads = 0, phase = 'warm';
+  const families = ['Dragnet', 'Benson', 'Jack Benny', 'Get Smart', 'Bonanza', 'Green Acres', 'I Love Lucy', 'The Munsters'];
+  const programs = families.flatMap((family, series) => Array.from({ length: 4 }, (_, episode) => {
+    const source = 'series-' + series, file = 'episode-' + episode + '.mp4', id = source + '::' + file;
+    const url = 'https://archive.org/download/' + source + '/' + file;
+    return {
+      id, source_identifier: source, provider: 'Internet Archive', title: family + ' · Episode ' + episode,
+      media_type: 'video', media_url: url, aspect_ratio: 4/3, duration_seconds: 1320, year: '1965',
+      metadata_json: JSON.stringify({ seriesTitle: family, fileName: file, media: { type: 'video', url, runtime: 1320 },
+        subject: 'classic television', runtimeSeconds: 1320, width: 640, height: 480, verification: 'transport', verifiedAt: Date.now() })
+    };
+  }));
+  globalThis.caches = { default: {
+    async match(key) { return cache.get(key.url)?.clone(); },
+    async put(key, response) { cache.set(key.url, response.clone()); }
+  }};
+  const env = {
+    ROTATION: { getByName(name) {
+      if(!objects.has(name))objects.set(name,new SessionRotation(rotationContext(),{}));
+      return { async fetch(request) {
+        rotationModes.push((await request.clone().json()).mode);
+        return objects.get(name).fetch(request);
+      }};
+    }},
+    realsignal_catalog: {
+      prepare(sql) { return { bind() { return {
+        async all() { if (phase==='hit') throw Error('foreground queried catalog'); catalogReads++; return {results:/FROM programs/.test(sql)?programs:[]}; },
+        async first() { return null; }
+      }; }}; },
+      async batch() {}
+    },
+    RELAY: { async fetch() { if(phase==='hit')throw Error('foreground queried relay'); relayReads++; return Response.json({ items:[], candidateItems:[] }); } }
+  };
+  const background = [], ctx = { waitUntil: p => background.push(Promise.resolve(p)) };
+  const tune = (sessionId, options={}) => worker.fetch(new Request('https://api.example/api/v3/ia/queue', {
+    method: 'POST',
+    body: JSON.stringify({ channel:'10', count:3, sessionId, serverCatalog:true, iaRepair:true, preparedStart:true, mediaTypes:['movies'], ...options })
+  }), env, ctx);
+  try {
+    const warm = await tune('warm-station');
+    assert.equal(warm.status,200);
+    await Promise.all(background.splice(0));
+    assert.equal(cache.size,1,'background preparation persists one shared station snapshot');
+    const reads=[catalogReads,relayReads];
+    phase='hit'; rotationModes.length=0;
+    const opening=await tune('viewer');
+    assert.equal(opening.headers.get('x-realsignal-source'),'edge-prepared-archive+session-rotation');
+    assert.match(opening.headers.get('cache-control'),/private, no-store/);
+    const shelf=await opening.json();
+    assert.equal(shelf.ready,3);
+    assert.equal(new Set(shelf.items.map(i=>i.seriesTitle)).size,3);
+    assert.deepEqual(rotationModes,['reserve'],'the opening avoids a separate history peek');
+    const picked=shelf.items[0].identifier;
+    const commit=await worker.fetch(new Request('https://api.example/api/v3/ia/playback',{method:'POST',
+      body:JSON.stringify({sessionId:'viewer',channel:'10',id:picked,event:'started'})}),{ROTATION:env.ROTATION,RELAY:{fetch:async()=>new Response(null,{status:204})}},ctx);
+    assert.equal(commit.status,202);
+    const returnShelf=await(await tune('viewer')).json();
+    assert.ok(returnShelf.items.every(i=>i.identifier!==picked),'the same viewer cannot reopen a watched episode');
+    assert.deepEqual([catalogReads,relayReads],reads);
+  } finally {
+    await Promise.allSettled(background);
+    if(oldCaches===undefined)delete globalThis.caches; else globalThis.caches=oldCaches;
+  }
+});

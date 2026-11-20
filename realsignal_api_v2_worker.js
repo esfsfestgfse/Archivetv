@@ -5,7 +5,7 @@
  * catalog writes, and a queue consumer around the proven ais-relay adapter.
  */
 
-import { SessionRotation } from "./realsignal_api_rotation.js";
+import { SessionRotation, familyId } from "./realsignal_api_rotation.js";
 import { normalizeIaFileRecord, qualifyIaFileRecord, iaMinimumFileRuntimeSeconds, iaGameShowEraAllowed, iaGameShowYear, iaReviewedCartoonSource, iaKnownVideoPolicyViolation, iaSportingLifeAllowed, iaCourtroomAllowed, iaCookingAllowed, iaHuntingAllowed, iaReviewedFileAllowed } from "./ia_file_contract.js";
 import { EdgeRateLimiter } from "./realsignal_api_rate_limit.js";
 import { RokuSession } from "./realsignal_roku_session.js";
@@ -24,6 +24,10 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
 const V3_RELEASE = "7.0.0";
+const IA_PREPARED_START_CHANNELS = new Set(["10", "150"]);
+const IA_PREPARED_START_MAX_ITEMS = 96;
+const IA_PREPARED_START_MIN_ITEMS = 24;
+const IA_PREPARED_START_MAX_AGE = 10 * 60_000;
 // Old clients and stored catalogs can still reference this retired lineup.
 const retiredChannel = channel => /^yt-sports-/i.test(String(channel || "").trim());
 const MAX_BODY_BYTES = 128 * 1024;
@@ -781,6 +785,7 @@ async function rotateShelf(env, body, payload, request) {
     ...(body.sourceCatalog !== true ? { requirePlayable: true, stationChannel: String(body.channel || ''), diversity: body.diversity || {} } : {}),
     ...(body.sourceCatalog !== true && !reservationMode && Array.isArray(body.viewerRecentIds)
       ? { playedOnly: true, viewerRecentIds: body.viewerRecentIds } : {}),
+    ...(reservationMode && payload.preparedOpening ? { openingSeed: crypto.getRandomValues(new Uint32Array(1))[0] } : {}),
     ...(reservationMode ? { mode: "reserve", diversity: body.diversity || {}, rules: body, deferCycleReset: body.deferCycleReset === true, rejectedIds: body.iaRejectedIds || [] } : {}) };
   const response = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(selectBody) }));
   if (!response.ok) throw new Error(`rotation ${response.status}`);
@@ -1847,6 +1852,64 @@ function sourceProvidersFromItems(items) {
   return providers;
 }
 
+async function cachePreparedIaCatalog(env, cache, key, channel) {
+  // A shared snapshot is built from the station's stored catalog. Request
+  // queries and viewer history never influence what goes into this cache.
+  const rules = { channel, iaRepair: true, mediaTypes: ["movies"] };
+  const catalog = await catalogFallback(env, rules, IA_REPAIR_CATALOG_WINDOW, { ignoreFreshness: true });
+  const families = new Map();
+  for (const row of catalog?.candidateItems || []) {
+    if (!/^https:\/\/(?:[a-z0-9.-]+\.)?archive\.org\//i.test(row.media?.url || "")) continue;
+    const qualified = qualifyIaFileRecord(row, rules);
+    if (!qualified.accepted) continue;
+    const family = familyId(qualified.item);
+    if (!families.has(family)) families.set(family, []);
+    const episodes = families.get(family);
+    if (episodes.length < 3) episodes.push(qualified.item);
+  }
+  const items = [];
+  for (let episode = 0; episode < 3; episode++) {
+    for (const episodes of families.values()) {
+      if (episodes[episode]) items.push(episodes[episode]);
+    }
+  }
+  if (families.size < 6 || items.length < IA_PREPARED_START_MIN_ITEMS) return;
+  await cache.put(key, Response.json({ generatedAt: Date.now(), items: items.slice(0, IA_PREPARED_START_MAX_ITEMS) }, {
+    headers: { "Cache-Control": "public, max-age=" + IA_PREPARED_START_MAX_AGE / 1000 },
+  }));
+}
+
+async function handlePreparedIaStart(request, env, ctx, id, body) {
+  const cache = typeof caches !== "undefined" ? caches.default : null;
+  if (!cache) return null;
+  const channel = String(body.channel);
+  const key = new Request(new URL("/__realsignal/ia-prepared/v1/" + channel, request.url));
+  try {
+    const cached = await cache.match(key);
+    const snapshot = cached ? await cached.json() : null;
+    const age = snapshot ? Date.now() - snapshot.generatedAt : Infinity;
+    if (age >= IA_PREPARED_START_MAX_AGE / 2 && shouldRefreshShallowCatalog("prepared-ia-" + channel, 60_000)) {
+      ctx.waitUntil(cachePreparedIaCatalog(env, cache, key, channel).catch(error => {
+        console.warn(JSON.stringify({ event: "prepared-ia-catalog-refresh-failed", channel, error: String(error).slice(0, 160) }));
+      }));
+    }
+    if (!(age >= 0 && age < IA_PREPARED_START_MAX_AGE) || !Array.isArray(snapshot?.items) ||
+        snapshot.items.length < IA_PREPARED_START_MIN_ITEMS || snapshot.items.length > IA_PREPARED_START_MAX_ITEMS) return null;
+    const count = Math.max(1, Math.min(5, Number(body.count) || 3));
+    const { payload } = await rotateShelf(env, { ...body, deferCycleReset: true, diversity: { ...body.diversity, maxPerFamily: 1 } },
+      { items: [], candidateItems: snapshot.items, preparedOpening: true }, request);
+    if (payload.ready < count) return null;
+    const { items, ready, candidates, v2 } = payload;
+    return json({ items, ready, candidates, v2, apiVersion: "v3", release: V3_RELEASE, preparedStart: true }, 200, {
+      "Cache-Control": "private, no-store", "X-RealSignal-Request": id, "X-RealSignal-API": "v3",
+      "X-RealSignal-Source": "edge-prepared-archive+session-rotation", "X-RealSignal-Release": V3_RELEASE,
+    });
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "prepared-ia-start-fallback", channel, error: String(error).slice(0, 160) }));
+    return null;
+  }
+}
+
 async function handleQueue(request, env, ctx, id) {
   let body;
   try { body = await readBoundedJson(request); }
@@ -1858,6 +1921,12 @@ async function handleQueue(request, env, ctx, id) {
      route is an adapter and must not turn a queued shelf into watched history
      or let stale D1 rows suppress the same candidates on every tune. Keep the
      server rotation path available only for an explicit future opt-in. */
+  const preparedStart = body.preparedStart === true && body.iaRepair === true && body.sourceCatalog !== true &&
+    new URL(request.url).pathname.startsWith(V3_PREFIX) && IA_PREPARED_START_CHANNELS.has(String(body.channel));
+  if (preparedStart && body.sessionRefill !== true) {
+    const prepared = await handlePreparedIaStart(request, env, ctx, id, body);
+    if (prepared) return prepared;
+  }
   const requestedServerCatalog = body.serverCatalog === true;
   const catalogCanary = body.catalogCanary === "v2-session";
   const useServerCatalog = requestedServerCatalog && (!catalogCanary || IA_SESSION_CATALOG_CANARY_CHANNELS.has(String(body.channel)));
@@ -1883,7 +1952,7 @@ async function handleQueue(request, env, ctx, id) {
       upstreamBody.hydrationPreferredIds = state.reservationIds || [];
       // Fast skips already have a qualified catalog in the session. Serving
       // it directly keeps a fresh Archive discovery request off that path.
-      if (String(body.channel) === "150" && body.sessionRefill === true && state.exhaustion?.unseenBeforeSelection >= count) {
+      if (String(body.channel) === "150" && body.sessionRefill === true && (!preparedStart || state.catalogSize > IA_PREPARED_START_MAX_ITEMS) && state.exhaustion?.unseenBeforeSelection >= count) {
         const refill = await rotateShelf(env, { ...body, deferCycleReset: true }, { items: [], ready: 0 }, request);
         if (refill.payload.ready >= count) {
           if (shouldRefreshShallowCatalog(body.channel, 300_000)) ctx.waitUntil(refreshShallowCatalog(env, request, body, id, state.catalogSize));
@@ -1898,6 +1967,7 @@ async function handleQueue(request, env, ctx, id) {
   }
   delete upstreamBody.sessionId;
   delete upstreamBody.session;
+  delete upstreamBody.preparedStart;
   const canonical = canonicalPilotProfile(body.channel);
   if (body.iaRepair !== true && canonicalPilotEnabled(env, body.channel)) {
     const canonicalPayload = canonicalPilotPayload(canonical.manifest, canonical.profile, body, count);

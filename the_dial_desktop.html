@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 7.2.24</title>
+<title>REALSIGNAL · Retro Cable 7.2.25</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
@@ -1702,7 +1702,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="7.2.24-desktop-retro-cable";
+window.__ATV_BUILD="7.2.25-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -9709,16 +9709,21 @@ function iaRepairSpare(ch,currentId){
   });
 }
 async function tuneIARepair(ch,sl,my){
-  var shelf=window.RealSignalIAShelf.client(),key=iaQueueKey(ch);
+  var shelf=window.RealSignalIAShelf.client(),key=iaQueueKey(ch),nextBuffered;
   try{
     for(var attempt=0;attempt<3;attempt++){
       if(my!==token||!powered||curNum!==ch.num)return;
-      var item=iaPilotBuffered(ch,sl)[0]||shelf.peek(key);
-      if(!item){await shelf.reserve(key,iaRepairBody(ch,sl));if(my!==token||!powered||curNum!==ch.num)return;item=iaPilotBuffered(ch,sl)[0]||shelf.peek(key);}
+      var buffered=nextBuffered||iaPilotBuffered(ch,sl)[0];nextBuffered=null;
+      var item=buffered||shelf.peek(key);
+      if(!item){
+        await shelf.reserve(key,iaRepairBody(ch,sl));if(my!==token||!powered||curNum!==ch.num)return;
+        buffered=iaPilotBuffered(ch,sl)[0];item=buffered||shelf.peek(key);
+      }
       if(!item)break;
       var media={...(window.RealSignalIAShelf.rankedMedia?.(ch.num,item)||item.media),id:item.identifier,title:iaDisplayTitle(item,ch),year:item.year,meta:item};
-      var handoff={};
+      var handoff={allowBuffered:!buffered};
       if(await playFile(media,ch,sl,my,0,handoff))return;
+      if(handoff.buffered){nextBuffered=handoff.buffered;continue;}
       if(handoff.prepared){
         if(my!==token||!powered||curNum!==ch.num){handoff.prepared.removeAttribute("src");handoff.prepared.load();return;}
         var sameFile={...media,url:handoff.prepared.src,alts:[]};
@@ -10166,6 +10171,22 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl,archiveHandoff){retur
   v.classList.toggle("ff-glitch",!!ch.glitch); /* 1.1: reused element — toggle, don't accumulate */
   if(it.isAd){ setTimeout(()=>{ try{if(!v.ended&&!v.paused)finishAd();}catch(e){} },Math.min(128000,Number(it.adMaxMs)||60000)); } // one prepared spot; allow a verified Super Bowl spot to finish
   if(isAudio){ audioScreen.classList.remove("hide"); audioTitle.textContent=it.title||ch.nm; }
+  if(learnRoute&&archiveHandoff?.allowBuffered&&!prepared){
+    // An unlisted tune may take a ready program as soon as its buffer fills.
+    // A listed episode retains its turn and only races a route for that file.
+    const key=iaQueueKey(ch);
+    function useBufferedProgram(){
+      if(done||my!==token||!powered||curNum!==ch.num||(v.readyState>=2&&v.videoWidth>0))return;
+      const next=iaPilotBuffered(ch,sl)[0];
+      if(!next||next.identifier===it.id)return;
+      archiveHandoff.buffered=next;
+      if(nativeAudit)nativeAudit("archive-pending-to-buffered",{id:next.identifier});
+      fin(false);
+    }
+    for(const warmer of Object.values(iaMediaWarmers)){
+      if(warmer.channel===key)warmer.el.addEventListener("loadeddata",useBufferedProgram,{once:true,signal:sig});
+    }
+  }
   tryPlay(); // FIX: was v.play().catch(()=>{}) — a swallowed rejection left the video paused forever
 });}
 

@@ -352,3 +352,28 @@ for (const file of ['the_dial_desktop.html','the_dial_mobile.html']) test(file +
   vm.runInContext(source.slice(start,end),context);
   await context.tuneIARepair(channel,{},1);
 });
+
+for (const file of ['the_dial_desktop.html','the_dial_mobile.html']) test(file + ': a pending Next can switch to a newly buffered item without marking the other episode failed', async () => {
+  const {context}=browserAdapter(file);
+  context.iaRepairEnabled=()=>true;
+  context.RealSignalIAShelf={enabled:true,tracksRoutes:()=>true,client:()=>({rows:()=>[b,c],peek:()=>b})};
+  context.iaDisplayTitle=item=>item.title;
+  context.token=1;
+  context.iaCachedProgramAllowed=()=>true;
+  let played=[];
+  context.iaRepairEvent=()=>assert.fail('an unadvertised alternate was never a failed episode');
+  context.iaRetry=()=>assert.fail('expected a decoded spare');
+  context.nlog=()=>{};
+  context.playFile=async (program,_ch,_sl,_token,_fallback,handoff)=>{
+    played.push(program.id);
+    if(program.id===b.identifier){assert.equal(handoff.allowBuffered,true);handoff.buffered=c;return false;}
+    assert.equal(handoff.allowBuffered,false);
+    return true;
+  };
+  actualFunctions(file,context,['iaPilotBuffered']);
+  const source=fs.readFileSync(path.join(root,file),'utf8');
+  const start=source.indexOf('async function tuneIARepair('),end=source.indexOf('async function tuneIA(',start);
+  vm.runInContext(source.slice(start,end),context);
+  await context.tuneIARepair(channel,{},1);
+  assert.deepEqual(played,[b.identifier,c.identifier]);
+});

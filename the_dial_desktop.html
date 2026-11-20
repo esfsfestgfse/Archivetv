@@ -9,13 +9,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 7.2.28</title>
+<title>REALSIGNAL · Retro Cable 7.3.0</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=7.2.19"></script>
-<script src="assets/ia-playback-shelf.js?v=7.2.22"></script>
+<script src="assets/ia-playback-shelf.js?v=7.3.0"></script>
 <script src="assets/sports-programs.js?v=7.0.0"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
 <script src="assets/youtube-embed-runtime.js?v=7.2.1"></script>
@@ -1702,7 +1702,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="7.2.28-desktop-retro-cable";
+window.__ATV_BUILD="7.3.0-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -10025,6 +10025,22 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl,archiveHandoff){retur
       fin(false);
     },timeout);
   }
+  const canUseBuffered=learnRoute&&archiveHandoff?.allowBuffered&&!prepared;
+  // An unlisted tune can switch as soon as a qualified backup has a picture.
+  // A listed episode retains its turn and only races another route for that file.
+  function useBufferedProgram(){
+    if(done||my!==token||!powered||curNum!==ch.num||(v.readyState>=2&&v.videoWidth>0))return;
+    const next=iaPilotBuffered(ch,sl)[0];
+    if(!next||next.identifier===it.id)return;
+    archiveHandoff.buffered=next;
+    if(nativeAudit)nativeAudit("archive-pending-to-buffered",{id:next.identifier});
+    fin(false);
+  }
+  function watchBufferedProgram(warmer){
+    if(!canUseBuffered||!warmer)return;
+    warmer.el.addEventListener("loadeddata",useBufferedProgram,{once:true,signal:sig});
+    if(warmer.readyOrder)useBufferedProgram();
+  }
   armStart();
   if(boundedIaStart&&!sportsControl&&!prepared&&(learnRoute&&archiveHandoff||iaRepairSpare(ch,it.id))){
     spareTimer=setTimeout(function(){
@@ -10039,6 +10055,7 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl,archiveHandoff){retur
       if(!spare)return;
       iaWarmWanted[iaQueueKey(ch)]=Date.now()+120000;
       stageIAMediaWarmer(ch,spare,routeHealth?.rankedMedia?.(ch.num,spare)||spare.media);
+      watchBufferedProgram(iaMediaWarmers[iaMediaWarmKey(ch,spare)]);
     },1500);
   }
   const nativeAudit=window.__rsPlaybackAudit?.source(ch.num);
@@ -10177,23 +10194,12 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl,archiveHandoff){retur
   v.classList.toggle("ff-glitch",!!ch.glitch); /* 1.1: reused element — toggle, don't accumulate */
   if(it.isAd){ setTimeout(()=>{ try{if(!v.ended&&!v.paused)finishAd();}catch(e){} },Math.min(128000,Number(it.adMaxMs)||60000)); } // one prepared spot; allow a verified Super Bowl spot to finish
   if(isAudio){ audioScreen.classList.remove("hide"); audioTitle.textContent=it.title||ch.nm; }
-  if(learnRoute&&archiveHandoff?.allowBuffered&&!prepared){
-    // An unlisted tune may take a ready program as soon as its buffer fills.
-    // A listed episode retains its turn and only races a route for that file.
-    const key=iaQueueKey(ch);
-    function useBufferedProgram(){
-      if(done||my!==token||!powered||curNum!==ch.num||(v.readyState>=2&&v.videoWidth>0))return;
-      const next=iaPilotBuffered(ch,sl)[0];
-      if(!next||next.identifier===it.id)return;
-      archiveHandoff.buffered=next;
-      if(nativeAudit)nativeAudit("archive-pending-to-buffered",{id:next.identifier});
-      fin(false);
-    }
+  if(canUseBuffered){
     for(const warmer of Object.values(iaMediaWarmers)){
-      if(warmer.channel===key)warmer.el.addEventListener("loadeddata",useBufferedProgram,{once:true,signal:sig});
+      if(warmer.channel===iaQueueKey(ch))watchBufferedProgram(warmer);
     }
   }
-  tryPlay(); // FIX: was v.play().catch(()=>{}) — a swallowed rejection left the video paused forever
+  if(!done)tryPlay(); // FIX: was v.play().catch(()=>{}) — a swallowed rejection left the video paused forever
 });}
 
 function showNow(ch,sl,title,extra){

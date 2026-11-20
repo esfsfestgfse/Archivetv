@@ -284,18 +284,27 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
   });
 
   for (const hasSpare of [false, true]) test(file + (hasSpare
-    ? ': a buffered reserve replaces a stalled video before spending time on its alternate'
+    ? ': a cold reserve takes over as soon as its qualified picture is ready'
     : ': a stalled origin can still try its alternate when no reserve is ready'), async () => {
     const source = fs.readFileSync(path.join(root, file), 'utf8'), timers = [], handlers = {};
     const video = { tagName: 'VIDEO', readyState: 0, style: {}, classList: { toggle() {} }, pause() {}, removeAttribute() {}, load() {}, remove() {}, setAttribute() {}, play: () => Promise.resolve(), addEventListener: (type, fn) => { handlers[type] = fn; } };
     const spare = item('different-reserved-episode'), primary = { identifier:'series::Season 1/Pilot.mp4',
       media:{ type:'video', url:'https://dn600301.us.archive.org/0/items/series/Season%201/Pilot.mp4' } };
     const warmer = {}, load = [], mirrorLoads = [];
+    const spareVideo = Object.assign(new EventTarget(), {
+      readyState: 0, videoWidth: 0, videoHeight: 0, duration: 0, src: spare.media.url,
+    });
     const scope = { window: { RealSignalIAShelf: { ...runtime(), tracksRoutes: () => hasSpare,
         warmMirror: (row, url) => { mirrorLoads.push(url); return { video: {}, release() {} }; },
         client: () => ({ rows: () => hasSpare ? [primary, spare] : [primary] }) } },
       iaQueueKey: ch => String(ch.num), iaMediaWarmKey: (ch, row) => ch.num + ':' + row.identifier, iaMediaWarmers: warmer, iaWarmWanted: {},
-      stageIAMediaWarmer: (ch, row, media) => { load.push(media.url); warmer[ch.num + ':' + row.identifier] = { el: { readyState: 4, videoWidth: 640 } }; }, document: { createElement: () => video, body: { classList: { contains: () => false } } },
+      stageIAMediaWarmer: (ch, row, media) => {
+        load.push(media.url);
+        const staged = warmer[ch.num + ':' + row.identifier] = { el: spareVideo, channel: String(ch.num) };
+        spareVideo.addEventListener('loadeddata', () => { staged.readyOrder = 1; }, { once: true });
+      },
+      iaCachedProgramAllowed: () => true,
+      document: { createElement: () => video, body: { classList: { contains: () => false } } },
       theVideo: video, videoCtl: null, AbortController, curVideo: null, screenArea: { innerHTML: '', appendChild() {} },
       iaRepairEnabled: () => true, takeIAMediaWarmer: () => null, killMedia() {}, nlog() {}, token: 1, powered: true, curNum: 10,
       soundBlocked: false, muted: false, vol: 0.5, lastGesture: Date.now(), Date, performance,
@@ -306,7 +315,8 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     const repairStart = source.indexOf('function iaRepairEvent(');
     vm.runInContext(source.slice(repairStart, source.indexOf('async function tuneIA(ch,sl,my)', repairStart)), scope);
     vm.runInContext(source.slice(source.indexOf('function playFile('), source.indexOf('function showNow(')), scope);
-    const pending = scope.playFile({ id: primary.identifier, ...primary.media }, { num: 10 }, {}, 1, 0, {});
+    const handoff = { allowBuffered: true };
+    const pending = scope.playFile({ id: primary.identifier, ...primary.media }, { num: 10 }, {}, 1, 0, handoff);
     assert.ok(timers[0].ms <= 4000, 'a stalled origin must not hold Next for twelve seconds');
     assert.deepEqual(load, [], 'a fast startup should never need to load the spare');
     if (hasSpare) {
@@ -315,9 +325,12 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
       standby.fn();
       assert.deepEqual(load, [spare.media.url], 'cold power-on prepares a distinct verified episode');
       assert.deepEqual(mirrorLoads, [], 'one spare uses the whole background media budget');
-      timers[0].fn();
-      assert.equal(await pending, false, 'the tune loop can move to the buffered reserve');
-      assert.equal(video.src, primary.media.url, 'do not start the alternate after the first timeout');
+      assert.equal(handoff.buffered, undefined, 'metadata alone cannot take over the player');
+      Object.assign(spareVideo, { readyState: 4, videoWidth: 640, videoHeight: 480, duration: 1500 });
+      spareVideo.dispatchEvent(new Event('loadeddata'));
+      assert.equal(handoff.buffered?.identifier, spare.identifier, 'promote after decode without waiting for the primary timeout');
+      assert.equal(await pending, false, 'the current tune uses that exact warmed element next');
+      assert.equal(video.src, primary.media.url, 'take the spare before trying another route');
       return;
     }
     timers[0].fn();
@@ -488,7 +501,10 @@ test('measured route outcomes rank exact-file mirrors across page loads within t
   assert.ok(ranked.alts.includes(primary), 'the original route remains eligible for fallback');
   assert.ok(!ranked.alts.includes(wrongFile));
   assert.equal(program.media.url,primary, 'ranking must not mutate the catalog');
-  assert.equal(nextPage.rankedMedia(12,program).url,primary, 'route ranking stays inside the two pilots');
+  for (const channel of [12, 22]) {
+    assert.equal(nextPage.rankedMedia(channel,program).url,mirror, 'both Game Shows channels use the measured route');
+  }
+  assert.equal(nextPage.rankedMedia(11,program).url,primary, 'route ranking stays inside the active pilot');
   api.recordRoute(10,program,api.sameFileAlternate(program),650);
   const unrelated = {identifier:'other::Show.mp4',media:{url:'https://dn600700.us.archive.org/0/items/other/Show.mp4'}};
   assert.equal(api.rankedMedia(10,unrelated).url,unrelated.media.url,'a fast redirect for one file cannot rate unrelated Archive redirects');

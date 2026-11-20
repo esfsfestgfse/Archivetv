@@ -842,7 +842,7 @@ async function handleIaPlayback(request, env, ctx, requestId) {
   const session = safeSession(body.sessionId || request.headers.get("x-realsignal-session") || `ip-${requestClientKey(request)}`);
   const stub = env.ROTATION.getByName(`ia-repair:session:${session}:channel:${safeSession(channel)}`);
   const result = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ mode: event === "failed" ? "release" : "commit", id, event }) }));
+    body: JSON.stringify({ mode: event === "failed" ? "release" : "commit", stationChannel: channel, id, event }) }));
   if (!result.ok) return json({ error: "playback identity not reserved" }, result.status);
   /* Only an actual start enters cross-session watched history. Skipping a
      reservation suppresses it within this session, not everybody's catalog. */
@@ -1488,6 +1488,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   const derivedMusicYears = derivedCatalog ? catalogProfile.musicYears : null;
   const derivedDecade = derivedCatalog ? Number(catalogProfile.seriesDecade) : 0;
   const okCatalog = effectiveBody.sourceCatalog === true && isOKSourceProfile(catalogProfile);
+  const cookhouse = channel === "ok-cookhouse-channel";
   const vimeoCatalog = effectiveBody.sourceCatalog === true && /^vimeo-(?:movie|tv)-channel$/.test(channel);
   const repairCatalog = effectiveBody.iaRepair === true && effectiveBody.sourceCatalog !== true;
   const warFilms = reviewedWarFilms(catalogProfile?.profileKey);
@@ -1553,7 +1554,9 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       : derivedCatalog ? [channel, catalogChannel, derivedDecade, limit]
       : deepCatalog ? [channel, catalogChannel, limit]
         : rotatingSourceCatalog ? [catalogChannel, JSON.stringify(Array.from(recentCatalogIds(effectiveBody))), limit] : [catalogChannel, limit];
-  let result = await env.realsignal_catalog.prepare(query).bind(...bindings).all();
+  // Reviewed war profiles already declare every playable film. Merging in stored
+  // copies can give the same film a second identity and mask its reviewed title.
+  let result = warFilms ? { results: [] } : await env.realsignal_catalog.prepare(query).bind(...bindings).all();
   const fromCatalogRow = (row) => {
     let metadata = {};
     try { metadata = row.metadata_json ? JSON.parse(row.metadata_json) : {}; } catch (_) { /* tolerate old rows */ }
@@ -1632,8 +1635,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       staleCatalog: true,
     };
   };
-  const items = (result.results || []).map(fromCatalogRow);
-  if (warFilms) items.push(...warFilms);
+  const items = warFilms ? [...warFilms] : (result.results || []).map(fromCatalogRow);
   if (okCatalog && (derivedMusicYears || catalogProfile?.intent === "television" || catalogProfile?.intent === "animation")) {
     items.push(...okVerifiedSeed(catalogProfile));
   }
@@ -1661,11 +1663,16 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
      background repair, but it is not a playable program. Keep it in the
      candidate union while measuring depth/freshness and selecting the public
      shelf only from rows that can actually start. */
-  const playable = filtered.filter(queueItemPlayable);
+  const playable = filtered.filter(queueItemPlayable).map(item => cookhouse
+    ? { ...item, canonicalProgramKey: okPlaybackIdentity(item, "tv") } : item);
   const playableCatalog = okCatalog ? okBalancedCandidates([playable], okMusicChannel({profileKey:channel}) ? "music" : channel === "ok-movie-channel" ? "movie" : "tv", limit) : vimeoCatalog ? vimeoBalancedItems(playable) : playable;
   const recentIDs = recentCatalogIds(effectiveBody);
   const okKind = okMusicChannel({profileKey:channel}) ? "music" : channel === "ok-movie-channel" ? "movie" : "tv";
-  const recentPrograms = okCatalog ? new Set(playable.filter(item => recentIDs.has(queueItemKey(item))).map(item => okPlaybackIdentity(item, okKind))) : new Set();
+  const recentPrograms = new Set(cookhouse && !ignoreFreshness && Array.isArray(body.recentProgramKeys)
+    ? body.recentProgramKeys.slice(0, 1024).filter(key => typeof key === "string" && key.length <= 500) : []);
+  if (okCatalog) for (const item of playable) {
+    if (recentIDs.has(queueItemKey(item))) recentPrograms.add(okPlaybackIdentity(item, okKind));
+  }
   const recentSeriesById = new Map(playable.filter(item => recentIDs.has(queueItemKey(item))).map(item => [queueItemKey(item), okSeriesIdentity(item)]));
   // Resolve watched identities independently of the bounded playable window.
   // Inactive originals still identify alternate uploads of a watched episode.
@@ -1699,7 +1706,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
      otherwise Next can visibly repeat an old episode merely to represent
      five different shows. Cooled fallback rows are admitted only when the
      unseen catalog cannot fill the requested shelf at all. */
-  const selected = ignoreFreshness || fresh.length >= requestedCount || derivedMusicYears && fresh.length ? fresh
+  const selected = ignoreFreshness || fresh.length >= requestedCount || (derivedMusicYears || cookhouse) && fresh.length ? fresh
     : fresh.concat(playableCatalog.filter(item => !freshKeys.has(queueItemKey(item))));
   const seenCount = Math.max(0, playableCatalog.length - fresh.length);
   const suppliedRecentSeries = Array.isArray(effectiveBody && effectiveBody.recentSeries)
@@ -2731,7 +2738,8 @@ async function handleSourceCatalog(request, env, ctx, id) {
   if (profile.derivedCatalogOnly === true) return handleDerivedSourceCatalog(env, ctx, id, body, profile, apiVersion);
   if (!profile.queries.length) return json({ error: "source profile has no discovery queries", requestId: id }, 503);
   const rotation = Number(body.rotation) || 0;
-  const ledgerIds = await readFreshnessIds(env, profile.profileKey);
+  const personalFreshness = !maintenance && profile.profileKey === "ok-cookhouse-channel";
+  const ledgerIds = personalFreshness ? [] : await readFreshnessIds(env, profile.profileKey);
   const playedIds = Array.from(new Set((Array.isArray(body.playedIds) ? body.playedIds : [])
     .map((value) => String(value || "").trim().slice(0, 500)).filter(Boolean))).slice(0, 8);
   /* Client history is newest-first. Keep the order intact so the freshness
@@ -2765,7 +2773,8 @@ async function handleSourceCatalog(request, env, ctx, id) {
     themeMinScore: 1,
     recentIds: sourceRecentIds,
     recentSeries: body.recentSeries,
-    freshnessLedger: true,
+    recentProgramKeys: body.recentProgramKeys,
+    freshnessLedger: !personalFreshness,
   }, SOURCE_LIMITS.SOURCE_MAX_ITEMS, { blockedProviders: disabledProviders }).catch((error) => {
     console.warn(JSON.stringify({ event: "source-catalog-read-failed", requestId: id, error: String(error).slice(0, 160) }));
     return null;
@@ -2818,7 +2827,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
   const sourceSuiteCatalog = profile.providers.some(provider => provider === "youtube" || provider === "peertube" || provider === "nascar");
   // A five-item ready shelf is not a five-item catalog. Do not launch provider
   // searches on every tune merely because the public shelf is smaller than 12.
-  const cachedDepth = sourceSuiteCatalog
+  const cachedDepth = sourceSuiteCatalog || personalFreshness
     ? Number(cached?.playableCatalogDepth ?? cached?.catalogDepth ?? cached?.items?.length) || 0
     : Number(cached?.items?.length) || 0;
   const hasFreshFallback = cached && Array.isArray(cached.items) && cached.items.length > 0 && sourceRecentIds.length > 0;
@@ -2834,7 +2843,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
     }
     const hydrating = body.refresh === true || cachedDepth < minimumReady || sourceSuiteCatalog && cached.catalogExhausted === true;
     if (playedIds.length) rememberFreshness(env, profile.profileKey, playedIds, ctx);
-    return json({ ...cached, profileKey: profile.profileKey, catalogVersion: "source-server-1", source: "d1-source-catalog", hydrating, staleCatalog: hydrating, adaptiveFreshness: true, freshnessLedger: true, providerAvailability: sourceProviderAvailability(env, cached.items, Array.from(disabledProviders)), apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=60", "X-RealSignal-Request": id, "X-RealSignal-Source": "d1-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
+    return json({ ...cached, profileKey: profile.profileKey, catalogVersion: "source-server-1", source: "d1-source-catalog", hydrating, staleCatalog: hydrating, adaptiveFreshness: true, freshnessLedger: !personalFreshness, providerAvailability: sourceProviderAvailability(env, cached.items, Array.from(disabledProviders)), apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, 200, { "Cache-Control": personalFreshness ? "private, no-store" : "public, max-age=10, stale-while-revalidate=60", "X-RealSignal-Request": id, "X-RealSignal-Source": "d1-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
   }
   const sourcePlan = sourceCatalogTasks(body, env, rotation, { disabledProviders, maintenance, firstLane: !maintenance });
   const normalized = sourcePlan.profile;
@@ -2921,10 +2930,15 @@ async function handleSourceCatalog(request, env, ctx, id) {
   const discoveredItems = forceDeepRefresh
     ? uniqueQueueItems(cachedItems.concat(first.items || []), { ...body, sourceCatalog: true, denyTerms: profile.deny, themeTerms: profile.match, strictTopicTerms: profile.strictTopicTerms, minContentYear: profile.minContentYear, minRuntimeSeconds: profile.minRuntimeSeconds, movieLane: profile.movieLane, laneRequired: profile.laneRequired, laneDeny: profile.laneDeny, themeMinScore: 1 }, SOURCE_LIMITS.SOURCE_MAX_ITEMS)
     : first.items;
-  const freshnessBody = { ...body, recentIds: sourceRecentIds, freshnessLedger: true };
-  const unseenFirstItems = applyFreshness(discoveredItems, freshnessBody);
+  const freshnessBody = { ...body, recentIds: sourceRecentIds, freshnessLedger: !personalFreshness };
+  const seenProgramKeys = new Set(personalFreshness && Array.isArray(body.recentProgramKeys) ? body.recentProgramKeys.slice(0, 1024) : []);
+  const directCookhouse = personalFreshness ? discoveredItems.map(item => ({ ...item, canonicalProgramKey: okPlaybackIdentity(item, "tv") })) : discoveredItems;
+  const personalIds = new Set(sourceRecentIds);
+  const unseenFirstItems = personalFreshness
+    ? directCookhouse.filter(item => !personalIds.has(queueItemKey(item)) && !seenProgramKeys.has(item.canonicalProgramKey))
+    : applyFreshness(directCookhouse, freshnessBody);
   const catalogExhausted = discoveredItems.length > 0 && unseenFirstItems.length === 0;
-  const freshFirstItems = catalogExhausted ? discoveredItems : unseenFirstItems;
+  const freshFirstItems = catalogExhausted ? directCookhouse : unseenFirstItems;
   if (playedIds.length) rememberFreshness(env, normalized.profileKey, playedIds, ctx);
   const sportsFirst = Sports.enabled(normalized.profileKey) ? sportsShelf({items:freshFirstItems,candidateItems:discoveredItems},{...body,channel:normalized.profileKey,count:body.count||5}) : null;
   return json({ profileKey: normalized.profileKey, items: sportsFirst ? sportsFirst.items : freshFirstItems, ...(sportsFirst?{candidateItems:discoveredItems,uniqueEvents:sportsFirst.uniqueEvents}:{}), ready: sportsFirst ? sportsFirst.items.length : freshFirstItems.length, candidates: discoveredItems.length, catalogDepth: discoveredItems.length, unseenCatalogItems: unseenFirstItems.length, seenCatalogItems: Math.max(0, discoveredItems.length - unseenFirstItems.length), catalogExhausted, repeatAllowed: catalogExhausted, lanes: first.lanes, hydrating: true, adaptiveFreshness: true, freshnessLedger: true, freshnessExcluded: Math.max(0, discoveredItems.length - unseenFirstItems.length), freshnessWindow: recentCatalogIds(freshnessBody).size, catalogVersion: "source-server-1", source: forceDeepRefresh ? "server-source-catalog-refresh" : "server-source-catalog", providerAvailability: sourceProviderAvailability(env, freshFirstItems, Array.from(disabledProviders)), limits: SOURCE_LIMITS, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, freshFirstItems.length ? 200 : 503, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Source": "server-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });

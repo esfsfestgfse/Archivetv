@@ -93,6 +93,7 @@
   function programKey(item) {
     if (!item) return "";
     if (item.musicVerified) return item.musicTrackKey || item.identityReference || item.id;
+    if (item.canonicalProgramKey) return item.canonicalProgramKey;
     var value = String(item.title || "").replace(/[_.:-]+/g, " ");
     var pair = value.match(/\bs\s*(\d{1,2})\s*e\s*(\d{1,3})\b/i)
       || value.match(/\b(\d{1,2})\s*x\s*(\d{1,3})\b/i)
@@ -107,6 +108,34 @@
   function seriesKey(item) {
     if (!item) return "";
     return String(item.seriesId || item.seriesTitle || "").trim();
+  }
+  function decade(item) {
+    var year = Number(item && (item.seriesStartYear || item.year));
+    return Number.isInteger(year) && year >= 1900 && year <= new Date().getFullYear() ? Math.floor(year / 10) * 10 : 0;
+  }
+  function cookhouseNext(state, currentId, history) {
+    var recent = new Set(history.ids), programs = new Set(history.programs), skipped = new Set(state.nextSkipped || []);
+    var currentKey = programKey(state.items.find(function (item) { return String(item.id) === currentId; }));
+    var eligible = state.items.map(function (item, index) { return { item: item, index: index, key: programKey(item) }; })
+      .filter(function (row) {
+        return row.key && row.key !== currentKey && String(row.item.id) !== currentId && !skipped.has(String(row.item.id));
+      });
+    var unseen = eligible.filter(function (row) { return !recent.has(String(row.item.id)) && !programs.has(row.key); });
+    if (!unseen.length) {
+      if (!state.catalogExhausted) return -1;
+      eligible.sort(function (a, b) { return history.programs.indexOf(b.key) - history.programs.indexOf(a.key); });
+      return eligible.length ? eligible[0].index : -1;
+    }
+    function age(values, value) {
+      if (!value) return -1;
+      var index = values.indexOf(value);
+      return index < 0 ? values.length : index;
+    }
+    unseen.sort(function (a, b) {
+      return age(history.series, seriesKey(b.item)) - age(history.series, seriesKey(a.item)) ||
+        age(history.eras, decade(b.item)) - age(history.eras, decade(a.item));
+    });
+    return unseen[0].index;
   }
   function order(profile, items, recentArtists) {
     var groups = new Map(), seen = new Map(), result = [], tv = profile.intent === "television" || /^ok-(?:kids|adult|anime)-channel$/.test(String(profile.profileKey || ""));
@@ -215,5 +244,5 @@
       if (!loaded) timer = setTimeout(unavailable, 9000);
     });
   }
-  root.RealSignalOKEmbed = { play: play, stop: stop, qualify: qualify, order: order, normalize: normalize, programKey: programKey, seriesKey: seriesKey, reconcileShelf: reconcileShelf, musicProfile: musicProfile };
+  root.RealSignalOKEmbed = { play: play, stop: stop, qualify: qualify, order: order, normalize: normalize, programKey: programKey, seriesKey: seriesKey, reconcileShelf: reconcileShelf, musicProfile: musicProfile, cookhouseNext: cookhouseNext, decade: decade };
 })(window);

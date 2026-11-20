@@ -19,7 +19,7 @@ import { okAnimationFamily, okAnimationQueries, okAnimationIdentity, okAnimation
 import { okCuratedCatalogId, okCuratedChannel, okCuratedQueries, okCuratedIdentity, okCuratedPrecheck, okCuratedVerified } from "./ok_curated_tv_catalog.js";
 import { okMusicChannel, okMusicProfileKey, okMusicYears, okMusicQueries, okMusicPrecheck, okMusicVerified, okMusicIdentities } from "./ok_music_catalog.js";
 import { OK_ANIMATION_VERIFIED_SEED } from "./ok_animation_verified_seed.js";
-import { SOURCE_PROFILE_REGISTRY } from "./source_suite_profile_registry.js";
+import { SOURCE_PROFILE_REGISTRY, channelSourceProfileKey } from "./channel_registry.js";
 import { reviewedWarFilms } from "./war_film_catalog.js";
 import { nascarCatalog, nascarReplayAllowed } from "./nascar_catalog.js";
 import SourcePrograms from "./assets/source-program-policy.js";
@@ -668,7 +668,8 @@ export function qualifySourceItem(profile, item) {
 }
 
 function normalizedProfile(body) {
-  const profileKey = text(body && (body.profileKey || body.channel || body.name), 120).toLowerCase().replace(/[^a-z0-9._:-]+/g, "-");
+  const requested = text(body && (body.profileKey || body.channel || body.name), 120).toLowerCase().replace(/[^a-z0-9._:-]+/g, "-");
+  const profileKey = channelSourceProfileKey(requested) || requested;
   const registered = SOURCE_PROFILE_REGISTRY[profileKey];
   if (!registered) return null;
   const derivedCatalogOnly = registered.derivedCatalogOnly === true;

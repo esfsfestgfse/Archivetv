@@ -123,10 +123,54 @@ function episodeKey(item) {
   return normalizeIaFileRecord(typeof item === 'string' ? { identifier: item } : item).logicalId;
 }
 
-function reservationCatalog(existing, incoming, seen) {
+const MONTHS = 'jan feb mar apr may jun jul aug sep oct nov dec'.split(' ');
+
+function classicBroadcastDate(text) {
+  const iso = text.match(/\b(19[4-7]\d)\s+(0[1-9]|1[0-2])\s+(0[1-9]|[12]\d|3[01])\b/);
+  if (iso) return iso.slice(1).join('-');
+  for (const match of text.matchAll(/\b(?:([a-z]{3,9})\s+(0?[1-9]|[12]\d|3[01]),?|(0?[1-9]|[12]\d|3[01])\s+([a-z]{3,9}))\s+(19[4-7]\d)\b/gi)) {
+    const month = MONTHS.indexOf((match[1] || match[4]).slice(0, 3).toLowerCase()) + 1;
+    const year = Number(match[5]), day = Number(match[2] || match[3]);
+    if (month && day <= new Date(Date.UTC(year, month, 0)).getUTCDate()) {
+      return [year, String(month).padStart(2, '0'), String(day).padStart(2, '0')].join('-');
+    }
+  }
+  return '';
+}
+
+function classicProgramKey(item, channel) {
+  const { sourceIdentifier, fileName, logicalId } = normalizeIaFileRecord(item);
+  const title = String(item.title || '');
+  const series = familyId(item);
+  if (!series || series === normalizedFamily(sourceIdentifier)) return logicalId;
+  const text = [fileName, title].join(' ').replace(/[_.-]+/g, ' ');
+  if (/\b(?:(?:part|disc|volume)\s+\d+|compilation|marathon|double feature)\b/i.test(text)) return logicalId;
+  if (channel === '12') {
+    const date = classicBroadcastDate(text);
+    if (date) return ['classic', channel, series, date].join(':');
+  }
+  const releaseOrder = channel === '150' && text.match(/\bs?(19[2-7]\d)\s*e(?:p)?\s*(\d{1,3})\b/i);
+  if (releaseOrder) return ['classic', channel, series, releaseOrder[1] + 'e' + Number(releaseOrder[2])].join(':');
+  const episode = text.match(/\bs(?:eason)?\s*(\d{1,2})\s*e(?:pisode|p)?\s*(\d{1,3})\b/i)
+    || text.match(/\b(\d{1,2})\s*x\s*(\d{1,3})\b/i);
+  if (episode) return ['classic', channel, series, 's' + Number(episode[1]) + 'e' + Number(episode[2])].join(':');
+  const short = channel === '150' && title.match(/\s[·—]\s(.{4,120}?)\s+\((19[2-7]\d)\)$/);
+  if (short && !/\b(?:episode|cartoon|unknown|collection)\s*\d*$/i.test(short[1])) {
+    return ['classic', channel, series, normalizedFamily(short[1]), short[2]].join(':');
+  }
+  return logicalId;
+}
+
+function classicDecade(item) {
+  const text = [item.broadcastYear, item.fileName, item.title, item.year].join(' ');
+  const year = Number(text.match(/(?:^|[^0-9])(19[2-7]\d)(?=[^0-9]|$)/)?.[1]);
+  return year ? Math.floor(year / 10) * 10 : 0;
+}
+
+function reservationCatalog(existing, incoming, seen, keyFor = episodeKey) {
   const rows = mergeCatalog(existing, incoming, seen, MAX_RESERVATION_ITEMS), positions = new Map(), result = [];
   for (const item of rows) {
-    const key = episodeKey(item);
+    const key = keyFor(item);
     if (positions.has(key)) {
       // Keep one complete encoding record; never graft another file's identity onto its URL.
       const index = positions.get(key);
@@ -175,6 +219,7 @@ export class SessionRotation {
       playing: String(value.playing || ""),
       sportsSeen: Array.isArray(value.sportsSeen) ? value.sportsSeen.filter(x => typeof x === "string").slice(-MAX_SEEN) : [],
       sportsChannel: Sports.enabled(value.sportsChannel) ? String(value.sportsChannel) : '',
+      seenPrograms: Array.isArray(value.seenPrograms) ? value.seenPrograms.filter(key => typeof key === 'string').slice(-MAX_SEEN) : [],
     };
   }
 
@@ -303,9 +348,21 @@ export class SessionRotation {
 
   async reservation(body) {
     const current = await this.state(MAX_RESERVATION_ITEMS);
-    const rejected = new Set((body.rejectedIds || []).map(episodeKey));
-    const qualified = item => !rejected.has(episodeKey(item)) && (!body.rules || qualifyIaFileRecord(item, body.rules).accepted);
-    const catalog = reservationCatalog(current.catalog.filter(qualified), cleanItems(body.items, MAX_RESERVATION_ITEMS).filter(qualified), current.seen);
+    const channel = String(body.rules?.channel || body.stationChannel || '');
+    const classic = channel === '12' || channel === '150';
+    const incoming = cleanItems(body.items, MAX_RESERVATION_ITEMS);
+    const identities = new Map();
+    if (classic) for (const item of [...current.catalog, ...incoming]) {
+      const normalized = normalizeIaFileRecord(item);
+      const key = classicProgramKey(item, channel);
+      identities.set(itemId(item), key);
+      identities.set(normalized.logicalId, key);
+      if (normalized.fileName) identities.set(normalized.sourceIdentifier + '::' + normalized.fileName, key);
+    }
+    const keyFor = item => identities.get(typeof item === 'string' ? item : itemId(item)) || episodeKey(item);
+    const rejected = new Set((body.rejectedIds || []).map(keyFor));
+    const qualified = item => !rejected.has(keyFor(item)) && (!body.rules || qualifyIaFileRecord(item, body.rules).accepted);
+    const catalog = reservationCatalog(current.catalog.filter(qualified), incoming.filter(qualified), current.seen, keyFor);
     const ids = new Set(catalog.map(itemId)), now = Date.now();
     // Older shelves used a bare Archive parent ID even after resolving a file.
     // Preserve that exact episode when later discovery upgrades it to parent::file.
@@ -315,17 +372,17 @@ export class SessionRotation {
     }));
     const canonicalId = id => canonicalIds.get(id) || id;
     const seen = new Set(current.seen.map(canonicalId));
-    let seenEpisodes = new Set([...seen].map(episodeKey));
+    const seenEpisodes = new Set((current.seenPrograms || []).concat([...seen].map(keyFor)));
     const sportsChannel = body.rules?.channel || body.stationChannel || current.sportsChannel, sportsEnabled = Sports.enabled(sportsChannel);
     const sportsById = new Map([...current.catalog,...catalog].flatMap(row => [[itemId(row),row],[canonicalId(itemId(row)),row]]));
     const sportsHistory = values => values.map(id => sportsById.get(id)).filter(Boolean);
     const sportsSeen = new Set(sportsEnabled ? (current.sportsSeen || []).concat(sportsHistory(current.seen).map(row => Sports.key(row,sportsChannel))) : []);
-    const hasSeen = id => seenEpisodes.has(episodeKey(canonicalId(id))) || sportsEnabled && sportsById.has(id) && sportsSeen.has(Sports.key(sportsById.get(id),sportsChannel));
-    const cooldowns = Object.fromEntries(Object.entries(current.cooldowns || {}).filter(([, until]) => Number(until) > now).map(([id, until]) => [episodeKey(canonicalId(id)), until]));
-    let reserved = [...new Set((current.reserved || []).map(id => catalog.find(item => episodeKey(item) === episodeKey(id))).filter(Boolean).map(itemId)
-      .filter(id => ids.has(id) && episodeKey(canonicalId(id)) !== episodeKey(canonicalId(current.playing)) && !hasSeen(id) && !cooldowns[episodeKey(canonicalId(id))]))];
+    const hasSeen = id => seenEpisodes.has(keyFor(canonicalId(id))) || sportsEnabled && sportsById.has(id) && sportsSeen.has(Sports.key(sportsById.get(id),sportsChannel));
+    const cooldowns = Object.fromEntries(Object.entries(current.cooldowns || {}).filter(([, until]) => Number(until) > now).map(([id, until]) => [keyFor(canonicalId(id)), until]));
+    let reserved = [...new Set((current.reserved || []).map(id => catalog.find(item => keyFor(item) === keyFor(id))).filter(Boolean).map(itemId)
+      .filter(id => ids.has(id) && keyFor(canonicalId(id)) !== keyFor(canonicalId(current.playing)) && !hasSeen(id) && !cooldowns[keyFor(canonicalId(id))]))];
     const requestedId = String(body.id || "").trim().slice(0, 500);
-    const id = catalog.find(item => episodeKey(item) === episodeKey(requestedId))?.identifier || requestedId;
+    const id = itemId(catalog.find(item => keyFor(item) === keyFor(requestedId))) || requestedId;
     let committed = false;
     if (body.mode === "commit" || body.mode === "release") {
       // The bounded catalog can evict an already played episode while a large
@@ -337,20 +394,22 @@ export class SessionRotation {
       if (!id || !ids.has(id) && !(terminal && hasSeen(id))) return Response.json({ error: "unknown program identity" }, { status: 400 });
       reserved = reserved.filter(value => value !== id);
       if (body.mode === "commit") {
-        committed = !hasSeen(id);
-        seen.add(canonicalId(id));
-        if (sportsEnabled && sportsById.has(id)) sportsSeen.add(Sports.key(sportsById.get(id),sportsChannel));
-        seenEpisodes.add(episodeKey(canonicalId(id)));
+        if (!classic || !terminal) {
+          committed = !hasSeen(id);
+          seen.add(canonicalId(id));
+          if (sportsEnabled && sportsById.has(id)) sportsSeen.add(Sports.key(sportsById.get(id),sportsChannel));
+          seenEpisodes.add(keyFor(canonicalId(id)));
+        }
         if (!terminal) current.playing = id;
-        else if (episodeKey(canonicalId(current.playing)) === episodeKey(canonicalId(id))) current.playing = "";
+        else if (keyFor(canonicalId(current.playing)) === keyFor(canonicalId(id))) current.playing = "";
       } else {
-        cooldowns[episodeKey(canonicalId(id))] = now + 5 * 60_000;
+        cooldowns[keyFor(canonicalId(id))] = now + 5 * 60_000;
         if (current.playing === id) current.playing = "";
       }
     }
     const count = Math.max(1, Math.min(5, Number(body.count) || 3));
-    const recent = new Set((Array.isArray(body.recentIds) ? body.recentIds : []).map(id => episodeKey(canonicalId(id))));
-    const eligible = catalog.filter(item => episodeKey(item) !== episodeKey(canonicalId(current.playing)) && !cooldowns[episodeKey(item)]);
+    const recent = new Set((Array.isArray(body.recentIds) ? body.recentIds : []).map(id => keyFor(canonicalId(id))));
+    const eligible = catalog.filter(item => keyFor(item) !== keyFor(canonicalId(current.playing)) && !cooldowns[keyFor(item)]);
     let fresh = eligible.filter(item => !hasSeen(itemId(item)));
     /* Exact-episode freshness is necessary but not sufficient for television.
        A 500-item catalog can still feel repetitive when the next shelf chooses
@@ -358,8 +417,8 @@ export class SessionRotation {
        Derive show history from committed items and exhaust unseen families
        before returning to a different episode of a recently played series.
        Reservations are deliberately excluded: preload alone is not a watch. */
-    const catalogByEpisode = new Map(catalog.map(item => [episodeKey(item), item]));
-    const seenFamilies = new Set([...seen].map(id => catalogByEpisode.get(episodeKey(id))).filter(Boolean).map(familyId));
+    const catalogByEpisode = new Map(catalog.map(item => [keyFor(item), item]));
+    const seenFamilies = new Set([...seen].map(id => catalogByEpisode.get(keyFor(id))).filter(Boolean).map(familyId));
     const cycleReset = body.mode === "reserve" && !fresh.length && eligible.length > 0;
     const cycleGeneration = (current.cycleGeneration || 0) + (cycleReset ? 1 : 0);
     if (cycleReset) { seen.clear(); seenEpisodes.clear(); sportsSeen.clear(); fresh = eligible; reserved = []; }
@@ -370,11 +429,24 @@ export class SessionRotation {
       const unseenFamilies = fresh.filter(item => !seenFamilies.has(familyId(item)));
       const repeatFamilies = fresh.filter(item => seenFamilies.has(familyId(item)));
       const pools = [
-        unseenFamilies.filter(item => !recent.has(episodeKey(item))),
-        unseenFamilies.filter(item => recent.has(episodeKey(item))),
-        repeatFamilies.filter(item => !recent.has(episodeKey(item))),
-        repeatFamilies.filter(item => recent.has(episodeKey(item))),
+        unseenFamilies.filter(item => !recent.has(keyFor(item))),
+        unseenFamilies.filter(item => recent.has(keyFor(item))),
+        repeatFamilies.filter(item => !recent.has(keyFor(item))),
+        repeatFamilies.filter(item => recent.has(keyFor(item))),
       ].map(pool => rotate(pool, offset));
+      if (classic) {
+        const lastDecade = new Map();
+        [...seen].forEach((id, index) => {
+          const item = catalogByEpisode.get(keyFor(id));
+          const decade = item && classicDecade(item);
+          if (decade) lastDecade.set(decade, index);
+        });
+        const eraPriority = item => {
+          const decade = classicDecade(item);
+          return decade ? lastDecade.get(decade) ?? -1 : seen.size + 1;
+        };
+        for (const pool of pools) pool.sort((a,b) => eraPriority(a) - eraPriority(b));
+      }
       // Priority does not waive diversity. Try every eligible series before
       // filling duplicate-series slots from a genuinely constrained catalog.
       for (const pool of pools) {
@@ -387,6 +459,7 @@ export class SessionRotation {
       reserved = selected.map(itemId);
     }
     const next = { version: 3, catalog, seen: [...seen].slice(-MAX_RESERVATION_ITEMS), reserved,
+      ...(classic ? {seenPrograms:[...seenEpisodes].filter(key => key.startsWith("classic:")).slice(-MAX_SEEN)} : {}),
       cooldowns, ...(sportsEnabled ? {sportsChannel:String(sportsChannel),sportsSeen:[...sportsSeen].slice(-MAX_SEEN)} : {}), playing: current.playing || "", cursor: current.cursor + (committed ? 1 : 0), cycleGeneration, updatedAt: now };
     if (body.mode !== "peek") {
       const write = storage => writeIaChunkedState(storage, 'ia-reservation', next);

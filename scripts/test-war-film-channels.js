@@ -6,6 +6,7 @@ const { DatabaseSync } = require("node:sqlite");
 (async () => {
   const { default: worker } = await import("../realsignal_api_v2_worker.js");
   const { qualifySourceItem, sourceProfile } = await import("../realsignal_source_catalog.js");
+  const { reviewedWarFilms } = await import("../war_film_catalog.js");
   const sql = new DatabaseSync(":memory:");
   try {
     for (const file of ["0001_realsignal_catalog.sql", "0002_realsignal_v3_observability.sql", "0003_realsignal_v4_adaptive_catalog.sql"]) {
@@ -30,6 +31,11 @@ const { DatabaseSync } = require("node:sqlite");
       ["youtube-war-movies", "YouTube", 623],
       ["ia-war-movies", "Internet Archive", 624]
     ];
+    const archiveFilm = reviewedWarFilms("ia-war-movies")[0];
+    sql.prepare("INSERT INTO programs (id,provider,source_identifier,title,duration_seconds,aspect_ratio,media_url,first_seen_at,last_seen_at) VALUES (?,?,?,?,?,?,?,1,1)")
+      .run(archiveFilm.id, archiveFilm.provider, "legacy-archive-source-id", "Stale catalog title", archiveFilm.duration, archiveFilm.aspectRatio, archiveFilm.url);
+    sql.prepare("INSERT INTO channel_programs (channel_key,program_id,last_seen_at) VALUES (?,?,1)")
+      .run("ia-war-movies", archiveFilm.id);
     const firstFilms = [];
     for (const [profileKey, provider, channel] of listings) {
       for (const surface of ["desktop", "mobile"]) {
@@ -37,11 +43,15 @@ const { DatabaseSync } = require("node:sqlite");
         assert.match(body, new RegExp('num:' + channel + '[^\\n]+previewKey:"' + profileKey + '"'));
       }
       const profile = sourceProfile({ profileKey });
+      assert.equal(sourceProfile({ channel })?.profileKey, profileKey, "API must use the shared channel-to-source mapping");
       assert.equal(profile.minRuntimeSeconds, 3600);
       const status = await worker.fetch(new Request(endpoint + "status?profileKey=" + profileKey), env, ctx);
       assert.equal(status.status, 200);
       const { items } = await status.json();
       assert.ok(items.length >= 5, profileKey + " must have a usable catalog");
+      assert.equal(items.length, reviewedWarFilms(profileKey).length, "persisted copies must not inflate catalog depth");
+      assert.equal(new Set(items.map(item => item.id)).size, items.length);
+      assert.ok(!items.some(item => item.title === "Stale catalog title"));
       assert.equal(new Set(items.map(item => item.title)).size, items.length);
       for (const item of items) {
         assert.equal(item.provider, provider);

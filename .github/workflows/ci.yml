@@ -29,6 +29,8 @@ on:
       - 'assets/ia-playback-shelf.js'
       - 'ia_canonical_pilot_manifest.js'
       - 'source_suite_profile_registry.js'
+      - 'channel_registry.js'
+      - 'source_browser_profiles.template'
       - 'wrangler.api.jsonc'
       - 'migrations/**'
       - 'assets/source-program-policy.js'
@@ -205,6 +207,7 @@ jobs:
           node scripts/audit-ia-channels.js the_dial_mobile.html
           node scripts/check-ia-contract.js the_dial_mobile.html
           node scripts/check-ia-parity.js
+          node scripts/sync-channel-registry.mjs
           node scripts/check-channel-registry.js
           node scripts/check-source-suite-contract.js
           node scripts/check-cast-contract.js
@@ -263,6 +266,7 @@ jobs:
           node scripts/audit-ia-channels.js the_dial_desktop.html
           node scripts/check-ia-contract.js the_dial_desktop.html
           node scripts/check-ia-parity.js
+          node scripts/sync-channel-registry.mjs
           node scripts/check-channel-registry.js
           node scripts/check-source-suite-contract.js
           node scripts/check-cast-contract.js

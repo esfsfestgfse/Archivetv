@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const files = ["the_dial_desktop.html", "the_dial_mobile.html"];
@@ -22,8 +23,10 @@ function readRegistry(filename) {
   const programBlock = source.slice(programStart, editorialStart);
   const orderMatch = source.match(/var CAT_ORDER=\[([^\]]+)\]/);
   if (!orderMatch) throw new Error(`${filename}: cannot find CAT_ORDER`);
-  const channels = [...channelBlock.matchAll(/\{nm:"([^"]+)",\s*num:(\d+),\s*cat:"([^"]+)",\s*(?:gl:"([^"]+)"|source:"([^"]+)")/g)]
-    .map((match) => ({ name: match[1], number: Number(match[2]), category: match[3], identity: match[4] || match[5], kind: match[4] ? "ia" : "live" }));
+  const channels = vm.runInNewContext(channelBlock + "\nCH").map(channel => ({
+    name: channel.nm, number: Number(channel.num), category: channel.cat,
+    identity: channel.gl || channel.source, kind: channel.gl ? "ia" : "live"
+  }));
   const categories = [...categoryBlock.matchAll(/([A-Z]+):"/g)].map((match) => match[1]);
   const order = [...orderMatch[1].matchAll(/"([A-Z]+)"/g)].map((match) => match[1]);
   const metadataNames = new Set([...metadataBlock.matchAll(/^"([^"]+)":\{/gm)].map((match) => match[1]));

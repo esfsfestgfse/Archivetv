@@ -681,6 +681,7 @@ export function iaGameShowEraAllowed(item, channel) {
   if (String(channel) === '22' && !iaModernGameShowAllowed(item)) return false;
   const text = [item.title,item.subject,item.description,item.fileName].filter(Boolean).join(' ');
   if (/\b(?:cryptography|cryptographic|password cracking|password manager|change password|reset password|aula|computer tutorial|software tutorial)\b/i.test(text)) return false;
+  if (/\b(?:opening(?: title)? sequences?|opening titles|title sequence compilation|intro compilation)\b/i.test(String(item.title || ''))) return false;
   if (/\b(?:gmod|garry.?s mod|roblox|minecraft|gameplay|walkthrough|speedrun|podcast|reaction|parody|fan[- ]?made|mock game|video essay|retrospective|press conference|interactive dvd|dvd game)\b/i.test(text)) return false;
   const year = iaGameShowYear(item);
   return String(channel) === '12' ? year >= 1940 && year <= 1979 : year >= 1980 && year <= 2026;

@@ -347,3 +347,43 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file 
   await scope.preloadNext(channel, {}, 1);
   assert.deepEqual(loads, [next.media.url], 'a superseded tune must not stage media');
 });
+
+test('classic pilot reserves one copy per episode, rotates eras, and keeps viewer history separate', async () => {
+  const { SessionRotation } = await import('../realsignal_api_rotation.js');
+  const make = (id, title, year, seriesTitle) => ({...item(id), title, broadcastYear: year, seriesTitle});
+  const a = make('upload-a::Popeye S01E01.mp4', 'Popeye S01E01', 1933, 'Popeye');
+  const aCopy = make('upload-b::Popeye 1x01 720p.mp4', 'Popeye 1x01', 1933, 'Popeye');
+  const old = make('upload-c::Betty S01E03.mp4', 'Betty Boop S01E03', 1934, 'Betty Boop');
+  const newer = make('upload-d::Top Cat S01E04.mp4', 'Top Cat S01E04', 1961, 'Top Cat');
+  const fresh = make('upload-e::Popeye S01E02.mp4', 'Popeye S01E02', 1933, 'Popeye');
+  const r = new SessionRotation(rotationContext(), {}), other = new SessionRotation(rotationContext(), {});
+  const reserve = async (viewer, items, count) => (await viewer.reservation({mode:'reserve',stationChannel:'150',items,count})).json();
+  await reserve(r, [a], 1);
+  const started = await r.reservation({mode:'commit',stationChannel:'150',event:'started',id:a.identifier});
+  assert.equal(started.status, 200);
+  const rows = [aCopy, old, newer, fresh];
+  const next = await reserve(r, rows, 3);
+  assert.ok(!next.items.some(row => row.identifier === aCopy.identifier));
+  assert.equal(next.catalog.length, 4);
+  assert.equal(next.items[0].identifier, newer.identifier, 'a new decade takes priority within unseen shows');
+  assert.ok(next.items.some(row => row.identifier === fresh.identifier), 'the next episode is a distinct program');
+  assert.equal((await reserve(other, [aCopy], 1)).items[0].identifier, aCopy.identifier);
+});
+
+test('classic game shows recognize the same dated broadcast across Upload IDs and count only starts', async () => {
+  const { SessionRotation } = await import('../realsignal_api_rotation.js');
+  const r = new SessionRotation(rotationContext(), {});
+  const first = {...item('upload-a'),title:"What's My Line? 1957-05-05"};
+  const copy = {...item('upload-b'),title:"What's My Line? May 5, 1957 HD"};
+  const next = {...item('upload-c'),title:"What's My Line? 1957-05-12"};
+  const stationChannel='12';
+  await r.reservation({ mode:'reserve', stationChannel, items:[first, copy, next],count:2 });
+  assert.equal((await r.reservation({ mode:'commit', stationChannel, event:'skipped', id:first.identifier })).status,200);
+  const afterSkip = await (await r.reservation({ mode:'peek',stationChannel })).json();
+  assert.equal(afterSkip.seen, 0);
+  assert.equal(afterSkip.catalog.length, 2);
+  assert.equal((await r.reservation({ mode:'commit', stationChannel, event:'started', id:first.identifier })).status,200);
+  const refreshed = await (await r.reservation({ mode:'reserve',stationChannel,items:[copy,next] })).json();
+  assert.equal(refreshed.items[0].identifier,next.identifier);
+  assert.equal(refreshed.items.length,1);
+});

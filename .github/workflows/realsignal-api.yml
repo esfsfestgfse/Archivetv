@@ -27,6 +27,7 @@ on:
       - 'ia_canonical_station.mjs'
       - 'ia_canonical_pilot_manifest.js'
       - 'source_suite_profile_registry.js'
+      - 'channel_registry.js'
       - 'wrangler.api.jsonc'
       - 'migrations/**'
       - 'scripts/test-v2-api-worker.js'

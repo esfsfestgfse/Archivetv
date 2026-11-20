@@ -77,8 +77,10 @@ Then fetch that blob to see the deployed build stamp.
 
 - **Single-file HTML.** All markup, CSS, JS inline in one file per build. No bundler,
   no framework, no npm build step. This is a stated product requirement.
-- **Two builds, edited independently.** Mobile and desktop are hand-merged. Every
-  change to mobile must be ported to desktop.
+- **Two browser builds.** The channel lineup and guide metadata come from
+  `channel_registry.js`. Shared source fields come from the API profile registry.
+  Run `node scripts/sync-channel-registry.mjs --write` after a registry edit.
+  The standalone HTML builds are checked for drift in CI.
 - **Deploy is `git push`.** No CI/CD dance beyond that.
 - **Verify via GitHub API.** The Pages CDN lies.
 

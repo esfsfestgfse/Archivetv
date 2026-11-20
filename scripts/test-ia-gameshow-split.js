@@ -14,6 +14,9 @@ test('game show era admission uses episode evidence before an Archive upload yea
   const { catalogFallbackAllowed } = await import(pathToFileURL(path.join(root, 'realsignal_api_v2_worker.js')));
   const classic = { iaRepair: true, channel: '12', mediaTypes: ['movies'] };
   const modern = { ...classic, channel: '22' };
+  const openingTitles = episode('Compilation of 1950s game show opening titles', 1955);
+  openingTitles.identifier = '1950sgameshows-openingtitles::1950sgameshows-IAversion.mp4';
+  assert.equal(catalogFallbackAllowed(openingTitles, classic), false, 'opening-title reels are not complete episodes');
   const oldEpisode = episode('Family Feud · October 12, 1977', 2025);
   assert.equal(catalogFallbackAllowed(oldEpisode, classic), true);
   assert.equal(catalogFallbackAllowed(oldEpisode, modern), false);
@@ -60,6 +63,7 @@ test('both game-show stations expose deep file banks and keep their parents disc
     assert.ok(rows.filter(row => !row.media).length >= 3, channel + ' must retain collection indexes for expansion');
     assert.ok(rows.filter(row => row.media).every(row => scope.f.iaStationQualityGate(channel, row)));
   }
+  assert.equal(scope.f.iaStationQualityGate('12', episode('Compilation of 1950s game show opening titles', 1955)), false);
   assert.equal(scope.f.iaStationQualityGate('12', episode('Supermarket Sweep · 2003', 2003)), false);
   assert.equal(scope.f.iaStationQualityGate('22', episode('Match Game · 1975', 1975)), false);
   assert.equal(scope.f.iaStationQualityGate('12', episode('Press Your Luck · 1983', 1983)), false);

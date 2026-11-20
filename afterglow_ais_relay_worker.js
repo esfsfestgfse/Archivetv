@@ -6419,6 +6419,7 @@ function iaStationQualityGate(channel, doc) {
   if (["12", "22"].includes(String(channel))) {
     const text = [doc.title,doc.subject,doc.description,doc.fileName].filter(Boolean).join(' ');
     if (/\b(?:cryptography|cryptographic|password cracking|password manager|change password|reset password|aula|computer tutorial|software tutorial)\b/i.test(text)) return false;
+    if (/\b(?:opening(?: title)? sequences?|opening titles|title sequence compilation|intro compilation)\b/i.test(String(doc.title || ''))) return false;
     if (/\b(?:gmod|garry.?s mod|roblox|minecraft|gameplay|walkthrough|speedrun|podcast|reaction|parody|fan[- ]?made|mock game|video essay|retrospective|press conference|interactive dvd|dvd game)\b/i.test(text)) return false;
     const year = iaGameShowYear(doc);
     // Parent indexes without media may enter discovery so their dated children

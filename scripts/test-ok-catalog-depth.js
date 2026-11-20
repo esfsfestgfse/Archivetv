@@ -116,6 +116,21 @@ const root = path.resolve(__dirname, '..');
     await Promise.all(tasks.splice(0));
     // Maintenance increments once, and subsequent catalog writes preserve it.
     assert.equal(await helpers.okDiscoveryCursor(db, 'ok-tv-channel'), 4);
+    const cookhouse = 'ok-cookhouse-channel';
+    const cookStatus = await (await worker.fetch(new Request('https://api.example/api/v3/source/status?profileKey=' + cookhouse), { realsignal_catalog: db }, ctx)).json();
+    assert.ok(cookStatus.items.length >= 10);
+    const firstCook = cookStatus.items.find(row => row.seriesId && row.episodeIdentity);
+    assert.ok(firstCook);
+    for (const row of cookStatus.items) {
+      sql.prepare('INSERT INTO programs (id,provider,title,first_seen_at,last_seen_at) VALUES (?,?,?,1,1)').run(row.id,row.provider,row.title);
+      sql.prepare('INSERT INTO channel_freshness (channel_key,program_id,last_served_at) VALUES (?,?,?)').run(cookhouse,row.id,Date.now());
+    }
+    const cook = async (recentIds=[],recentProgramKeys=[]) => (await worker.fetch(request({profileKey:cookhouse,count:1,minimumReady:1,staleReady:1,recentIds,recentProgramKeys}), {realsignal_catalog:db},ctx)).json();
+    const open = await cook();
+    assert.equal(open.catalogExhausted,false, 'a different viewer cannot exhaust Cookhouse');
+    assert.equal(open.unseenCatalogItems,cookStatus.items.length);
+    const alternate = await cook([], [helpers.okPlaybackIdentity(firstCook, 'tv')]);
+    assert.ok(alternate.candidateItems.every(row => helpers.okPlaybackIdentity(row, 'tv') !== helpers.okPlaybackIdentity(firstCook, 'tv')), 'canonical history must also exclude a replacement upload');
     const series = Array.from({ length: 25 }, (_, index) => `Catalog Show ${index + 1}`);
     for (let i = 0; i < 250; i++) {
       const n = i % series.length, id = `ok:${800000 + i}`, title = `${series[n]}.S02E${String(Math.floor(i / 6) + 1).padStart(2, '0')}.DVDRip`;

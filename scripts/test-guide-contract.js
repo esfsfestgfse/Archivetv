@@ -209,6 +209,44 @@ for (const file of ['the_dial_mobile.html', 'the_dial_desktop.html']) {
     assert.equal(api.snapshot(source).next.id, 'two');
     assert.equal(JSON.stringify(context.__v2PreviewState), before);
   });
+  test(file + ': Cookhouse Up Next uses the same canonical and era-aware decision as manual Next', () => {
+    const { api, context, calls } = browserAdapter(file);
+    const cookhouse = { num:608, nm:'OK Cookhouse', source:'v2preview', previewKey:'ok-cookhouse-channel' };
+    const profile = { name:cookhouse.nm, profileKey:cookhouse.previewKey };
+    context.V2_PREVIEW_PROFILES[cookhouse.previewKey] = profile;
+    context.byNum = () => cookhouse;
+    context.curNum = 608;
+    const make = (id, key, seriesId, year) => ({id, canonicalProgramKey:key, seriesId, year, title:id, url:'https://ok.ru/videoembed/123'});
+    const one = make('one','show-a:1','show-a',1994);
+    const copy = make('copy','show-a:1','show-a',1994);
+    const two = make('two','show-b:1','show-b',1996);
+    const three = make('three','show-c:1','show-c',1971);
+    context.curItem = { ...one, ch:608 };
+    const state = context.__v2PreviewState[608] = { items:[one,copy,two,three], cursor:0, currentId:one.id };
+    context.v2PreviewState = context.__v2PreviewState;
+    context.store = {get(key, fallback) { return ({
+      'v2recent:OK Cookhouse':['one'],
+      'v2recentPrograms:OK Cookhouse':['show-a:1'],
+      'v2recentSeries:OK Cookhouse':['show-a'],
+      'v2recentEras:OK Cookhouse':[1990]
+    })[key] ?? fallback; }};
+    context.v2PruneSourcePrograms = () => {};
+    context.v2LoadProfile = async () => [];
+    context.quickBanner = () => {};
+    context.token = 1;
+    context.V2_SOURCE_READY_BUFFER = 2;
+    context.tuneNum = (number,id) => calls.push([number,id]);
+    vm.runInContext(fs.readFileSync(path.join(root,'assets/ok-embed-runtime.js'),'utf8'), context);
+    actualFunctions(file, context, ['v2Recent','v2RecentSeries','v2NextFreshIndex']);
+    const html = fs.readFileSync(path.join(root,file),'utf8');
+    vm.runInContext(html.split(/\r?\n/).find(line => line.startsWith('window.__v2PreviewNext=function')), context);
+    const before = JSON.stringify(state);
+    assert.equal(api.snapshot(cookhouse).current.id,'one');
+    assert.equal(api.snapshot(cookhouse).next.id,'three');
+    assert.equal(JSON.stringify(state),before);
+    context.__v2PreviewNext(true);
+    assert.deepEqual(calls,[[608,'three']]);
+  });
   test(file + ': commands use the latest playback wrappers and invalid commands do nothing', () => {
     const { api, context, calls } = browserAdapter(file);
     context.tuneNum = n => { calls.push(['latest', n]); return n; };

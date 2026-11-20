@@ -100,5 +100,22 @@
     // "Just the Facts (Full Episode)" is not the same as "Facts About [show]".
     return !/\b(?:facts?\s+(?:about|you)|things\s+you\s+(?:didn['’]?t|never)\s+know|trivia|rankings?|ranked|countdown|top\s+(?:\d+|ten)|video\s+essay|analysis|explained|explored|retrospective|history\s+of|what\s+happened\s+to|why\s+you\s+should|reviews?|reactions?|animation\s+(?:history|tutorial)|made\s+in\s+blender)\b/i.test(title);
   }
-  return {allow:allow};
+  function warFilmProfile(key) {
+    return /^(?:ok|youtube|ia)-war-movies$/.test(String(key || ''));
+  }
+  function balanceWarFilmEras(items) {
+    var eras = [[], [], [], []], unknown = [];
+    items.forEach(function(item) {
+      var year = Number(item.year);
+      if (!Number.isInteger(year) || year < 1900) { unknown.push(item); return; }
+      var era = year >= 2000 ? 0 : year >= 1980 ? 2 : year >= 1939 ? 1 : 3;
+      eras[era].push(item);
+    });
+    var balanced = [], depth = Math.max.apply(null, eras.map(function(era) { return era.length; }));
+    for (var index = 0; index < depth; index++) {
+      eras.forEach(function(era) { if (index < era.length) balanced.push(era[index]); });
+    }
+    return balanced.concat(unknown);
+  }
+  return {allow:allow, warFilmProfile:warFilmProfile, balanceWarFilmEras:balanceWarFilmEras};
 });

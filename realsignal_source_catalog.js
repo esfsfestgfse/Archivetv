@@ -1594,7 +1594,7 @@ function sourceTasks(profile, env, rotation, options = {}) {
     const provider = warFilms[0]?.provider;
     const providerKey = provider === "OK.ru" ? "ok" : String(provider || "").toLowerCase().replace(" ", "-");
     const disabled = new Set(options.disabledProviders || []);
-    return [Promise.resolve({ provider, items: disabled.has(providerKey) ? [] : rotate(warFilms, rotation), health: { manifest: true } })];
+    return [Promise.resolve({ provider, items: disabled.has(providerKey) ? [] : SourcePrograms.balanceWarFilmEras(rotate(warFilms, rotation)), health: { manifest: true } })];
   }
   const tasks = providers(profile, rotation, env, options);
   /* Deep maintenance is an editorial rebuild of this lane, not a family

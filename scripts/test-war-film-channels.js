@@ -65,9 +65,29 @@ const { DatabaseSync } = require("node:sqlite");
       });
       const initial = await (await worker.fetch(request([]), env, ctx)).json();
       assert.equal(initial.items.length, 5);
+      assert.ok(items.every(item => Number.isInteger(item.year)), "each reviewed release must have a film year");
+      if (profileKey === "ok-war-movies" || profileKey === "youtube-war-movies") {
+        const countModern = rows => rows.filter(item => item.year >= 2000).length;
+        assert.ok(countModern(initial.items) >= 2, "opening shelf should include at least two modern films");
+        assert.ok(initial.items.some(item => item.year < 1980), "opening shelf should keep a classic film");
+        if (profileKey === "ok-war-movies") {
+          assert.ok(initial.items.some(item => item.year >= 1980 && item.year < 2000), "include the middle era when available");
+        } else {
+          assert.ok(items.length >= 12, "add licensed feature-length uploads to the YouTube catalog");
+        }
+        const unseen = items.filter(item => item.year >= 2000).slice(0, 3);
+        const watched = items.filter(item => !unseen.includes(item)).map(item => item.id);
+        const freshTail = await (await worker.fetch(request(watched), env, ctx)).json();
+        assert.deepEqual(new Set(freshTail.items.map(item => item.id)), new Set(unseen.map(item => item.id)),
+          "a classic era slot cannot replay a watched movie before the remaining films have aired");
+      }
       const next = await (await worker.fetch(request([initial.items[0].id]), env, ctx)).json();
       assert.equal(next.items.length, 5);
       assert.ok(!next.items.some(item => item.id === initial.items[0].id), "history must exclude the first film");
+      if (profileKey === "ia-war-movies") {
+        assert.ok(initial.items.some(item => item.year >= 2000), "surface the verified modern Archive feature");
+        assert.ok(initial.items.some(item => item.year < 1939), "keep the early classics in rotation");
+      }
       firstFilms.push([profile, initial.items[0]]);
     }
     for (const [profile, film] of firstFilms) {

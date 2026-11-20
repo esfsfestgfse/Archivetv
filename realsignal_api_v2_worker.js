@@ -1706,7 +1706,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
      otherwise Next can visibly repeat an old episode merely to represent
      five different shows. Cooled fallback rows are admitted only when the
      unseen catalog cannot fill the requested shelf at all. */
-  const selected = ignoreFreshness || fresh.length >= requestedCount || (derivedMusicYears || personalRotation) && fresh.length ? fresh
+  const selected = ignoreFreshness || fresh.length >= requestedCount || (derivedMusicYears || personalRotation || warFilms) && fresh.length ? fresh
     : fresh.concat(playableCatalog.filter(item => !freshKeys.has(queueItemKey(item))));
   const seenCount = Math.max(0, playableCatalog.length - fresh.length);
   const suppliedRecentSeries = Array.isArray(effectiveBody && effectiveBody.recentSeries)
@@ -1724,7 +1724,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
     ? rotateCatalogItems(fresh, (Number(effectiveBody.rotation) || 0) * rotationStep).concat(playableCatalog.filter(item => !freshKeys.has(queueItemKey(item))))
     : rotateCatalogItems(selected, (Number(effectiveBody.rotation) || 0) * rotationStep);
   const ordered = okCatalog ? okBalancedCandidates([rotated], okKind, limit) : vimeoCatalog ? vimeoBalancedItems(rotated) : rotated;
-  const seriesOrdered = okCatalog && okKind === "tv"
+  const seriesOrdered = warFilms ? SourcePrograms.balanceWarFilmEras(ordered) : okCatalog && okKind === "tv"
     ? okBalancedCandidates([okPreferUnseenSeries(ordered, recentSeries, requestedCount)], "tv", limit)
     : derivedMusicYears ? okMusicBalanceDecades(ordered) : ordered;
   /* The playable shelf may contain cooled fallback rows when an otherwise
@@ -1736,7 +1736,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   const freshOrdered = okCatalog
     ? okBalancedCandidates([freshRotated], okKind, limit)
     : vimeoCatalog ? vimeoBalancedItems(freshRotated) : freshRotated;
-  const freshSeriesOrdered = okCatalog && okKind === "tv"
+  const freshSeriesOrdered = warFilms ? SourcePrograms.balanceWarFilmEras(freshOrdered) : okCatalog && okKind === "tv"
     ? okBalancedCandidates([okPreferUnseenSeries(freshOrdered, recentSeries)], "tv", limit)
     : derivedMusicYears ? okMusicBalanceDecades(freshOrdered) : freshOrdered;
   const shelf = Sports.enabled(channel) ? Sports.select(seriesOrdered,{channel,count:requestedCount,

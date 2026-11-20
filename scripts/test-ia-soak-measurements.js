@@ -21,7 +21,30 @@ async function measure(responses) {
   const result = await vm.runInContext('probeRotation({channel:12,name:"Test",queries:[]},0)', sandbox);
   return {result, calls};
 }
+async function verifyViewerHistory() {
+  const sent = [];
+  const sandbox = {
+    require(name) { return name === 'node:fs' ? { readFileSync: () => '[{"channel":12,"queries":[]}]' } : require(name); },
+    process: { argv: ['node','soak','--manifest','unused','--viewer-history','--count','1','--rotations','3'] },
+    console, Date, AbortController, setTimeout, clearTimeout,
+    async fetch(url, options) {
+      sent.push({url, body: JSON.parse(options.body)});
+      return {ok:true, status:200, headers:{get:()=>''}, json:async()=>({
+        ready:1, items:[{identifier:'program-'+sent.length, media:{url:'https://archive.org/download/example/show.mp4'}}]
+      })};
+    }
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(source.slice(0, source.lastIndexOf('main().catch')), sandbox);
+  await vm.runInContext('probe({channel:12,name:"Test",queries:[]})', sandbox);
+  assert.ok(sent.every(row => row.url.endsWith('/api/v3/ia/queue') && row.body.serverCatalog));
+  assert.deepEqual(sent.map(row => row.body.viewerRecentIds), [[], ['program-1'], ['program-1','program-2']]);
+  assert.deepEqual(sent.map(row => row.body.recentIds), sent.map(row => row.body.viewerRecentIds));
+  assert.ok(sent.every(row => row.body.sessionId === sent[0].body.sessionId));
+}
+
 (async () => {
+  await verifyViewerHistory();
   const late = await measure([{status:200,ready:1,ms:7000},{status:200,ready:5,ms:1000}]);
   assert.equal(late.result.ready, 5, 'a late first item must still get a refill observation window');
   assert.equal(late.result.firstPlayLatencyMs, 7000);

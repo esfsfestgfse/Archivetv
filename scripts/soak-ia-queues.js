@@ -19,11 +19,14 @@ function option(name, fallback) {
 
 const manifestPath = option('--manifest');
 if (!manifestPath) {
-  console.error('Usage: node scripts/soak-ia-queues.js --manifest <json> [--rotations 2] [--strict]');
+  console.error('Usage: node scripts/soak-ia-queues.js --manifest <json> [--rotations 2] [--viewer-history] [--strict]');
   process.exit(2);
 }
 
-const endpoint = option('--endpoint', 'https://ais-relay.tdy1990.workers.dev/ia/queue');
+const simulateViewer = process.argv.includes('--viewer-history');
+const endpoint = option('--endpoint', simulateViewer
+  ? 'https://realsignal-api.tdy1990.workers.dev/api/v3/ia/queue'
+  : 'https://ais-relay.tdy1990.workers.dev/ia/queue');
 const relayRoot = (() => {
   try { return new URL(endpoint).origin + '/'; }
   catch { return ''; }
@@ -31,6 +34,10 @@ const relayRoot = (() => {
 const isV2Endpoint = /\/api\/v2\/ia\/queue(?:$|\?)/i.test(endpoint);
 const isV3Endpoint = /\/api\/v3\/ia\/queue(?:$|\?)/i.test(endpoint);
 const isVersionedApiEndpoint = isV2Endpoint || isV3Endpoint;
+if (simulateViewer && !isVersionedApiEndpoint) {
+  console.error('--viewer-history requires a versioned API queue endpoint.');
+  process.exit(2);
+}
 const count = Math.max(1, Math.min(5, Number(option('--count', '3')) || 3));
 const requiredReady = Math.max(1, Math.min(count, Number(option('--require-ready', '1')) || 1));
 /* Six-wide probes amplify a cold Archive burst and can turn upstream
@@ -110,7 +117,7 @@ async function relayPreflight() {
   throw new Error(`relay preflight failed after 3 attempts: ${lastError && lastError.message || lastError}`);
 }
 
-async function requestQueue(row, remainingMs, rotationOffset) {
+async function requestQueue(row, remainingMs, rotationOffset, viewerHistory) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), Math.max(1000, Math.min(18000, remainingMs)));
   try {
@@ -122,7 +129,7 @@ async function requestQueue(row, remainingMs, rotationOffset) {
          can accidentally land on a multiple of the catalog length, making a
          healthy lane look repeat-heavy. Use --rotation-base when a seeded
          session is specifically being simulated. */
-      body: JSON.stringify({ channel: String(row.channel), count, rotation: (rotationBase + rotationOffset) % 4096, queries: row.queries, themeTerms: row.themeTerms || [], denyTerms: row.denyTerms || [], requiredTitleTerms: row.requiredTitleTerms || [], diversity: row.diversity || {}, mediaTypes: row.mediaTypes || ['movies'], themeMinScore: row.themeMinScore || 1, ...(isVersionedApiEndpoint ? { sessionId: soakSessionId } : {}), ...(serverCatalogCanary ? { serverCatalog: true, catalogCanary: serverCatalogCanary } : {}) }),
+      body: JSON.stringify({ channel: String(row.channel), count, rotation: (rotationBase + rotationOffset) % 4096, queries: row.queries, themeTerms: row.themeTerms || [], denyTerms: row.denyTerms || [], requiredTitleTerms: row.requiredTitleTerms || [], diversity: row.diversity || {}, mediaTypes: row.mediaTypes || ['movies'], themeMinScore: row.themeMinScore || 1, ...(isVersionedApiEndpoint ? { sessionId: soakSessionId } : {}), ...(serverCatalogCanary ? { serverCatalog: true, catalogCanary: serverCatalogCanary } : {}), ...(simulateViewer ? { serverCatalog: true, viewerRecentIds: viewerHistory, recentIds: viewerHistory, minRuntimeSeconds: row.minRuntimeSeconds || 0 } : {}) }),
       signal: controller.signal,
     });
     const body = await response.json();
@@ -132,7 +139,7 @@ async function requestQueue(row, remainingMs, rotationOffset) {
   }
 }
 
-async function probeRotation(row, rotationOffset) {
+async function probeRotation(row, rotationOffset, viewerHistory = []) {
   const started = Date.now();
   let attempts = 0, lastStatus = 0, lastBody = null, lastError = null;
   let lastSource = '', lastCache = '', lastReadyHeader = '', lastPartial = '', lastFallback = '', sawWarmFallback = false;
@@ -141,7 +148,7 @@ async function probeRotation(row, rotationOffset) {
     attempts++;
     try {
       const deadline = firstReadyLatencyMs == null ? timeoutMs : Math.min(timeoutMs, firstReadyLatencyMs + depthTimeoutMs);
-      const { response, body } = await requestQueue(row, deadline - (Date.now() - started), rotationOffset);
+      const { response, body } = await requestQueue(row, deadline - (Date.now() - started), rotationOffset, viewerHistory);
       lastStatus = response.status;
       lastBody = body;
       lastSource = response.headers.get('x-realsignal-source') || response.headers.get('x-afterglow-source') || '';
@@ -164,6 +171,7 @@ async function probeRotation(row, rotationOffset) {
       const responseWasWarmFallback = lastFallback === '1' || Boolean(body && body.stale);
       if (responseWasWarmFallback) sawWarmFallback = true;
       const allItems = response.ok && Array.isArray(body.items) ? body.items.filter(item => {
+        if (simulateViewer && !item?.media?.url) return false;
         const terms = row.requiredTitleTerms || [];
         if (!terms.length) return true;
         const title = String(item && item.title || '').toLowerCase();
@@ -262,11 +270,13 @@ async function probeRotation(row, rotationOffset) {
  * timeout/underfill events. */
 async function probe(row) {
   const rotationResults = [];
+  const simulatedHistory = new Set();
   let elapsedMs = 0;
   let firstPlayLatencyMs = null;
   for (let rotation = 0; rotation < rotations; rotation++) {
-    const result = await probeRotation(row, rotation);
+    const result = await probeRotation(row, rotation, [...simulatedHistory]);
     rotationResults.push(result);
+    if (simulateViewer) for (const id of result.itemIds || []) simulatedHistory.add(id);
     elapsedMs += result.elapsedMs;
     if (firstPlayLatencyMs == null && result.ok) firstPlayLatencyMs = elapsedMs - result.elapsedMs + result.firstPlayLatencyMs;
     if (rotationDelayMs && rotation + 1 < rotations) await sleep(rotationDelayMs);
@@ -368,6 +378,8 @@ async function main() {
   }
   const results = await mapConcurrent(manifest, concurrency, probe);
   const failures = results.filter(result => !result.ok);
+  const firstItemReadyChannels = results.filter(result => result.readyDepths.some(depth => depth > 0)).length;
+  const noSignalChannels = results.length - firstItemReadyChannels;
   const measuredRotations = results.reduce((sum, result) => sum + (result.rotations?.length || 0), 0);
   const timeoutCount = results.reduce((sum, result) => sum + (result.timeoutCount || 0), 0);
   const transportFailures = results.reduce((sum, result) => sum + (result.transportFailures || 0), 0);
@@ -388,9 +400,11 @@ async function main() {
   const slowest = results.slice().sort((a, b) => b.elapsedMs - a.elapsedMs).slice(0, 10);
   const report = {
     generatedAt: new Date().toISOString(), endpoint, relayPreflight: preflight, count, requiredReady, concurrency, rotationBase, rotations, rotationDelayMs,
+    rotationMode: simulateViewer ? 'simulated-viewer-history' : 'cursor-only',
     elapsedMs: Date.now() - started,
     totals: {
       channels: results.length, ready: results.length - failures.length, empty: failures.length,
+      firstItemReadyChannels, noSignalChannels,
       measuredRotations, fiveItemDepth: results.reduce((sum, result) => sum + (result.fiveItemDepth || 0), 0),
       fullDepthChannels, depthUnderfilled,
       timeouts: timeoutCount, duplicateItems,
@@ -410,9 +424,9 @@ async function main() {
     },
     failures, slowest, results,
   };
-  console.log(`IA queue health: ${report.totals.ready}/${report.totals.channels} first-play ready; ${failures.length} no-signal lanes; ${report.totals.fullDepthChannels}/${report.totals.channels} full-depth; ${report.totals.duplicateItems} duplicate items; ${timeoutCount} timeouts`);
+  console.log(`IA queue health: ${firstItemReadyChannels}/${report.totals.channels} first-play ready; ${noSignalChannels} no-signal lanes; ${report.totals.fullDepthChannels}/${report.totals.channels} full-depth; ${report.totals.duplicateItems} duplicate items; ${timeoutCount} timeouts`);
   console.log(`Failure classes: ${transportFailures} transport failures; ${httpFailures} HTTP failures; ${Math.max(0, failures.length - transportFailures - httpFailures)} queue/underfill failures`);
-  console.log(`Five-item depth: ${report.totals.fiveItemDepth}/${report.totals.measuredRotations} rotations; ${report.totals.depthUnderfilled} channels still underfilled after ${depthTimeoutMs}ms depth window`);
+  console.log(`${count}-item depth: ${report.totals.fiveItemDepth}/${report.totals.measuredRotations} rotations; ${report.totals.depthUnderfilled} channels still underfilled after ${depthTimeoutMs}ms depth window`);
   console.log(`Freshness: ${report.totals.freshness.uniqueCoverage * 100}% unique item coverage; ${report.totals.freshness.duplicateItems} repeats across ${report.totals.freshness.observedItems} observed slots; ${report.totals.freshness.staleLanes} stale/repeat-heavy lanes`);
   if (report.totals.firstPlayLatencyMs) console.log(`First-play latency: ${report.totals.firstPlayLatencyMs.average}ms average (${report.totals.firstPlayLatencyMs.min}-${report.totals.firstPlayLatencyMs.max}ms)`);
   for (const failure of failures) {

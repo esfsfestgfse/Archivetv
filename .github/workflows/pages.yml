@@ -5,6 +5,7 @@ on:
     branches:
       - main
     paths:
+      - 'index.html'
       - 'the_dial_desktop.html'
       - 'the_dial_mobile.html'
       - 'realsignal_cast_receiver.html'
@@ -109,7 +110,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p _site/assets
-          cp the_dial_desktop.html _site/index.html
+          cp index.html _site/index.html
           cp the_dial_desktop.html _site/the_dial_desktop.html
           cp the_dial_mobile.html _site/the_dial_mobile.html
           cp realsignal_cast_receiver.html _site/realsignal_cast_receiver.html

@@ -49,3 +49,20 @@ for (const surface of ['desktop', 'mobile']) {
     });
   }
 }
+
+test('the checked-in public entry preserves URL options in both Pages deployment paths', () => {
+  const root = path.join(__dirname, '..');
+  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  const script = html.match(/<script>([\s\S]*?)<\/script>/);
+  assert.ok(script);
+  for (const [search, hash] of [['', ''], ['?channel=150&playbackAudit=1', '#guide']]) {
+    let target;
+    const location = {search, hash, replace: url => { target = url; }};
+    vm.runInNewContext(script[1], {window:{location}});
+    assert.equal(target, 'the_dial_desktop.html' + search + hash);
+  }
+  assert.match(html, /href="the_dial_desktop\.html"/);
+  const workflow = fs.readFileSync(path.join(root, '.github/workflows/pages.yml'), 'utf8');
+  assert.match(workflow, /- 'index\.html'/);
+  assert.match(workflow, /cp index\.html _site\/index\.html/);
+});

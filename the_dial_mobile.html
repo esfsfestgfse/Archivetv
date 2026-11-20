@@ -16,16 +16,16 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · Retro Cable 7.2.17</title>
+<title>REALSIGNAL · Retro Cable 7.2.18</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
-<script src="assets/ok-embed-runtime.js?v=7.2.17"></script>
-<script src="assets/ia-playback-shelf.js?v=5.6.29"></script>
+<script src="assets/ok-embed-runtime.js?v=7.2.18"></script>
+<script src="assets/ia-playback-shelf.js?v=7.2.18"></script>
 <script src="assets/sports-programs.js?v=7.0.0"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
-<script src="assets/youtube-embed-runtime.js?v=7.2.17"></script>
+<script src="assets/youtube-embed-runtime.js?v=7.2.18"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
 <link rel="preconnect" href="https://www.googleapis.com" crossorigin>
@@ -1720,7 +1720,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
 </style>
 <link rel="stylesheet" href="assets/guide-overhaul.css">
 <link rel="stylesheet" href="assets/v6-watching-shell.css?v=7.2.5">
-<link rel="stylesheet" href="assets/v6-guide.css?v=7.2.5">
+<link rel="stylesheet" href="assets/v6-guide.css?v=7.2.18">
 <script src="assets/commercial-scheduler.js?v=7.0.0"></script>
 <script src="assets/fast-catalog.js?v=7.0.0"></script>
 <link rel="stylesheet" href="assets/weather-networks.css?v=7.0.0">
@@ -1741,7 +1741,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="7.2.17-mobile-retro-cable";
+window.__ATV_BUILD="7.2.18-mobile-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -9356,17 +9356,21 @@ function playOKEmbed(item,ch,sl,my){
   killMedia();
   screenArea.innerHTML="";
   var state=v2PreviewState[ch.num],profile=V2_PREVIEW_PROFILES[ch.previewKey];
+  var audit=window.__rsPlaybackAudit&&window.__rsPlaybackAudit.source(ch.num);
+  if(audit)audit("embed-selected",{id:item.id,provider:"OK.ru"});
   return window.RealSignalOKEmbed.play({
     item:item,
     container:screenArea,
     isCurrent:function(){return my===token&&powered&&curNum===ch.num;},
     onReady:function(){
+      if(audit)audit("embed-frame-loaded",{id:item.id});
       if(state&&state.currentId===item.id)return;
       hideOv();
       hideBuffer();
       setSig("tuning","WAITING FOR OK.RU");
     },
     onStarted:function(){
+      if(audit)audit("embed-clock-started",{id:item.id});
       hideOv();
       hideBuffer();
       setSig("live","ON AIR");
@@ -9387,6 +9391,7 @@ function playOKEmbed(item,ch,sl,my){
     onEnded:function(){if(typeof window.__v2PreviewNext==="function")window.__v2PreviewNext();},
     onError:function(){v2RejectEmbed(item,ch,my);},
     onUnavailable:function(){
+      if(audit)audit("embed-unavailable",{id:item.id});
       if(state){state.currentId="";state.currentTitle="";state.currentDuration=0;}
       hideBuffer();
       setSig("tuning","OK.RU UNAVAILABLE");
@@ -9555,14 +9560,19 @@ async function preloadNext(ch,sl,my){
   if(iaRepairEnabled(ch)){
     if(!powered||my!==token||curNum!==ch.num)return;
     var shelf=window.RealSignalIAShelf.client(),key=iaQueueKey(ch);
+    function stage(next){
+      if(!next)return;
+      iaWarmWanted[key]=Date.now()+120000;
+      stageIAMediaWarmer(ch,next,next.media);
+    }
     try {
+      var queued=shelf.peek(key);
+      stage(queued);
+      if(shelf.rows(key).length>=2)return;
       await shelf.reserve(key,iaRepairBody(ch,sl));
       if(!powered||my!==token||curNum!==ch.num)return;
       var next=shelf.peek(key);
-      if(!next)return;
-      // The reserved shelf skips companion warming. Allow its own next program to preload.
-      iaWarmWanted[key]=Date.now()+120000;
-      stageIAMediaWarmer(ch,next,next.media);
+      if(next&&next.identifier!==(queued&&queued.identifier))stage(next);
     } catch(error){nlog("ia-repair-preload",false,String(error));}
     return;
   }
@@ -10017,7 +10027,7 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl){return new Promise(r
         /* Start the next-item resolver shortly after the first real frame. It
            stays off the tune path, but gives a normal Skip enough lead time to
            use a verified handoff instead of reopening Archive search. */
-        preloadNext._t=setTimeout(function(){ schedulePreload(ch,sl,my); },900);
+        preloadNext._t=setTimeout(function(){ schedulePreload(ch,sl,my); },recovery?0:900);
       }
       if(v.muted&&!muted){ needSound(true); setTimeout(function(){ attemptUnmute(v); },400); }
       if(isAudio){ audioScreen.classList.remove("hide"); audioTitle.textContent=it.title||ch.nm;
@@ -15788,6 +15798,6 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
 <script src="assets/guide-contract.js?v=7.2.1"></script>
 <script src="assets/guide-contract-client.js?v=7.2.3"></script>
 <script src="assets/v6-watching-shell.js?v=7.2.5"></script>
-<script src="assets/v6-guide.js?v=7.2.5"></script>
+<script src="assets/v6-guide.js?v=7.2.18"></script>
 </body>
 </html>

@@ -117,6 +117,37 @@ test('guide, Next and EOF use the same first reservation without consuming it on
   assert.equal(api.peek('10').identifier, 'B', 'a late/stale shelf must not restore A');
 });
 
+test('a hydrating refill preserves playable reservations from the same cycle', async () => {
+  const rows = [[item('started'), item('next')], [], [item('replacement')]];
+  const shelf = runtime().create({
+    queue: async () => ({items:rows.shift(), hydrating:true, v2:{cycleGeneration:0}}),
+    report: async () => ({cycleGeneration:0})
+  });
+  await shelf.reserve('10', {});
+  await shelf.event('10', item('started'), 'started');
+  await shelf.reserve('10', {});
+  assert.equal(shelf.peek('10')?.identifier, 'next');
+  await shelf.reserve('10', {});
+  assert.equal(shelf.peek('10')?.identifier, 'replacement');
+});
+
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file + ': stage the next reservation before waiting for a refill', async () => {
+  const source = fs.readFileSync(path.join(root,file),'utf8');
+  const candidate=item('ready-next'), calls=[];
+  let refill;
+  const ready = {peek:()=>candidate, rows:()=>[candidate], reserve:()=>{calls.push('refill'); return new Promise(resolve=>{refill=resolve;});}};
+  const scope={ powered:true,token:3,curNum:10,iaRepairEnabled:()=>true,iaRepairBody:()=>({}),
+    iaQueueKey:()=> '10',iaWarmWanted:{}, Date,
+    stageIAMediaWarmer:(_ch,row)=>calls.push(row.identifier),
+    window:{RealSignalIAShelf:{client:()=>ready}},nlog(){} };
+  vm.createContext(scope);
+  vm.runInContext(source.slice(source.indexOf('async function preloadNext('),source.indexOf('function schedulePreload(')),scope);
+  const pending=scope.preloadNext({num:10},{},3);
+  assert.deepEqual(calls,['ready-next','refill']);
+  refill(); await pending;
+  assert.deepEqual(calls,['ready-next','refill']);
+});
+
 test('fast skip cannot outrun the started commit; queue prepares no watched events', async () => {
   const order = []; let resolve;
   const api = runtime().create({ queue: async () => { order.push('queue'); return { items: [item('A'), item('B')] }; }, report: async event => { order.push(event.event); if (event.event === 'started') await new Promise(r => { resolve = r; }); } });

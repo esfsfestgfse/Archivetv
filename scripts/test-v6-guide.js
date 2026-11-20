@@ -86,6 +86,19 @@ test('open reads verified programs without tuning, priming or touching the legac
   assert.equal(h.ids.get('rsV6GuideNow-300').textContent, 'Select a live channel');
   assert.match(h.ids.get('rsV6GuideNext-300').textContent, /unavailable/i);
 });
+test('the cable details show known Next data and clear unknown Next when selection changes', () => {
+  const h = harness(''); h.context.openGuide();
+  const next = h.ids.get('rsV6GuideFollowing');
+  assert.equal(next.hidden, false);
+  assert.match(next.textContent, /Popeye/);
+  h.ids.get('rsV6GuideRow-226').click();
+  assert.equal(h.ids.get('rsV6GuideProgram').textContent, 'Earth and the Ocean');
+  assert.match(h.ids.get('rsV6GuideRuntime').textContent, /1 hr.*Internet Archive/);
+  assert.equal(next.hidden, true);
+  h.ids.get('rsV6GuideRow-150').click();
+  assert.equal(next.hidden, false);
+  assert.match(next.textContent, /Popeye/);
+});
 test('selection only previews; Watch issues exactly one tune then restores opener', () => {
   const h = harness(); h.context.openGuide(); h.ids.get('rsV6GuideRow-226').click();
   assert.equal(h.ids.get('rsV6GuideChannelName').textContent, 'Documentary Hour'); assert.deepEqual(h.calls, []);

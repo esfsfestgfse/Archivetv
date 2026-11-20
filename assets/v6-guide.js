@@ -97,6 +97,7 @@
     var s = entry ? currentSnapshot || (preview && entry.number === tuned ? active : snapshot(entry.number)) : {}, p = programs(s);
     put(refs.rsV6GuideProgram, p.first ? p.first.title : 'Program information pending');
     put(refs.rsV6GuideRuntime, [p.label, preview && p.first && p.first.year, runtime(p.first), p.first && p.first.provider].filter(Boolean).join(' · '));
+    refs.rsV6GuideFollowing.hidden = preview && !p.second;
     put(refs.rsV6GuideFollowing, p.second ? ['Next', airTime(p.second), p.second.title, runtime(p.second)].filter(Boolean).join(' · ') : s.live ? 'Program information unavailable' : 'Next program pending');
     var remaining = s.remainingSeconds;
     put(refs.rsV6GuideRemaining, remaining != null && Number.isFinite(Number(remaining)) ?

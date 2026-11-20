@@ -126,6 +126,18 @@ const root = path.resolve(__dirname, '..');
     assert.equal(timers.size, 1, 'resuming an unstarted player re-enables bounded recovery');
     window.RealSignalOKEmbed.stop();
   }
+  let readyAfterStart = 0;
+  const earlyStart = window.RealSignalOKEmbed.play({ ...options, onReady: () => readyAfterStart++ });
+  const earlyFrame = frames.at(-1);
+  send('started', 'https://ok.ru', earlyFrame.contentWindow);
+  let earlyResult = null;
+  earlyStart.then(value => { earlyResult = value; });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(earlyResult, true, 'a trusted provider start settles the tune even if the iframe load is still pending');
+  earlyFrame.onload();
+  assert.equal(earlyFrame.dataset.playbackState, 'playing', 'a late iframe load must not replace playing with ready');
+  assert.equal(readyAfterStart, 0, 'a late load must not revive the waiting UI');
+  window.RealSignalOKEmbed.stop();
   let empty = 0;
   const blank = window.RealSignalOKEmbed.play({ ...options, onUnavailable: () => empty++ });
   const blankFrame = frames.at(-1);

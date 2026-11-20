@@ -201,7 +201,7 @@
       }
       function fail() {
         if (disposed || !options.isCurrent()) return;
-        var wasLoaded = loaded;
+        var wasLoaded = loaded || playing;
         cleanup(); frame.remove();
         if (wasLoaded) options.onError();
       }
@@ -217,7 +217,13 @@
         if (/^(?:resumed|adCompleted)$/.test(data.event)) { startSuppressed = false; if (!playing) armStartTimer(); }
         var time = Number(data.time);
         if (!offset && data.event === "started" || data.event === "timeupdate" && time > 0 && time >= offset - 2) {
-          if (!playing) { playing = true; clearTimeout(timer); frame.dataset.playbackState = "playing"; options.onStarted(); }
+          if (!playing) {
+            playing = true;
+            clearTimeout(timer);
+            frame.dataset.playbackState = "playing";
+            settle(true);
+            options.onStarted();
+          }
         }
         if (data.event === "ended" && playing && !advanced) { advanced = true; options.onEnded(); }
       }
@@ -233,7 +239,13 @@
       frame.dataset.playbackState = "loading";
       frame.onload = function () {
         if (disposed || !options.isCurrent()) { cleanup(); return; }
-        if (!loaded) { loaded = true; frame.dataset.playbackState = "ready"; if (!playing) armStartTimer(); options.onReady(); settle(true); }
+        if (loaded) return;
+        loaded = true;
+        if (playing) return;
+        frame.dataset.playbackState = "ready";
+        armStartTimer();
+        options.onReady();
+        settle(true);
       };
       frame.onerror = unavailable;
       root.addEventListener("message", message);

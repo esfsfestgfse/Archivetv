@@ -45,11 +45,14 @@
         // not hidden forever or accidentally resurrected from a stale preload.
         await flush(value);
         var generation = payload.v2 && payload.v2.cycleGeneration;
+        var newCycle = payload.v2 && payload.v2.cycleReset || Number.isSafeInteger(generation) && generation > value.generation;
         if (Number.isSafeInteger(generation) && generation >= 0) {
           value.generation = Math.max(value.generation, generation);
           Object.keys(value.removed).forEach(function (id) { if (value.removed[id].generation < value.generation) delete value.removed[id]; });
         } else if (payload.v2 && payload.v2.cycleReset && revision === value.revision) value.removed = Object.create(null);
-        value.items = (payload.items || []).filter(function (item) { return item && item.media && item.media.url; });
+        var ready = (payload.items || []).filter(function (item) { return item && item.media && item.media.url; });
+        // A pending refill can keep an existing reservation in the same cycle.
+        if (ready.length || !payload.hydrating || newCycle) value.items = ready;
         return rows(key);
       }).finally(function () { value.inflight = null; });
       return value.inflight;

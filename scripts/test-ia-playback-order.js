@@ -283,8 +283,8 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     assert.equal(scope.theVideo, newer.v);
   });
 
-  for (const hasSpare of [false, true]) test(file + (hasSpare
-    ? ': a cold reserve takes over as soon as its qualified picture is ready'
+  for (const [hasSpare, preparedStart] of [[false,false], [true,false], [true,true]]) test(file + (hasSpare
+    ? ': a cold reserve takes over as soon as its qualified picture is ready' + (preparedStart ? ' on the prepared canary' : '')
     : ': a stalled origin can still try its alternate when no reserve is ready'), async () => {
     const source = fs.readFileSync(path.join(root, file), 'utf8'), timers = [], handlers = {};
     const video = { tagName: 'VIDEO', readyState: 0, style: {}, classList: { toggle() {} }, pause() {}, removeAttribute() {}, load() {}, remove() {}, setAttribute() {}, play: () => Promise.resolve(), addEventListener: (type, fn) => { handlers[type] = fn; } };
@@ -315,13 +315,14 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     const repairStart = source.indexOf('function iaRepairEvent(');
     vm.runInContext(source.slice(repairStart, source.indexOf('async function tuneIA(ch,sl,my)', repairStart)), scope);
     vm.runInContext(source.slice(source.indexOf('function playFile('), source.indexOf('function showNow(')), scope);
-    const handoff = { allowBuffered: true };
+    const handoff = { allowBuffered: true, preparedStart };
     const pending = scope.playFile({ id: primary.identifier, ...primary.media }, { num: 10 }, {}, 1, 0, handoff);
     assert.ok(timers[0].ms <= 4000, 'a stalled origin must not hold Next for twelve seconds');
     assert.deepEqual(load, [], 'a fast startup should never need to load the spare');
     if (hasSpare) {
       const standby = timers.find(timer => timer.ms > 0 && timer.ms < timers[0].ms);
       assert.ok(standby, 'start preparing one spare before the primary times out');
+      assert.equal(standby.ms, preparedStart ? 500 : 1500, 'early backup is confined to prepared starts');
       standby.fn();
       assert.deepEqual(load, [spare.media.url], 'cold power-on prepares a distinct verified episode');
       assert.deepEqual(mirrorLoads, [], 'one spare uses the whole background media budget');

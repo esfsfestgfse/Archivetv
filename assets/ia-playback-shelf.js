@@ -56,12 +56,15 @@
         var listed = !newCycle && previousHead ? ready.findIndex(function (item) { return id(item) === previousHead; }) : -1;
         if (listed > 0) ready.unshift(ready.splice(listed, 1)[0]);
         // A pending refill can keep an existing reservation in the same cycle.
-        if (ready.length || !payload.hydrating || newCycle) value.items = ready;
+        if (ready.length || !payload.hydrating || newCycle) {
+          value.items = ready;
+          value.preparedStart = payload.preparedStart === true;
+        }
         return rows(key);
       }).finally(function () { value.inflight = null; });
       return value.inflight;
     }
-    return { reserve: reserve, event: event, rows: rows, peek: function (key) { return rows(key)[0] || null; } };
+    return { reserve: reserve, event: event, rows: rows, hasPreparedStart: function (key) { return state(key).preparedStart === true; }, peek: function (key) { return rows(key)[0] || null; } };
   }
   function archiveRoute(item, url) {
     var identifier = String(item.identifier || item.id || ''), separator = identifier.indexOf('::');

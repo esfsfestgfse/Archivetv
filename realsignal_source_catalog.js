@@ -689,6 +689,7 @@ function normalizedProfile(body) {
     seriesDecade,
     musicYears,
     name: approved.name,
+    personalRotation: registered.personalRotation === true,
     queries: list(approved.queries, queryLimit),
     okApiQueries: list(approved.okApiQueries, queryLimit),
     okApiBroadQueries: list(approved.okApiBroadQueries, queryLimit),

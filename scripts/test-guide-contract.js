@@ -212,7 +212,7 @@ for (const file of ['the_dial_mobile.html', 'the_dial_desktop.html']) {
   test(file + ': Cookhouse Up Next uses the same canonical and era-aware decision as manual Next', () => {
     const { api, context, calls } = browserAdapter(file);
     const cookhouse = { num:608, nm:'OK Cookhouse', source:'v2preview', previewKey:'ok-cookhouse-channel' };
-    const profile = { name:cookhouse.nm, profileKey:cookhouse.previewKey };
+    const profile = { name:cookhouse.nm, profileKey:cookhouse.previewKey, personalRotation:true };
     context.V2_PREVIEW_PROFILES[cookhouse.previewKey] = profile;
     context.byNum = () => cookhouse;
     context.curNum = 608;

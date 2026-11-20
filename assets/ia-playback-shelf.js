@@ -40,10 +40,11 @@
       var value = state(key);
       if (value.inflight) return value.inflight;
       var revision;
-      value.inflight = flush(value).then(function () { revision = value.revision; return options.queue(Object.assign({}, body, { channel: String(key), count: 3, iaRepair: true })); }).then(async function (payload) {
+      value.inflight = flush(value).then(function () { revision = value.revision; return options.queue(Object.assign({}, body, { channel: String(key), count: 3, iaRepair: true, sessionRefill: value.items.length > 0 })); }).then(async function (payload) {
         // Events overlapping the request must be reconciled in their server cycle,
         // not hidden forever or accidentally resurrected from a stale preload.
         await flush(value);
+        var previousHead = id(rows(key)[0]);
         var generation = payload.v2 && payload.v2.cycleGeneration;
         var newCycle = payload.v2 && payload.v2.cycleReset || Number.isSafeInteger(generation) && generation > value.generation;
         if (Number.isSafeInteger(generation) && generation >= 0) {
@@ -51,6 +52,9 @@
           Object.keys(value.removed).forEach(function (id) { if (value.removed[id].generation < value.generation) delete value.removed[id]; });
         } else if (payload.v2 && payload.v2.cycleReset && revision === value.revision) value.removed = Object.create(null);
         var ready = (payload.items || []).filter(function (item) { return item && item.media && item.media.url; });
+        // Keep the program already listed while its reservation remains valid.
+        var listed = !newCycle && previousHead ? ready.findIndex(function (item) { return id(item) === previousHead; }) : -1;
+        if (listed > 0) ready.unshift(ready.splice(listed, 1)[0]);
         // A pending refill can keep an existing reservation in the same cycle.
         if (ready.length || !payload.hydrating || newCycle) value.items = ready;
         return rows(key);

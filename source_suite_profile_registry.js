@@ -2503,6 +2503,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "ok-britannia-channel": {
     "name": "OK Britannia",
+    "personalRotation": true,
     "queryLimit": 32,
     "queryWindow": 4,
     "providers": ["ok-search", "ok-manifest"],
@@ -2610,7 +2611,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   "ok-country-video-channel-2000-2019": { name: "OK Country Video · 00s & 10s", derivedCatalogOnly: true, parentProfileKey: "ok-country-video-channel" },
   "ok-video-hits-channel-1980-1999": { name: "OK Video Hits · 80s & 90s", derivedCatalogOnly: true, parentProfileKey: "ok-video-hits-channel" },
   "ok-video-hits-channel-2000-2019": { name: "OK Video Hits · 00s & 10s", derivedCatalogOnly: true, parentProfileKey: "ok-video-hits-channel" },
-  "ok-cookhouse-channel": {"name":"OK Cookhouse","queryLimit":32,"queryWindow":4,"providers":["ok-search","ok-manifest"],"intent":"television","serverOnly":true,"minRuntimeSeconds":900,"deepCatalog":true,"formatRelaxed":true,"queries":["The French Chef","Great British Menu","Rick Stein’s Cornwall","Mary Berry Cook and Share"],"match":["full episode","television","series"],"deny":["trailer","podcast","fan edit","reaction","audio only"]},
+  "ok-cookhouse-channel": {"name":"OK Cookhouse","personalRotation":true,"queryLimit":32,"queryWindow":4,"providers":["ok-search","ok-manifest"],"intent":"television","serverOnly":true,"minRuntimeSeconds":900,"deepCatalog":true,"formatRelaxed":true,"queries":["The French Chef","Great British Menu","Rick Stein’s Cornwall","Mary Berry Cook and Share"],"match":["full episode","television","series"],"deny":["trailer","podcast","fan edit","reaction","audio only"]},
   "ok-science-lab-channel": {"name":"OK Science Lab","queryLimit":32,"queryWindow":4,"providers":["ok-search","ok-manifest"],"intent":"television","serverOnly":true,"minRuntimeSeconds":900,"deepCatalog":true,"formatRelaxed":true,"queries":["How the Universe Works","Through the Wormhole","Cosmos A Spacetime Odyssey","NOVA PBS"],"match":["full episode","television","series"],"deny":["trailer","podcast","fan edit","reaction","audio only"]},
   "ok-gearhead-channel": {"name":"OK Gearhead","queryLimit":32,"queryWindow":4,"providers":["ok-search","ok-manifest"],"intent":"television","serverOnly":true,"minRuntimeSeconds":900,"deepCatalog":true,"formatRelaxed":true,"queries":["Top Gear","Fifth Gear","Wheeler Dealers","Jay Leno's Garage"],"match":["full episode","television","series"],"deny":["trailer","podcast","fan edit","reaction","audio only"]},
   "ok-wildlife-channel": {"name":"OK Wild Planet","queryLimit":32,"queryWindow":4,"providers":["ok-search","ok-manifest"],"intent":"television","serverOnly":true,"minRuntimeSeconds":900,"deepCatalog":true,"formatRelaxed":true,"queries":["The Life of Birds","Life in Cold Blood","PBS Nature","Seven Worlds One Planet"],"match":["full episode","television","series"],"deny":["trailer","podcast","fan edit","reaction","audio only"]},

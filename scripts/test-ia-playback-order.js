@@ -135,7 +135,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file 
   const source = fs.readFileSync(path.join(root,file),'utf8');
   const candidate=item('ready-next'), calls=[];
   let refill;
-  const ready = {peek:()=>candidate, rows:()=>[candidate], reserve:()=>{calls.push('refill'); return new Promise(resolve=>{refill=resolve;});}};
+  const ready = {peek:()=>candidate, rows:()=>[candidate,item('ready-spare')], reserve:()=>{calls.push('refill'); return new Promise(resolve=>{refill=resolve;});}};
   const scope={ powered:true,token:3,curNum:10,iaRepairEnabled:()=>true,iaRepairBody:()=>({}),
     iaQueueKey:()=> '10',iaWarmWanted:{}, Date,
     stageIAMediaWarmer:(_ch,row)=>calls.push(row.identifier),
@@ -417,4 +417,36 @@ test('classic game shows recognize the same dated broadcast across Upload IDs an
   const refreshed = await (await r.reservation({ mode:'reserve',stationChannel,items:[copy,next] })).json();
   assert.equal(refreshed.items[0].identifier,next.identifier);
   assert.equal(refreshed.items.length,1);
+});
+
+test('a same-cycle refill keeps the listed next reservation if the server still offers it', async () => {
+  const responses = [[item('A'), item('B')], [item('C'), item('B')], [item('D'), item('B')]];
+  let cycleGeneration = 0;
+  const shelf = runtime().create({
+    queue: async () => ({items:responses.shift(), v2:{cycleGeneration}}),
+    report: async () => ({cycleGeneration})
+  });
+  await shelf.reserve('10', {});
+  await shelf.event('10', item('A'), 'started');
+  await shelf.reserve('10', {});
+  assert.equal(shelf.peek('10').identifier, 'B');
+  cycleGeneration++;
+  await shelf.reserve('10', {});
+  assert.equal(shelf.peek('10').identifier, 'D');
+});
+
+test('Classic Rerun excludes alternate episode uploads and balances into the 1980s', async () => {
+  const {SessionRotation} = await import('../realsignal_api_rotation.js');
+  const viewer = new SessionRotation(rotationContext(), {});
+  const stationChannel = '10';
+  const program = (identifier, title, seriesTitle, year) => ({...item(identifier), title, seriesTitle, broadcastYear:year});
+  const seen = program('archive-a::Green Acres S01E10.mp4','Green Acres S01E10','Green Acres',1965);
+  const copy = program('archive-b::Green Acres 1x10.mp4','Green Acres 1x10','Green Acres',1965);
+  const otherEpisode = program('archive-c::Green Acres S01E11.mp4','Green Acres S01E11','Green Acres',1965);
+  const otherDecade = program('archive-d::Benson S06E02.mp4','Benson S06E02','Benson',1984);
+  await viewer.reservation({mode:'reserve',stationChannel,items:[seen],count:1});
+  await viewer.reservation({mode:'commit',stationChannel,event:'started',id:seen.identifier});
+  const next = await (await viewer.reservation({mode:'reserve',stationChannel,items:[copy,otherEpisode,otherDecade],count:2})).json();
+  assert.equal(next.catalog.length,3, 'alternate encodes count as one episode');
+  assert.deepEqual(next.items.map(row=>row.identifier),[otherDecade.identifier,otherEpisode.identifier]);
 });

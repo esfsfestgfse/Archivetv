@@ -113,7 +113,7 @@
     var year = Number(item && (item.seriesStartYear || item.year));
     return Number.isInteger(year) && year >= 1900 && year <= new Date().getFullYear() ? Math.floor(year / 10) * 10 : 0;
   }
-  function cookhouseNext(state, currentId, history) {
+  function nextEpisode(state, currentId, history) {
     var recent = new Set(history.ids), programs = new Set(history.programs), skipped = new Set(state.nextSkipped || []);
     var currentKey = programKey(state.items.find(function (item) { return String(item.id) === currentId; }));
     var eligible = state.items.map(function (item, index) { return { item: item, index: index, key: programKey(item) }; })
@@ -256,5 +256,5 @@
       if (!loaded) timer = setTimeout(unavailable, 9000);
     });
   }
-  root.RealSignalOKEmbed = { play: play, stop: stop, qualify: qualify, order: order, normalize: normalize, programKey: programKey, seriesKey: seriesKey, reconcileShelf: reconcileShelf, musicProfile: musicProfile, cookhouseNext: cookhouseNext, decade: decade };
+  root.RealSignalOKEmbed = { play: play, stop: stop, qualify: qualify, order: order, normalize: normalize, programKey: programKey, seriesKey: seriesKey, reconcileShelf: reconcileShelf, musicProfile: musicProfile, nextEpisode: nextEpisode, decade: decade };
 })(window);

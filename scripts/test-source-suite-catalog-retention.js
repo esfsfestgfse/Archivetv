@@ -84,7 +84,7 @@ const assert = require('node:assert/strict');
     await scope.tuneV2Preview({num:503,nm:'The Darkroom',previewKey:'darkroom'},{},1);
     assert.deepEqual(played,[candidates[1].id],file+': tuning chooses the next unseen program over the retained cursor');
 
-    const cookhouse={name:'OK Cookhouse',profileKey:'ok-cookhouse-channel',intent:'television'};
+    const cookhouse={name:'OK Cookhouse',profileKey:'ok-cookhouse-channel',personalRotation:true,intent:'television'};
     const retained=Array.from({length:6},(_,i)=>({id:'ok:'+i,title:'Cooking '+i,canonicalProgramKey:'cooking:episode:'+i,type:'embed',provider:'OK.ru'}));
     scope.V2_PREVIEW_PROFILES[cookhouse.profileKey]=cookhouse;
     scope.v2PreviewState[608]={items:retained,cursor:0,catalogExhausted:false};

@@ -163,7 +163,7 @@ function classicProgramKey(item, channel) {
 
 function classicDecade(item) {
   const text = [item.broadcastYear, item.fileName, item.title, item.year].join(' ');
-  const year = Number(text.match(/(?:^|[^0-9])(19[2-7]\d)(?=[^0-9]|$)/)?.[1]);
+  const year = Number(text.match(/(?:^|[^0-9])(19[2-8]\d)(?=[^0-9]|$)/)?.[1]);
   return year ? Math.floor(year / 10) * 10 : 0;
 }
 
@@ -349,7 +349,7 @@ export class SessionRotation {
   async reservation(body) {
     const current = await this.state(MAX_RESERVATION_ITEMS);
     const channel = String(body.rules?.channel || body.stationChannel || '');
-    const classic = channel === '12' || channel === '150';
+    const classic = channel === '10' || channel === '12' || channel === '150';
     const incoming = cleanItems(body.items, MAX_RESERVATION_ITEMS);
     const identities = new Map();
     if (classic) for (const item of [...current.catalog, ...incoming]) {
@@ -419,7 +419,7 @@ export class SessionRotation {
        Reservations are deliberately excluded: preload alone is not a watch. */
     const catalogByEpisode = new Map(catalog.map(item => [keyFor(item), item]));
     const seenFamilies = new Set([...seen].map(id => catalogByEpisode.get(keyFor(id))).filter(Boolean).map(familyId));
-    const cycleReset = body.mode === "reserve" && !fresh.length && eligible.length > 0;
+    const cycleReset = body.mode === "reserve" && !body.deferCycleReset && !fresh.length && eligible.length > 0;
     const cycleGeneration = (current.cycleGeneration || 0) + (cycleReset ? 1 : 0);
     if (cycleReset) { seen.clear(); seenEpisodes.clear(); sportsSeen.clear(); fresh = eligible; reserved = []; }
     const selected = reserved.map(id => catalog.find(item => itemId(item) === id)).filter(Boolean);

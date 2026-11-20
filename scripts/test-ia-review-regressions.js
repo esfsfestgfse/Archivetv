@@ -572,9 +572,11 @@ test('relay-family channels also reserve identities in the IA repair canary', as
 test('committed items are excluded before the relay spends its next hydration budget', async () => {
   const f = await fixture(), body = { channel: '10', iaRepair: true, serverCatalog: true, sessionId: 'hydrate', count: 3 };
   const first = await (await f.request('queue', body)).json();
-  await f.request('playback', { ...body, id: first.items[0].identifier, event: 'skipped' });
+  const id = first.items[0].identifier;
+  assert.equal((await f.request('playback', { ...body, id, event: 'started' })).status, 202);
+  assert.equal((await f.request('playback', { ...body, id, event: 'completed' })).status, 202);
   await f.request('queue', body);
-  assert.ok(f.queueBodies.at(-1).hydrationExcludeIds.includes(first.items[0].identifier));
+  assert.ok(f.queueBodies.at(-1).hydrationExcludeIds.includes(id));
 });
 
 test('movie hydration uses the feature floor before filling the small shelf', async () => {
@@ -877,4 +879,29 @@ test('Source Suite personal history can reach older unseen rows even without ser
     assert.ok(p.candidateItems.some(x=>(x.id||x.identifier)===records[139].id),'the older unserved tail must remain reachable');
     assert.equal(p.catalogExhausted,false);assert.equal(p.hydrating,false,'a healthy catalog must not refill just because its ready shelf has only three items');await Promise.all(f.pending);
   }finally{f.db.close();}
+});
+
+test('Classic Cartoons refills from its existing verified session catalog when the Archive relay is slow', async () => {
+  const f = await fixture();
+  const cartoon = index => {
+    const series = ['Popeye', 'Top Cat', 'Betty Boop', 'Mighty Mouse', 'Clutch Cargo', 'Pink Panther'][index];
+    const file = series + ' S01E01.mp4', sourceIdentifier = 'upload-' + index;
+    const base = row(file);
+    return {...base, identifier:sourceIdentifier+'::'+file, sourceIdentifier, title:series+' S01E01', seriesTitle:series,
+      media:{...base.media, url:'https://archive.org/download/'+sourceIdentifier+'/'+encodeURIComponent(file)}};
+  };
+  f.incoming(Array.from({length:6},(_,index)=>cartoon(index)));
+  const body = { channel:'150', iaRepair:true, serverCatalog:true, sessionId:'cartoon-refill', count:3 };
+  const first = await (await f.request('queue', body)).json();
+  assert.equal(first.ready,3);
+  const started = first.items[0].identifier;
+  await f.request('playback', { ...body, id:started, event:'started' });
+  const calls = f.queueBodies.length;
+  const nextResponse = await f.request('queue', { ...body, sessionRefill:true });
+  assert.equal(nextResponse.headers.get('X-RealSignal-Source'),'verified-session-catalog');
+  const next = await nextResponse.json();
+  assert.equal(next.ready,3);
+  assert.equal(next.items[0].identifier,first.items[1].identifier);
+  assert.ok(next.items.every(row=>row.identifier!==started));
+  assert.equal(f.queueBodies.length,calls);
 });

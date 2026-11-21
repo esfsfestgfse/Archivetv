@@ -9,13 +9,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 7.4.1</title>
+<title>REALSIGNAL · Retro Cable 7.4.2</title>
 <meta name="realsignal-ia-repair-channels" content="*">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=7.2.19"></script>
-<script src="assets/ia-playback-shelf.js?v=7.4.1"></script>
+<script src="assets/ia-playback-shelf.js?v=7.4.2"></script>
 <script src="assets/sports-programs.js?v=7.0.0"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
 <script src="assets/youtube-embed-runtime.js?v=7.2.1"></script>
@@ -1702,7 +1702,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="7.4.1-desktop-retro-cable";
+window.__ATV_BUILD="7.4.2-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7902,6 +7902,51 @@ function iaReviewedFileAllowed(item, channel) {
   let file = String(media.fileName || item.fileName || id.split('::')[1] || '');
   if (!file) { try { file = decodeURIComponent(new URL(media.url || item.mediaUrl || item.url).pathname.split('/').pop()); } catch (_) {} }
   file = file.split('/').pop();
+
+  if (String(channel) === '575') {
+    // Match reviewed Archive files, because a resolution claim in an upload
+    // title proves neither the selected derivative's size nor its content.
+    const reviewed = {
+      "outsidelaw4k": "outsidelaw4k.ia.mp4",
+      "love-affair-4-k": "LoveAffair4K.ia.mp4",
+      "notre-4-k": "Notre4K.ia.mp4",
+      "sage-brush-4-k": "SageBrush4K.ia.mp4",
+      "cyrano-4-k": "Cyrano4K.ia.mp4",
+      "teenagers-from-outer-4-k": "TeenagersFromOuter4K.ia.mp4",
+      "the-star-packer-4-k": "TheStarPacker4K.ia.mp4",
+      "nothing-scared-4-k": "NothingScared4K.ia.mp4",
+      "danger-lights-4-k": "DangerLights4K.ia.mp4",
+      "the-southerner-4-k": "TheSoutherner4K.ia.mp4",
+      "the-stranger-4-k": "TheStranger4K.ia.mp4",
+      "the-terror-4-k": "TheTerror4K.ia.mp4",
+      "red-house-4-k": "RedHouse4K.ia.mp4",
+      "doa-4-k": "DOA4K.ia.mp4",
+      "golden-arms-4-k": "GoldenArms4K.ia.mp4",
+      "the-last-time-isaw-paris-4-k": "TheLAstTimeISawParis4K.ia.mp4",
+      "the-chase-pnm": "The.Chase.1946.1080p.BluRay.H264.AAC-RARBG.ia.mp4",
+    };
+    const expected = Object.prototype.hasOwnProperty.call(reviewed, source.toLowerCase()) && reviewed[source.toLowerCase()];
+    if (!expected) return false;
+    if (file || media.url || item.mediaUrl || item.url) {
+      const height = Number(media.height || item.height), width = Number(media.width || item.width);
+      if (file !== expected || String(media.type || item.mediaType || item.type || '') === 'audio'
+        || (height > 0 && height < 1080) || (width > 0 && height > 0 && width <= height)) return false;
+    }
+  }
+  if (String(channel) === '502') {
+    const evidence = [item.title, source, file, item.subject, item.subjects].filter(Boolean).join(' ').replace(/[_-]+/g, ' ');
+    if (/\b(?:home movies?|wedding videos?|footage of a wedding|camcorder footage|private party)\b/i.test(evidence)) return false;
+    if (!/\b(?:off air|woc|with (?:original )?(?:commercials|ads)|(?:vhs|betamax) (?:capture|recording|aircheck)|(?:broadcast|taped|recorded) (?:on |from )?(?:vhs|betamax)|television aircheck)\b/i.test(evidence)) return false;
+  }
+  if (String(channel) === '709') {
+    const title = String(item.title || '').replace(/^Thanksgiving TV\s*[·:–—-]\s*/i, '');
+    const selected = [title,source,file].join(' ').replace(/[_-]+/g, ' ');
+    if (/\b(?:home movies?|personal footage|football|basketball|thanksgiving game|twitch|podcasts?|fan ?made|stock music|b roll|bloopers|highlights?|how to|clip|commercial compilation)\b/i.test(selected)) return false;
+    if (!/\b(?:thanksgiving|turkey day)\b|\bmacys?(?:thanksgiving)?(?:day)?parade\b/i.test(selected)
+      && !/^(?:Liberace_Thanksgiving|DayofTha1951|AsWeLikeIt|RootieTootieParty11231953|TheGeorgeGobelShow)$/i.test(source)) return false;
+    if (/\bparade\b/i.test(selected) && !/\b(?:thanksgiving|turkey day|macy.s)\b|macys?(?:thanksgiving)?(?:day)?parade/i.test(selected)) return false;
+  }
+  if (String(channel) === '131' && /\b(?:daycare\s*of\s*the\s*dead|halloween safety)\b/i.test([item.title,source,file].join(' ').replace(/[_-]+/g, ' '))) return false;
   // Both uploads of the 1950 premiere repeatedly failed the first-frame check.
   // Other Jack Benny episodes remain eligible.
   if (String(channel) === '10' && /^(?:501028TheJackBennyProgramS01e01PremiereShow|19501028TheJackBennyProgramDinahShore)$/i.test(source)) return false;

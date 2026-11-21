@@ -905,3 +905,41 @@ test('Classic Cartoons refills from its existing verified session catalog when t
   assert.ok(next.items.every(row=>row.identifier!==started));
   assert.equal(f.queueBodies.length,calls);
 });
+
+test('upscale and reviewed Archive stations keep mislabeled, off-genre files out of ready queues',async()=>{
+  const [{catalogFallbackAllowed},{iaReviewedFileAllowed,qualifyIaFileRecord}]=await modules;
+  const archive=(source,file,title,width,height,extra={})=>({
+    identifier:source+'::'+file,sourceIdentifier:source,fileName:file,title,...extra,
+    media:{type:'video',url:'https://archive.org/download/'+source+'/'+encodeURIComponent(file),runtime:5100,width,height,verification:'transport',verifiedAt:Date.now()}
+  });
+  const samples=[
+    ['575',archive('notre-4-k','Notre4K.ia.mp4','The Hunchback of Notre Dame (1923)',3412,2560),true],
+    ['575',archive('notre-4-k','Notre4K.ia.mp4','The Hunchback of Notre Dame (1923)',640,480),false],
+    ['575',archive('notre-4-k','unrelated.mp4','The Hunchback of Notre Dame (1923)',3412,2560),false],
+    ['575',archive('894_Dying_and_Sleeping_Same_Thing__qTXrykh5uGk__1080p_Cinema_restored_v2','Dying and Sleeping Same Thing.mp4','Dying and Sleeping Same Thing — 1080p Cinema Restoration',1440,1080),false],
+    ['575',archive('TheFrontPage4k','vns98bn_1_ahq12asdf.ia.mp4','The Front Page (1931) — 4K Restoration',632,480),false],
+    ['502',archive('0-120-minutes-sun-1999-mar-28','0 120 Minutes SUN 1999 MAR 28.mp4','MTV 120 Minutes (WOC)',720,480),true],
+    ['502',archive('001-cheryl-besser-wedding-video-2','wedding.mp4','Manitoba Home Movie Archives · Wedding Video',720,480),false],
+    ['709',archive('macysthanksgivingdayparade1989full','parade.mp4',"Macy's Thanksgiving Day Parade 1989",720,480),true],
+    ['709',archive('we-the-people-the-constitutional-parade-1987','parade.mp4','We the People 200: The Constitutional Parade – Gregory Peck',720,480),false],
+    ['709',archive('1953LeominsterVsFitchburgThanksgivingGame','game.mp4','1953 Leominster Vs Fitchburg Thanksgiving Game',1920,1080),false],
+    ['131',archive('daycareofthedeadepisode1','daycare.mp4','Daycare Of The Dead Episode 1-Horror Hotel and Halloween Safety',640,360),false]
+  ];
+  const vm=require('node:vm');
+  const clientChecks=['the_dial_desktop.html','the_dial_mobile.html','afterglow_ais_relay_worker.js'].map(file=>{
+    const src=fs.readFileSync(path.join(root,file),'utf8');
+    const s={URL};
+    vm.createContext(s);
+    vm.runInContext(src.match(/(?:export )?function iaReviewedFileAllowed\(item, channel\) \{[\s\S]*?^\}/m)[0]+';check=iaReviewedFileAllowed;',s);
+    return s.check;
+  });
+  for(const [channel,item,allowed] of samples){
+    const rules={channel,iaRepair:true,mediaTypes:['movies']};
+    assert.equal(iaReviewedFileAllowed(item,channel),allowed,item.title+' '+item.media.width);
+    for(const check of clientChecks) assert.equal(check(item,channel),allowed,item.identifier);
+    if(!allowed){
+      assert.equal(qualifyIaFileRecord(item,rules).accepted,false,item.identifier);
+      assert.equal(catalogFallbackAllowed(item,rules),false,item.identifier);
+    }
+  }
+});

@@ -135,7 +135,7 @@ const IA_DEPTH_REPAIR_LANES = new Set([
    persisted back to D1 asynchronously through the normal catalog job. */
 /* Classic Cartoons' 69-row production D1 window masked its 605-file reviewed
    bank. Use the existing relay-owned path; D1 still recovers relay outages. */
-const IA_ARCHIVE_FAMILY_DEPTH_LANES = new Set(["11", "20", "52", "53", "55", "56", "57", "58", "59", "60", "61", "62", "63", "64", "65", "66", "68", "69", "70", "71", "72", "73", "74", "75", "76", "77", "78", "79", "81", "83", "118", "150", "914", "929"]);
+const IA_ARCHIVE_FAMILY_DEPTH_LANES = new Set(["11", "20", "52", "53", "55", "56", "57", "58", "59", "60", "61", "62", "63", "64", "65", "66", "68", "69", "70", "71", "72", "73", "74", "75", "76", "77", "78", "79", "81", "83", "118", "131", "150", "502", "575", "709", "914", "929"]);
 /* Some IA collections store the genre in the series/film title rather than
    the child filename. These are deliberately lane-specific aliases for the
    two long-tail lanes that failed the serial certification when their relay

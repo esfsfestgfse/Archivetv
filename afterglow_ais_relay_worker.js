@@ -1654,6 +1654,18 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "youtube-rhElEp9ifvY", title: "The Ghost of the Lusitania", subject: "british pathe britain on film british newsreel british documentary", year: 2016 },
   ],
   "131": [
+    iaDirectRecovery("dead.-of.-night.-1945::Dead Of Night (1945)/Dead.Of.Night.1945.ia.mp4", "dead.-of.-night.-1945", "Dead Of Night (1945)/Dead.Of.Night.1945.ia.mp4", "Dead of Night (1945)", "british horror anthology feature film", 1945, "video", 6184.81, 1440, 1072),
+    iaDirectRecovery("the-quatermass-xperiment::The Quatermass Xperiment.mp4", "the-quatermass-xperiment", "The Quatermass Xperiment.mp4", "The Quatermass Xperiment (1955)", "hammer horror british horror science fiction cult film", 1955, "video", 4705.51, 853, 480),
+    iaDirectRecovery("PhotosbyHaroldQuatermassIIAllSixPartsCompiledintoOneFile::Quatermass_II_All_6_Parts_1_512kb.mp4", "PhotosbyHaroldQuatermassIIAllSixPartsCompiledintoOneFile", "Quatermass_II_All_6_Parts_1_512kb.mp4", "Quatermass II · Complete BBC Serial (1955)", "british horror bbc british science fiction quatermass television", 1955, "video", 9961.39, 360, 240),
+    iaDirectRecovery("Tales_of_the_Unexpected_033_03x08_ill_be_seeing_you::Tales_of_the_Unexpected_033_03x08_ill_be_seeing_you.mp4", "Tales_of_the_Unexpected_033_03x08_ill_be_seeing_you", "Tales_of_the_Unexpected_033_03x08_ill_be_seeing_you.mp4", "Tales of the Unexpected · I’ll Be Seeing You", "british cult tv british crime horror suspense anthology", 1980, "video", 1589.84, 640, 480),
+    iaDirectRecovery("tales-of-the-unexpected-06::Tales_of_the_Unexpected_070_06x01_a_passing_opportunity.mp4", "tales-of-the-unexpected-06", "Tales_of_the_Unexpected_070_06x01_a_passing_opportunity.mp4", "Tales of the Unexpected · A Passing Opportunity", "british cult tv british crime horror suspense anthology", 1983, "video", 1521.68, 640, 480),
+    iaDirectRecovery("tales-of-the-unexpected-06::Tales_of_the_Unexpected_071_06x02_the_memory_man.mp4", "tales-of-the-unexpected-06", "Tales_of_the_Unexpected_071_06x02_the_memory_man.mp4", "Tales of the Unexpected · The Memory Man", "british cult tv british crime horror suspense anthology", 1983, "video", 1591.08, 640, 480),
+    iaDirectRecovery("tales-of-the-unexpected-06::Tales_of_the_Unexpected_072_06x03_a_sad_loss.mp4", "tales-of-the-unexpected-06", "Tales_of_the_Unexpected_072_06x03_a_sad_loss.mp4", "Tales of the Unexpected · A Sad Loss", "british cult tv british crime horror suspense anthology", 1983, "video", 1586.48, 640, 480),
+    iaDirectRecovery("tales-of-the-unexpected-06::Tales_of_the_Unexpected_073_06x04_clerical_error.mp4", "tales-of-the-unexpected-06", "Tales_of_the_Unexpected_073_06x04_clerical_error.mp4", "Tales of the Unexpected · Clerical Error", "british cult tv british crime horror suspense anthology", 1983, "video", 1532.08, 640, 480),
+    iaDirectRecovery("tales-of-the-unexpected-06::Tales_of_the_Unexpected_074_06x05_heir_presumptuous.mp4", "tales-of-the-unexpected-06", "Tales_of_the_Unexpected_074_06x05_heir_presumptuous.mp4", "Tales of the Unexpected · Heir Presumptuous", "british cult tv british crime horror suspense anthology", 1983, "video", 1592.08, 640, 480),
+    iaDirectRecovery("tales-of-the-unexpected-06::Tales_of_the_Unexpected_075_06x06_wheres_your_sense_of_humour.mp4", "tales-of-the-unexpected-06", "Tales_of_the_Unexpected_075_06x06_wheres_your_sense_of_humour.mp4", "Tales of the Unexpected · Wheres Your Sense Of Humour", "british cult tv british crime horror suspense anthology", 1983, "video", 1592.88, 640, 480),
+    iaDirectRecovery("tales-of-the-unexpected-06::Tales_of_the_Unexpected_076_06x07_down_among_the_sheltering_palms.mp4", "tales-of-the-unexpected-06", "Tales_of_the_Unexpected_076_06x07_down_among_the_sheltering_palms.mp4", "Tales of the Unexpected · Down Among The Sheltering Palms", "british cult tv british crime horror suspense anthology", 1983, "video", 1622.48, 640, 480),
+    iaDirectRecovery("tales-of-the-unexpected-06::Tales_of_the_Unexpected_077_06x08_the_vorpal_blade.mp4", "tales-of-the-unexpected-06", "Tales_of_the_Unexpected_077_06x08_the_vorpal_blade.mp4", "Tales of the Unexpected · The Vorpal Blade", "british cult tv british crime horror suspense anthology", 1983, "video", 1562.48, 640, 480),
     { identifier: "ghost-ship-1952", title: "Ghost Ship", subject: "british cult film british horror british science fiction hammer horror british crime film", year: 1952, media: { type: "video", url: "https://archive.org/download/ghost-ship-1952/Ghost%20Ship%20%281952%29.mp4" } },
     { identifier: "TheQuatermassConclusion1979", title: "Quatermass IV — The Quatermass Conclusion", subject: "british cult film british horror british science fiction quatermass", year: 1979, media: { type: "video", url: "https://archive.org/download/TheQuatermassConclusion1979/The%20Quatermass%20Conclusion%201979%20chapter1%20Huffety%20Puffety%20Ringstone%20Round.mp4" } },
     { identifier: "QuatermassAndThePit-Episode3", title: "Quatermass and the Pit — Episode 3", subject: "british cult film british horror british science fiction quatermass", year: 1958, media: { type: "video", url: "https://archive.org/download/QuatermassAndThePit-Episode3/QuatermassAndThePit-Episode3.mp4" } },
@@ -1742,26 +1754,23 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "quick-as-a-flash-march-29-1947-mutual-guest-is-brett-morrison-the-shadow", title: "Quick as a Flash — Brett Morrison", subject: "suspense radio old time radio the shadow radio drama", year: 1947, media: { type: "audio", url: "https://archive.org/download/quick-as-a-flash-march-29-1947-mutual-guest-is-brett-morrison-the-shadow/Quick%20As%20A%20Flash%20-%20March%2029%2C%201947%20-%20Mutual%20-%20Guest%20Is%20Brett%20Morrison%20%28The%20Shadow%29.mp3" } },
   ],
   "575": [
-    iaDirectRecovery("TheFrontPage4k::vns98bn_1_ahq12asdf.ia.mp4", "TheFrontPage4k", "vns98bn_1_ahq12asdf.ia.mp4", "The Front Page (1931) — 4K Restoration", "4k 4k restoration 1080p upscale restored film cinema", 1931),
-    iaDirectRecovery("foreign-road-tale-1981-russian-1080p::(Foreign) Road Tale (1981) (Russian) 1080p.ia.mp4", "foreign-road-tale-1981-russian-1080p", "(Foreign) Road Tale (1981) (Russian) 1080p.ia.mp4", "Road Tale (1981) — AI SuperRes 1080p", "1080p upscale restoration restored world cinema film", 1981),
-    iaDirectRecovery("the-super-vips-bozzetto::The SuperVips (Bozzetto).ia.mp4", "the-super-vips-bozzetto", "The SuperVips (Bozzetto).ia.mp4", "The SuperVips — 1080p HD Restoration", "1080p restoration restored classic animation film cinema", 1968),
-    iaDirectRecovery("full-film-john-fords-my-darling-clementine-1946-hq-sound-picture-1080p::Full film, John Ford's My Darling Clementine  1946  HQ sound & picture (1080p).ia.mp4", "full-film-john-fords-my-darling-clementine-1946-hq-sound-picture-1080p", "Full film, John Ford's My Darling Clementine  1946  HQ sound & picture (1080p).ia.mp4", "My Darling Clementine (1946) — 1080p Restoration", "1080p restoration restored classic film cinema western", 1946),
-    iaDirectRecovery("frosty-full-screen::frosty full screen.mp4", "frosty-full-screen", "frosty full screen.mp4", "Frosty the Snowman — Restored Full Screen", "restored 1080p restoration classic television film animation", 1970),
-    iaDirectRecovery("894_Dying_and_Sleeping_Same_Thing__qTXrykh5uGk__1080p_Cinema_restored_v2::894 Dying and Sleeping Same Thing [qTXrykh5uGk]_1080p_Cinema.ia.mp4", "894_Dying_and_Sleeping_Same_Thing__qTXrykh5uGk__1080p_Cinema_restored_v2", "894 Dying and Sleeping Same Thing [qTXrykh5uGk]_1080p_Cinema.ia.mp4", "Dying and Sleeping Same Thing — 1080p Cinema Restoration", "1080p restoration restored film cinema", 2024),
-    iaDirectRecovery("840_The_Eye_The_Sky_Revelation__HtXWLbbB8-I__1080p_Cinema_restored_v2::840 The Eye The Sky Revelation [HtXWLbbB8-I]_1080p_Cinema.ia.mp4", "840_The_Eye_The_Sky_Revelation__HtXWLbbB8-I__1080p_Cinema_restored_v2", "840 The Eye The Sky Revelation [HtXWLbbB8-I]_1080p_Cinema.ia.mp4", "The Eye, The Sky, Revelation — 1080p Restoration", "1080p restoration restored film cinema", 2024),
-    iaDirectRecovery("844_Zodiac__Cancer__7oq2LIfwH_c__1080p_Cinema_restored_v2::844 Zodiac  Cancer [7oq2LIfwH_c]_1080p_Cinema.ia.mp4", "844_Zodiac__Cancer__7oq2LIfwH_c__1080p_Cinema_restored_v2", "844 Zodiac  Cancer [7oq2LIfwH_c]_1080p_Cinema.ia.mp4", "Zodiac Cancer — 1080p Cinema Restoration", "1080p restoration restored film cinema", 2024),
-    iaDirectRecovery("855_Is_Old_Testament_God_Satan_Part_1__62QNG71djpA__1080p_Cinema_restored_v2::855 Is Old Testament God Satan Part 1 [62QNG71djpA]_1080p_Cinema.ia.mp4", "855_Is_Old_Testament_God_Satan_Part_1__62QNG71djpA__1080p_Cinema_restored_v2", "855 Is Old Testament God Satan Part 1 [62QNG71djpA]_1080p_Cinema.ia.mp4", "Is Old Testament God Satan — 1080p Restoration", "1080p restoration restored film cinema", 2024),
-    iaDirectRecovery("910_Universe_Mind__B8FLtHupcME__1080p_Cinema_restored_v2::910 Universe Mind [B8FLtHupcME]_1080p_Cinema.ia.mp4", "910_Universe_Mind__B8FLtHupcME__1080p_Cinema_restored_v2", "910 Universe Mind [B8FLtHupcME]_1080p_Cinema.ia.mp4", "Universe Mind — 1080p Restoration", "1080p restoration restored film cinema", 2024),
-    iaDirectRecovery("706_2012__The_Omega_Point__DflegKlT8H4__1080p_Cinema_restored_v2::706 2012  The Omega Point [DflegKlT8H4]_1080p_Cinema.ia.mp4", "706_2012__The_Omega_Point__DflegKlT8H4__1080p_Cinema_restored_v2", "706 2012  The Omega Point [DflegKlT8H4]_1080p_Cinema.ia.mp4", "The Omega Point — 1080p Cinema Restoration", "1080p restoration restored film cinema", 2012),
-    iaDirectRecovery("737_Quantum_You_and_the_Universe__GZ--TgpD0PI__1080p_Cinema_restored_v2::737 Quantum You and the Universe [GZ--TgpD0PI]_1080p_Cinema.ia.mp4", "737_Quantum_You_and_the_Universe__GZ--TgpD0PI__1080p_Cinema_restored_v2", "737 Quantum You and the Universe [GZ--TgpD0PI]_1080p_Cinema.ia.mp4", "Quantum, You and the Universe — 1080p Restoration", "1080p restoration restored film cinema", 2012),
-    iaDirectRecovery("760__The_Money_Changers__JJzfp0OyR8k__1080p_Cinema_restored_v2::760  The Money Changers [JJzfp0OyR8k]_1080p_Cinema.ia.mp4", "760__The_Money_Changers__JJzfp0OyR8k__1080p_Cinema_restored_v2", "760  The Money Changers [JJzfp0OyR8k]_1080p_Cinema.ia.mp4", "The Money Changers — 1080p Restoration", "1080p restoration restored film cinema", 2012),
-    iaDirectRecovery("808_Who_Are_We_Really__athYDKrZiAM__1080p_Cinema_restored_v2::808 Who Are We Really [athYDKrZiAM]_1080p_Cinema.ia.mp4", "808_Who_Are_We_Really__athYDKrZiAM__1080p_Cinema_restored_v2", "808 Who Are We Really [athYDKrZiAM]_1080p_Cinema.ia.mp4", "Who Are We Really — 1080p Restoration", "1080p restoration restored film cinema", 2012),
-    iaDirectRecovery("93_So_Long_Charles__A_Friend_Leaves__vEwIqzZDbUE__1080p_Cinema_restored_v2::93 So Long Charles, A Friend Leaves [vEwIqzZDbUE]_1080p_Cinema.ia.mp4", "93_So_Long_Charles__A_Friend_Leaves__vEwIqzZDbUE__1080p_Cinema_restored_v2", "93 So Long Charles, A Friend Leaves [vEwIqzZDbUE]_1080p_Cinema.ia.mp4", "So Long Charles, A Friend Leaves — 1080p Restoration", "1080p restoration restored film cinema", 2012),
-    iaDirectRecovery("651__Meditation_and_watchers_of_light__S9IybP6FYE0__1080p_Cinema_restored_v2::651  Meditation and watchers of light [S9IybP6FYE0]_1080p_Cinema.ia.mp4", "651__Meditation_and_watchers_of_light__S9IybP6FYE0__1080p_Cinema_restored_v2", "651  Meditation and watchers of light [S9IybP6FYE0]_1080p_Cinema.ia.mp4", "Meditation and Watchers of Light — 1080p Restoration", "1080p restoration restored film cinema", 2012),
-    iaDirectRecovery("699_Death_And_Transfiguration__SDNloTDPL6Q__1080p_Cinema_restored_v2::699 Death And Transfiguration [SDNloTDPL6Q]_1080p_Cinema.ia.mp4", "699_Death_And_Transfiguration__SDNloTDPL6Q__1080p_Cinema_restored_v2", "699 Death And Transfiguration [SDNloTDPL6Q]_1080p_Cinema.ia.mp4", "Death and Transfiguration — 1080p Restoration", "1080p restoration restored film cinema", 2012),
-    iaDirectRecovery("71_Buddha_Learning_Realization__Somebody_wake_up_Henry___vgpyyHKhFvg__1080p_Cinema_restored_v2::71 Buddha Learning Realization. Somebody wake up Henry⧸ [vgpyyHKhFvg]_1080p_Cinema.ia.mp4", "71_Buddha_Learning_Realization__Somebody_wake_up_Henry___vgpyyHKhFvg__1080p_Cinema_restored_v2", "71 Buddha Learning Realization. Somebody wake up Henry⧸ [vgpyyHKhFvg]_1080p_Cinema.ia.mp4", "Buddha Learning Realization — 1080p Restoration", "1080p restoration restored film cinema", 2012),
-    iaDirectRecovery("759_What_is_reality__Hg4S9mdgbJE__1080p_Cinema_restored_v2::759 What is reality [Hg4S9mdgbJE]_1080p_Cinema.ia.mp4", "759_What_is_reality__Hg4S9mdgbJE__1080p_Cinema_restored_v2", "759 What is reality [Hg4S9mdgbJE]_1080p_Cinema.ia.mp4", "What Is Reality — 1080p Restoration", "1080p restoration restored film cinema", 2012),
-    iaDirectRecovery("57B_Buddha_Hunger__otOs5Mr2Mxc__1080p_Cinema_restored_v2::57B Buddha Hunger [otOs5Mr2Mxc]_1080p_Cinema.ia.mp4", "57B_Buddha_Hunger__otOs5Mr2Mxc__1080p_Cinema_restored_v2", "57B Buddha Hunger [otOs5Mr2Mxc]_1080p_Cinema.ia.mp4", "Buddha Hunger — 1080p Restoration", "1080p restoration restored film cinema", 2012),
+    iaDirectRecovery("outsidelaw4k::outsidelaw4k.ia.mp4", "outsidelaw4k", "outsidelaw4k.ia.mp4", "Outside the Law (1921) — 4K Upscale", "4k upscale restored film cinema crime silent", 1921, "video", 4516.98, 3412, 2560, {"dir":"/0/items/outsidelaw4k","d1":"dn800308.us.archive.org"}),
+    iaDirectRecovery("love-affair-4-k::LoveAffair4K.ia.mp4", "love-affair-4-k", "LoveAffair4K.ia.mp4", "Love Affair (1939) — 4K Upscale", "4k upscale restored film cinema romance", 1939, "video", 5190.17, 3415, 2560, {"dir":"/0/items/love-affair-4-k","d1":"dn801203.us.archive.org"}),
+    iaDirectRecovery("notre-4-k::Notre4K.ia.mp4", "notre-4-k", "Notre4K.ia.mp4", "The Hunchback of Notre Dame (1923) — 4K Upscale", "4k upscale restored film cinema drama silent", 1923, "video", 6043.17, 3412, 2560, {"dir":"/0/items/notre-4-k","d1":"dn800302.us.archive.org"}),
+    iaDirectRecovery("sage-brush-4-k::SageBrush4K.ia.mp4", "sage-brush-4-k", "SageBrush4K.ia.mp4", "Sagebrush Trail (1933) — 4K Upscale", "4k upscale restored film cinema western", 1933, "video", 3208.89, 3412, 2560, {"dir":"/0/items/sage-brush-4-k","d1":"dn600301.us.archive.org"}),
+    iaDirectRecovery("cyrano-4-k::Cyrano4K.ia.mp4", "cyrano-4-k", "Cyrano4K.ia.mp4", "Cyrano de Bergerac (1950) — 4K Upscale", "4k upscale restored film cinema adventure romance", 1950, "video", 6782.97, 4549, 2560, {"dir":"/0/items/cyrano-4-k","d1":"dn601209.us.archive.org"}),
+    iaDirectRecovery("teenagers-from-outer-4-k::TeenagersFromOuter4K.ia.mp4", "teenagers-from-outer-4-k", "TeenagersFromOuter4K.ia.mp4", "Teenagers from Outer Space (1959) — 4K Upscale", "4k upscale restored film cinema science fiction", 1959, "video", 5128.9, 3415, 2560, {"dir":"/0/items/teenagers-from-outer-4-k","d1":"dn801200.us.archive.org"}),
+    iaDirectRecovery("the-star-packer-4-k::TheStarPacker4K.ia.mp4", "the-star-packer-4-k", "TheStarPacker4K.ia.mp4", "The Star Packer (1934) — 4K Upscale", "4k upscale restored film cinema western", 1934, "video", 3279.8, 3360, 2560, {"dir":"/0/items/the-star-packer-4-k","d1":"dn800302.us.archive.org"}),
+    iaDirectRecovery("nothing-scared-4-k::NothingScared4K.ia.mp4", "nothing-scared-4-k", "NothingScared4K.ia.mp4", "Nothing Sacred (1937) — 4K Upscale", "4k upscale restored film cinema comedy", 1937, "video", 4414.51, 3413, 2560, {"dir":"/0/items/nothing-scared-4-k","d1":"dn600204.us.archive.org"}),
+    iaDirectRecovery("danger-lights-4-k::DangerLights4K.ia.mp4", "danger-lights-4-k", "DangerLights4K.ia.mp4", "Danger Lights (1930) — 4K Upscale", "4k upscale restored film cinema drama", 1930, "video", 4405.89, 3840, 2560, {"dir":"/0/items/danger-lights-4-k","d1":"dn601200.us.archive.org"}),
+    iaDirectRecovery("the-southerner-4-k::TheSoutherner4K.ia.mp4", "the-southerner-4-k", "TheSoutherner4K.ia.mp4", "The Southerner (1945) — 4K Upscale", "4k upscale restored film cinema drama", 1945, "video", 5516.36, 3470, 2560, {"dir":"/0/items/the-southerner-4-k","d1":"dn800209.us.archive.org"}),
+    iaDirectRecovery("the-stranger-4-k::TheStranger4K.ia.mp4", "the-stranger-4-k", "TheStranger4K.ia.mp4", "The Stranger (1946) — 4K Upscale", "4k upscale restored film cinema film noir", 1946, "video", 5698.01, 3356, 2560, {"dir":"/0/items/the-stranger-4-k","d1":"dn801202.us.archive.org"}),
+    iaDirectRecovery("the-terror-4-k::TheTerror4K.ia.mp4", "the-terror-4-k", "TheTerror4K.ia.mp4", "The Terror (1963) — 4K Upscale", "4k upscale restored film cinema gothic horror", 1963, "video", 4756.61, 4551, 2560, {"dir":"/0/items/the-terror-4-k","d1":"dn800304.us.archive.org"}),
+    iaDirectRecovery("red-house-4-k::RedHouse4K.ia.mp4", "red-house-4-k", "RedHouse4K.ia.mp4", "The Red House (1947) — 4K Upscale", "4k upscale restored film cinema mystery", 1947, "video", 6023.31, 3415, 2560),
+    iaDirectRecovery("doa-4-k::DOA4K.ia.mp4", "doa-4-k", "DOA4K.ia.mp4", "D.O.A. (1949) — 4K Upscale", "4k upscale restored film cinema film noir", 1949, "video", 5003.57, 3412, 2560),
+    iaDirectRecovery("golden-arms-4-k::GoldenArms4K.ia.mp4", "golden-arms-4-k", "GoldenArms4K.ia.mp4", "The Man with the Golden Arm (1955) — 4K Upscale", "4k upscale restored film cinema drama", 1955, "video", 7120, 3305, 2560),
+    iaDirectRecovery("the-last-time-isaw-paris-4-k::TheLAstTimeISawParis4K.ia.mp4", "the-last-time-isaw-paris-4-k", "TheLAstTimeISawParis4K.ia.mp4", "The Last Time I Saw Paris (1954) — 4K Upscale", "4k upscale restored film cinema romance", 1954, "video", 6853.46, 3413, 2560),
+    iaDirectRecovery("the-chase-pnm::The.Chase.1946.1080p.BluRay.H264.AAC-RARBG.ia.mp4", "the-chase-pnm", "The.Chase.1946.1080p.BluRay.H264.AAC-RARBG.ia.mp4", "The Chase (1946) — 1080p Edition", "1080p restored film cinema film noir", 1946, "video", 5152.24, 1520, 1080),
   ],
 });
 /* v171 long-tail recovery bank. These are real Internet Archive identifiers
@@ -1773,12 +1782,13 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
    source identifier stays separate from the synthetic episode identifier so
    queue hydration and freshness can still treat each file as its own program
    without losing the real Archive download path. */
-function iaDirectRecovery(identifier, sourceIdentifier, fileName, title, subject, year, type = "video", runtime = 0, width = 0, height = 0) {
-  const url = queueFileUrls(sourceIdentifier, {}, fileName)[0];
+function iaDirectRecovery(identifier, sourceIdentifier, fileName, title, subject, year, type = "video", runtime = 0, width = 0, height = 0, location = {}) {
+  const [url, ...alternates] = queueFileUrls(sourceIdentifier, location, fileName);
   /* Preserve provenance for the server-side catalog. These are hand-verified
      Archive files, not generic search rows; holiday child filenames often do
      not repeat the seasonal word even though the parent subject is exact. */
   const media = { type, url };
+  if (alternates.length) media.alts = alternates;
   if (Number(runtime) > 0) media.runtime = Number(runtime);
   if (Number(width) > 0) media.width = Number(width);
   if (Number(height) > 0) media.height = Number(height);
@@ -2010,6 +2020,10 @@ const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
     iaDirectRecovery("monster-vision-wes-cravens-new-nightmare-halloween-2-10-25-92::Monster Vision - Wes Craven's New Nightmare - Halloween 2 - 10-25-92.mp4", "monster-vision-wes-cravens-new-nightmare-halloween-2-10-25-92", "Monster Vision - Wes Craven's New Nightmare - Halloween 2 - 10-25-92.mp4", "Halloween TV · MonsterVision · Wes Craven's New Nightmare", "halloween television hosted horror anthology television spooky television monster television special", 1992)
   ],
   "709": [
+    iaDirectRecovery("the-price-is-right-november-26-2014-thanksgiving-special::The Price is Right - November 26, 2014 - Thanskgiving Special!.ia.mp4", "the-price-is-right-november-26-2014-thanksgiving-special", "The Price is Right - November 26, 2014 - Thanskgiving Special!.ia.mp4", "The Price Is Right · Thanksgiving Special (2014)", "thanksgiving television special game show", 2014, "video", 2302.19, 640, 360),
+    iaDirectRecovery("entire-2016-macys-thanksgiving-day-parade::Entire 2016 Macy's Thanksgiving Day Parade.ia.mp4", "entire-2016-macys-thanksgiving-day-parade", "Entire 2016 Macy's Thanksgiving Day Parade.ia.mp4", "Macy’s Thanksgiving Day Parade (2016)", "thanksgiving television parade broadcast", 2016, "video", 7697.62, 1280, 720),
+    iaDirectRecovery("wkrp-in-cincinnati-turkeys-away::WKRP In Cincinnati Turkeys Away.mp4", "wkrp-in-cincinnati-turkeys-away", "WKRP In Cincinnati Turkeys Away.mp4", "WKRP in Cincinnati · Turkeys Away (Thanksgiving)", "thanksgiving television sitcom", 1978, "video", 1515.15, 1280, 720),
+    iaDirectRecovery("112681MacysParadeTitle1::11-26-81 Macy's Parade_Title_1.mp4", "112681MacysParadeTitle1", "11-26-81 Macy's Parade_Title_1.mp4", "Macy’s Thanksgiving Day Parade (1981)", "thanksgiving television parade broadcast", 1981, "video", 12212.03, 640, 480),
     iaDirectRecovery("HalloweenThanksgiving::Halloween & Thanksgiving.mp4", "HalloweenThanksgiving", "Halloween & Thanksgiving.mp4", "Thanksgiving TV · Bear in the Big Blue House · Thanksgiving", "thanksgiving television thanksgiving special harvest television family television", 2000),
     iaDirectRecovery("AsWeLikeIt::AsWeLikeIt.mp4", "AsWeLikeIt", "AsWeLikeIt.mp4", "Thanksgiving TV · As We Like It", "thanksgiving television harvest television family special variety broadcast", 1952),
     iaDirectRecovery("GeorgeBurnsGracieAllen-Thanksgiving::burnsallen-thanksgiving.mp4", "GeorgeBurnsGracieAllen-Thanksgiving", "burnsallen-thanksgiving.mp4", "Thanksgiving TV · The George Burns and Gracie Allen Show", "thanksgiving television thanksgiving sitcom comedy episode harvest special", 1951),
@@ -2353,6 +2367,12 @@ const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
     iaDirectRecovery("NJY-008_126109-126708", "NJY-008_126109-126708", "126109_Knots-Landing-Episode-Teaser-Promo-CBS-WCBS-2_1991-11-06.ia.mp4", "Knots Landing — Episode Teaser", "television trailer teaser promo coming attractions", 1991),
   ],
   "502": [
+    iaDirectRecovery("vintage-commercials-t42a-wpwr-tng-neutral-zone-abc-twin-peaks-may-1990-part-1::tape.mp4", "vintage-commercials-t42a-wpwr-tng-neutral-zone-abc-twin-peaks-may-1990-part-1", "tape.mp4", "WPWR Chicago · Star Trek and Twin Peaks (1990 VHS Recording)", "vhs tape off-air recording television broadcast with original commercials science fiction television", 1990, "video", 6107.02, 640, 480),
+    iaDirectRecovery("vintage-commercials-v25a-wttw-newshour-chicago-tonight-mystery-jan-1999-part-1::tape.mp4", "vintage-commercials-v25a-wttw-newshour-chicago-tonight-mystery-jan-1999-part-1", "tape.mp4", "WTTW Chicago · NewsHour, Rick Steves and Mystery! (1999 VHS Recording)", "vhs tape off-air recording television broadcast with original commercials public television", 1999, "video", 7207.71, 640, 480),
+    iaDirectRecovery("vintage-commercials-tvh4a-66th-academy-awards-abc7-chicago-mar-21-1994::tape.mp4", "vintage-commercials-tvh4a-66th-academy-awards-abc7-chicago-mar-21-1994", "tape.mp4", "ABC Chicago · 66th Academy Awards (1994 VHS Recording)", "vhs tape off-air recording television broadcast with original commercials television awards broadcast", 1994, "video", 21195, 720, 480),
+    iaDirectRecovery("vintage-commercials-tvh8a-nbc5-unsolved-mysteries-apr-21-1995-oct-6-1993-disc-a::tape.mp4", "vintage-commercials-tvh8a-nbc5-unsolved-mysteries-apr-21-1995-oct-6-1993-disc-a", "tape.mp4", "NBC Chicago · Unsolved Mysteries (1993–1995 VHS Recording)", "vhs tape off-air recording television broadcast with original commercials mystery television", 1995, "video", 7205.74, 640, 480),
+    iaDirectRecovery("vintage-commercials-v24b-sci-fi-taken-encore-marathon-dec-14-2002-part-2::tape.mp4", "vintage-commercials-v24b-sci-fi-taken-encore-marathon-dec-14-2002-part-2", "tape.mp4", "Sci-Fi Channel · Taken Encore Marathon (2002 VHS Recording)", "vhs tape off-air recording television broadcast with original commercials science fiction television", 2002, "video", 7207.71, 640, 480),
+    iaDirectRecovery("vintage-commercials-tvh6b-69th-academy-awards-abc7-chicago-mar-24-1997-disc-b::tape.mp4", "vintage-commercials-tvh6b-69th-academy-awards-abc7-chicago-mar-24-1997-disc-b", "tape.mp4", "ABC Chicago · 69th Academy Awards (1997 VHS Recording)", "vhs tape off-air recording television broadcast with original commercials television awards broadcast", 1997, "video", 7207.71, 640, 480),
     iaDirectRecovery("TVS-television-south-junction-1990-by-television-heaven-uk_20220719::TVS 1990.mp4", "TVS-television-south-junction-1990-by-television-heaven-uk_20220719", "TVS 1990.mp4", "TVS Junction — 1990 VHS Capture", "vhs tape television broadcast off-air recording home video", 1990),
     iaDirectRecovery("wusa-washington-afternoon-programs-1999::CBS Daytime.mp4", "wusa-washington-afternoon-programs-1999", "CBS Daytime.mp4", "WUSA CBS Daytime — December 1999 VHS Capture", "vhs tape television broadcast off-air recording home video", 1999),
     iaDirectRecovery("wbgu-2-wdcrv-nywrk::WBGU1_cntry_bweav.mp4", "wbgu-2-wdcrv-nywrk", "WBGU1_cntry_bweav.mp4", "WBGU Country Basket Weaving — VHS Capture", "vhs tape television broadcast off-air recording home video", 1990),
@@ -6033,6 +6053,51 @@ function iaReviewedFileAllowed(item, channel) {
   let file = String(media.fileName || item.fileName || id.split('::')[1] || '');
   if (!file) { try { file = decodeURIComponent(new URL(media.url || item.mediaUrl || item.url).pathname.split('/').pop()); } catch (_) {} }
   file = file.split('/').pop();
+
+  if (String(channel) === '575') {
+    // Match reviewed Archive files, because a resolution claim in an upload
+    // title proves neither the selected derivative's size nor its content.
+    const reviewed = {
+      "outsidelaw4k": "outsidelaw4k.ia.mp4",
+      "love-affair-4-k": "LoveAffair4K.ia.mp4",
+      "notre-4-k": "Notre4K.ia.mp4",
+      "sage-brush-4-k": "SageBrush4K.ia.mp4",
+      "cyrano-4-k": "Cyrano4K.ia.mp4",
+      "teenagers-from-outer-4-k": "TeenagersFromOuter4K.ia.mp4",
+      "the-star-packer-4-k": "TheStarPacker4K.ia.mp4",
+      "nothing-scared-4-k": "NothingScared4K.ia.mp4",
+      "danger-lights-4-k": "DangerLights4K.ia.mp4",
+      "the-southerner-4-k": "TheSoutherner4K.ia.mp4",
+      "the-stranger-4-k": "TheStranger4K.ia.mp4",
+      "the-terror-4-k": "TheTerror4K.ia.mp4",
+      "red-house-4-k": "RedHouse4K.ia.mp4",
+      "doa-4-k": "DOA4K.ia.mp4",
+      "golden-arms-4-k": "GoldenArms4K.ia.mp4",
+      "the-last-time-isaw-paris-4-k": "TheLAstTimeISawParis4K.ia.mp4",
+      "the-chase-pnm": "The.Chase.1946.1080p.BluRay.H264.AAC-RARBG.ia.mp4",
+    };
+    const expected = Object.prototype.hasOwnProperty.call(reviewed, source.toLowerCase()) && reviewed[source.toLowerCase()];
+    if (!expected) return false;
+    if (file || media.url || item.mediaUrl || item.url) {
+      const height = Number(media.height || item.height), width = Number(media.width || item.width);
+      if (file !== expected || String(media.type || item.mediaType || item.type || '') === 'audio'
+        || (height > 0 && height < 1080) || (width > 0 && height > 0 && width <= height)) return false;
+    }
+  }
+  if (String(channel) === '502') {
+    const evidence = [item.title, source, file, item.subject, item.subjects].filter(Boolean).join(' ').replace(/[_-]+/g, ' ');
+    if (/\b(?:home movies?|wedding videos?|footage of a wedding|camcorder footage|private party)\b/i.test(evidence)) return false;
+    if (!/\b(?:off air|woc|with (?:original )?(?:commercials|ads)|(?:vhs|betamax) (?:capture|recording|aircheck)|(?:broadcast|taped|recorded) (?:on |from )?(?:vhs|betamax)|television aircheck)\b/i.test(evidence)) return false;
+  }
+  if (String(channel) === '709') {
+    const title = String(item.title || '').replace(/^Thanksgiving TV\s*[·:–—-]\s*/i, '');
+    const selected = [title,source,file].join(' ').replace(/[_-]+/g, ' ');
+    if (/\b(?:home movies?|personal footage|football|basketball|thanksgiving game|twitch|podcasts?|fan ?made|stock music|b roll|bloopers|highlights?|how to|clip|commercial compilation)\b/i.test(selected)) return false;
+    if (!/\b(?:thanksgiving|turkey day)\b|\bmacys?(?:thanksgiving)?(?:day)?parade\b/i.test(selected)
+      && !/^(?:Liberace_Thanksgiving|DayofTha1951|AsWeLikeIt|RootieTootieParty11231953|TheGeorgeGobelShow)$/i.test(source)) return false;
+    if (/\bparade\b/i.test(selected) && !/\b(?:thanksgiving|turkey day|macy.s)\b|macys?(?:thanksgiving)?(?:day)?parade/i.test(selected)) return false;
+  }
+  if (String(channel) === '131' && /\b(?:daycare\s*of\s*the\s*dead|halloween safety)\b/i.test([item.title,source,file].join(' ').replace(/[_-]+/g, ' '))) return false;
   // Both uploads of the 1950 premiere repeatedly failed the first-frame check.
   // Other Jack Benny episodes remain eligible.
   if (String(channel) === '10' && /^(?:501028TheJackBennyProgramS01e01PremiereShow|19501028TheJackBennyProgramDinahShore)$/i.test(source)) return false;
@@ -11528,6 +11593,7 @@ async function getIaQueue(request, url, env, ctx) {
     ...(channel === "75" ? { stationSportsPolicy: "water-programs-6128" } : {}),
     ...(channel === "76" ? { stationSportsPolicy: "stockcar-programs-6129" } : {}),
     ...(["77","78","79"].includes(channel) ? { stationSportsPolicy: channel === "79" ? "recreation-matches-6131" : "final-sports-programs-6130" } : {}),
+    ...(["131", "502", "575", "709"].includes(channel) ? { reviewedArchiveFiles: "742" } : {}),
     ...(channel === "22" ? { stationPolicy: "adult-game-shows-2" } : {}) };
   const familyFingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count, contentPolicy: IA_GLOBAL_VIDEO_POLICY_VERSION, ...fileContract });
   const lastGoodDigest = await stableKey(familyFingerprint);

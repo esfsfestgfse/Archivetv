@@ -27,8 +27,9 @@ export function readIaLineup(htmlPath=path.join(root,'the_dial_desktop.html')) {
     if(c.hiddenAlias)aliases.push(c);else lanes.push({...rules,...c});}
   if(aliases.some(a=>!lanes.some(l=>l.channel===a.canonicalChannel)))throw Error('IA alias has no canonical station');
   const html=fs.readFileSync(file,'utf8');
+  const promoted=(html.match(/name="realsignal-ia-repair-channels" content="([^"]+)"/)?.[1]||'').split(',').filter(Boolean);
   return {build:html.match(/window\.__ATV_BUILD="([^"]+)"/)?.[1]||'unknown',lanes,aliases,
-    promoted:(html.match(/name="realsignal-ia-repair-channels" content="([^"]+)"/)?.[1]||'').split(',').filter(Boolean)};
+    promoted:promoted.includes('*')?lanes.map(lane=>lane.channel):promoted};
 }
 
 export function summarizeIaCatalog(rules,payload={}) {

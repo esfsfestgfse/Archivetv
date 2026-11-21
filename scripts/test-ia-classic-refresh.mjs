@@ -37,23 +37,25 @@ test('a shallow Classic TV catalog imports repairs promptly without blocking pla
   }finally{Date.now=originalNow;}
 });
 
-for (const channel of ['10', '53']) test(channel + ': a prepared start keeps the foreground off D1 and the relay and retains viewer reservations', async () => {
+for (const channel of ['10', '53', '216', '903']) test(channel + ': a prepared start keeps the foreground off D1 and the relay and retains viewer reservations', async () => {
   const oldCaches = globalThis.caches;
   const cache = new Map(), objects = new Map(), rotationModes = [];
   let catalogReads = 0, relayReads = 0, phase = 'warm';
-  const sports = channel === '53';
+  const sports = channel === '53', audio = channel === '903', documentary = channel === '216';
   const families = sports ? ['NBA Finals', 'MLB World Series', 'NHL Stanley Cup Finals', 'NFL Super Bowl', 'FIFA World Cup', 'Rose Bowl', 'NCAA College Basketball Duke vs Auburn', 'Masters Tournament']
+    : documentary ? ['Civil Defense', 'Atomic Age', 'Cold War', 'Air Raid', 'Nuclear Test', 'Nuclear Shelter', 'Air Force', 'US Navy']
+    : audio ? ['Louis Armstrong', 'Miles Davis', 'Ella Fitzgerald', 'Charles Mingus', 'Duke Ellington', 'Benny Goodman', 'Count Basie', 'Bill Evans']
     : ['Dragnet', 'Benson', 'Jack Benny', 'Get Smart', 'Bonanza', 'Green Acres', 'I Love Lucy', 'The Munsters'];
   const programs = families.flatMap((family, series) => Array.from({ length: 4 }, (_, episode) => {
-    const source = 'series-' + series, file = 'episode-' + episode + '.mp4', id = source + '::' + file;
+    const source = 'series-' + series, file = 'episode-' + episode + (audio ? '.mp3' : '.mp4'), id = source + '::' + file;
     const url = 'https://archive.org/download/' + source + '/' + file;
     const title = sports ? (1990 + episode) + ' ' + family + ' Full Broadcast' : family + ' · Episode ' + episode;
-    const runtime = sports ? 7200 : 1320;
+    const runtime = sports ? 7200 : audio ? 300 : 1320, type = audio ? 'audio' : 'video';
     return {
       id, source_identifier: source, provider: 'Internet Archive', title,
-      media_type: 'video', media_url: url, aspect_ratio: 4/3, duration_seconds: runtime, year: sports ? String(1990 + episode) : '1965',
-      metadata_json: JSON.stringify({ seriesTitle: family, fileName: file, media: { type: 'video', url, runtime },
-        subject: sports ? 'sports full event broadcast' : 'classic television', runtimeSeconds: runtime, width: 640, height: 480, verification: 'transport', verifiedAt: Date.now() })
+      media_type: type, media_url: url, aspect_ratio: audio ? 0 : 4/3, duration_seconds: runtime, year: sports ? String(1990 + episode) : '1965',
+      metadata_json: JSON.stringify({ seriesTitle: family, fileName: file, media: { type, url, runtime },
+        subject: sports ? 'sports full event broadcast' : audio ? 'jazz instrumental recording' : documentary ? 'cold war civil defense documentary' : 'classic television', runtimeSeconds: runtime, width: 640, height: 480, verification: 'transport', verifiedAt: Date.now() })
     };
   }));
   globalThis.caches = { default: {
@@ -80,7 +82,7 @@ for (const channel of ['10', '53']) test(channel + ': a prepared start keeps the
   const background = [], ctx = { waitUntil: p => background.push(Promise.resolve(p)) };
   const tune = (sessionId, options={}) => worker.fetch(new Request('https://api.example/api/v3/ia/queue', {
     method: 'POST',
-    body: JSON.stringify({ channel, count:3, sessionId, serverCatalog:true, iaRepair:true, preparedStart:true, mediaTypes:['movies'], ...options })
+    body: JSON.stringify({ channel, count:3, sessionId, serverCatalog:true, iaRepair:true, preparedStart:true, mediaTypes:[audio ? 'audio' : 'movies'], ...options })
   }), env, ctx);
   try {
     const warm = await tune('warm-station');

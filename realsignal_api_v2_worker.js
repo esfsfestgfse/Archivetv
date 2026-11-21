@@ -9,6 +9,7 @@ import { SessionRotation, familyId } from "./realsignal_api_rotation.js";
 import { normalizeIaFileRecord, qualifyIaFileRecord, iaMinimumFileRuntimeSeconds, iaGameShowEraAllowed, iaGameShowYear, iaReviewedCartoonSource, iaKnownVideoPolicyViolation, iaSportingLifeAllowed, iaCourtroomAllowed, iaCookingAllowed, iaHuntingAllowed, iaReviewedFileAllowed } from "./ia_file_contract.js";
 import { EdgeRateLimiter } from "./realsignal_api_rate_limit.js";
 import { RokuSession } from "./realsignal_roku_session.js";
+import { CH } from "./channel_registry.js";
 import { okBalancedCandidates, okPlaybackIdentity, okPreferUnseenSeries, okSeriesIdentity } from "./ok_public_search.js";
 import { okCuratedChannel } from "./ok_curated_tv_catalog.js";
 import { okMusicBalanceDecades, okMusicChannel, okMusicProfileKey } from "./ok_music_catalog.js";
@@ -24,7 +25,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
 const V3_RELEASE = "7.0.0";
-const IA_PREPARED_START_CHANNELS = new Set(["10", "53", "150"]);
+const IA_PREPARED_START_CHANNELS = new Map(CH.filter(ch => !ch.source).map(ch => [String(ch.num), ch.audio ? "audio" : "movies"]));
 const IA_PREPARED_START_MAX_ITEMS = 96;
 const IA_PREPARED_START_MIN_ITEMS = 24;
 const IA_PREPARED_START_MAX_AGE = 10 * 60_000;
@@ -1855,7 +1856,7 @@ function sourceProvidersFromItems(items) {
 async function cachePreparedIaCatalog(env, cache, key, channel) {
   // A shared snapshot is built from the station's stored catalog. Request
   // queries and viewer history never influence what goes into this cache.
-  const rules = { channel, iaRepair: true, mediaTypes: ["movies"] };
+  const rules = { channel, iaRepair: true, mediaTypes: [IA_PREPARED_START_CHANNELS.get(channel)] };
   const catalog = await catalogFallback(env, rules, IA_REPAIR_CATALOG_WINDOW, { ignoreFreshness: true });
   const families = new Map();
   for (const row of catalog?.candidateItems || []) {
@@ -1922,7 +1923,8 @@ async function handleQueue(request, env, ctx, id) {
      or let stale D1 rows suppress the same candidates on every tune. Keep the
      server rotation path available only for an explicit future opt-in. */
   const preparedStart = body.preparedStart === true && body.iaRepair === true && body.sourceCatalog !== true &&
-    new URL(request.url).pathname.startsWith(V3_PREFIX) && IA_PREPARED_START_CHANNELS.has(String(body.channel));
+    new URL(request.url).pathname.startsWith(V3_PREFIX) && IA_PREPARED_START_CHANNELS.has(String(body.channel)) &&
+    Array.isArray(body.mediaTypes) && body.mediaTypes.length === 1 && body.mediaTypes[0] === IA_PREPARED_START_CHANNELS.get(String(body.channel));
   if (preparedStart && body.sessionRefill !== true) {
     const prepared = await handlePreparedIaStart(request, env, ctx, id, body);
     if (prepared) return prepared;
@@ -1952,7 +1954,8 @@ async function handleQueue(request, env, ctx, id) {
       upstreamBody.hydrationPreferredIds = state.reservationIds || [];
       // Fast skips already have a qualified catalog in the session. Serving
       // it directly keeps a fresh Archive discovery request off that path.
-      if (String(body.channel) === "150" && body.sessionRefill === true && (!preparedStart || state.catalogSize > IA_PREPARED_START_MAX_ITEMS) && state.exhaustion?.unseenBeforeSelection >= count) {
+      const hasDeepSession = preparedStart ? state.catalogSize > IA_PREPARED_START_MAX_ITEMS : String(body.channel) === "150";
+      if (body.sessionRefill === true && hasDeepSession && state.exhaustion?.unseenBeforeSelection >= count) {
         const refill = await rotateShelf(env, { ...body, deferCycleReset: true }, { items: [], ready: 0 }, request);
         if (refill.payload.ready >= count) {
           if (shouldRefreshShallowCatalog(body.channel, 300_000)) ctx.waitUntil(refreshShallowCatalog(env, request, body, id, state.catalogSize));

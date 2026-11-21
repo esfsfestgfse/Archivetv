@@ -16,13 +16,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · Retro Cable 7.3.7</title>
-<meta name="realsignal-ia-repair-channels" content="10,11,12,22,150">
+<title>REALSIGNAL · Retro Cable 7.4.0</title>
+<meta name="realsignal-ia-repair-channels" content="*">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=7.2.19"></script>
-<script src="assets/ia-playback-shelf.js?v=7.3.7"></script>
+<script src="assets/ia-playback-shelf.js?v=7.4.0"></script>
 <script src="assets/sports-programs.js?v=7.0.0"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
 <script src="assets/youtube-embed-runtime.js?v=7.2.19"></script>
@@ -1741,7 +1741,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="7.3.7-mobile-retro-cable";
+window.__ATV_BUILD="7.4.0-mobile-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7641,7 +7641,7 @@ function stageIAMediaWarmer(ch,item,pl,onStall){
   var key=iaMediaWarmKey(ch,item),prior=iaMediaWarmByChannel[ck];
   if(!key)return;
   if(iaMediaWarmers[key]){if(onStall)iaMediaWarmers[key].onStall=onStall;return;}
-  var pilot=window.RealSignalIAShelf?.tracksRoutes?.(ch.num)&&iaRepairEnabled(ch);
+  var pilot=!ch.audio&&window.RealSignalIAShelf?.tracksRoutes?.(ch.num)&&iaRepairEnabled(ch);
   if(pilot){
     if(Object.values(iaMediaWarmers).filter(function(w){return w.channel===ck;}).length>=2)return;
   }else if(prior&&prior!==key){
@@ -7945,6 +7945,7 @@ function iaReviewedFileAllowed(item, channel) {
   if (String(channel) === '10' && /^(?:501028TheJackBennyProgramS01e01PremiereShow|19501028TheJackBennyProgramDinahShore)$/i.test(source)) return false;
   // This original opens in Chromium without a video track. Keep the playable IA derivative.
   if (source === 'get-smart' && file === 'Get Smart S01E01 (Mr. Big).mp4') return false;
+  if (String(channel) === '705' && source.toLowerCase() === '2-italian-guys-halloween') return false;
   // This parent's numbered original MP4 names were playlist labels, not files.
   // Only the separately listed numbered .ia.mp4 derivatives actually exist.
   if (source === 'halloween-cartoon-collection_20231022' && /^\d{2}-(?:19|20)\d{2}\b/.test(file) && !/\.ia\.mp4$/i.test(file)) return false;
@@ -8876,7 +8877,7 @@ function guidePlaybackSnapshot(ch,viewing){
     }
   }else if(ch&&!ch.source){
     if(iaRepairEnabled(ch)){
-      if(window.RealSignalIAShelf.tracksRoutes?.(ch.num)){
+      if(!ch.audio&&window.RealSignalIAShelf.tracksRoutes?.(ch.num)){
         queue=iaPilotBuffered(ch,slotFor(ch,0,{preview:true}));
         var handoff=tuneIARepair.guideHandoff;
         if(handoff?.token===token&&handoff.channel===ch.num)queue.unshift(handoff.item);
@@ -9490,6 +9491,7 @@ window.__v2PreviewNext=function(manual){var ch=byNum(curNum),state=ch&&v2Preview
 async function tuneNum(n,requestedProgramId){
   if(!powered)return;
   const requestedNum=Number(n),canonicalNum=canonicalTuneNum(requestedNum),ch=byNum(canonicalNum); if(!ch)return;
+  if(!ch.source)window.RealSignalIAShelf?.beginTune?.(canonicalNum);
   if(window.__rsPlaybackAudit)window.__rsPlaybackAudit.begin(canonicalNum);
   const changedChannel=(curNum!==canonicalNum)||justPowered; justPowered=false; // NEW: station bumper only on a real channel change
   if(changedChannel)adQueue=0; /* a break belongs to one station; never leak it across a channel change */
@@ -9631,7 +9633,7 @@ async function preloadNext(ch,sl,my){
       stageIAMediaWarmer(ch,next,window.RealSignalIAShelf.rankedMedia?.(ch.num,next)||next.media,onStall);
     }
 
-    var pilot=window.RealSignalIAShelf.tracksRoutes?.(ch.num);
+    var pilot=!ch.audio&&window.RealSignalIAShelf.tracksRoutes?.(ch.num);
     function stagePilotReservations(){
       var candidates=new Map();
       iaPilotBuffered(ch,sl).concat(shelf.rows(key)).forEach(function(row){
@@ -9776,7 +9778,7 @@ function iaRepairBody(ch,sl){
 function iaRepairEvent(ch,it,event){if(!iaRepairEnabled(ch)||!it||it.isAd||it.isSignoff||it.ch!=null&&Number(it.ch)!==Number(ch.num))return Promise.resolve();return window.RealSignalIAShelf.client().event(iaQueueKey(ch),it,event).catch(function(error){nlog("ia-repair-event",false,String(error));});}
 
 function iaPilotBuffered(ch,sl){
-  if(!window.RealSignalIAShelf?.tracksRoutes?.(ch.num))return [];
+  if(ch.audio||!window.RealSignalIAShelf?.tracksRoutes?.(ch.num))return [];
   var rows=window.RealSignalIAShelf.client().rows(iaQueueKey(ch)),prepared=[];
   for(var item of rows){
     var warm=iaMediaWarmers[iaMediaWarmKey(ch,item)],video=warm?.el;
@@ -9823,7 +9825,13 @@ async function tuneIARepair(ch,sl,my){
     }
   }catch(error){nlog("ia-repair-tune",false,String(error));}
   finally{if(tuneIARepair.guideHandoff?.token===my)tuneIARepair.guideHandoff=null;}
-  if(my===token&&powered&&curNum===ch.num)iaRetry(ch,my);
+  if(my!==token||!powered||curNum!==ch.num)return;
+  if(window.RealSignalIAShelf.fallbackForChannel?.(key)){
+    nlog("ia-playback-fallback",true,"CH "+key);
+    window.__rsPlaybackAudit?.source?.(ch.num)?.("archive-legacy-fallback");
+    return tuneIA(ch,sl,my);
+  }
+  iaRetry(ch,my);
 }
 async function tuneIA(ch,sl,my){
   if(iaRepairEnabled(ch))return tuneIARepair(ch,sl,my);
@@ -10115,6 +10123,7 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl,archiveHandoff){retur
     },timeout);
   }
   const canUseBuffered=learnRoute&&archiveHandoff?.allowBuffered&&!prepared;
+  const fastUnlisted=canUseBuffered&&routeHealth.fullRollout;
   // An unlisted tune can switch as soon as a qualified backup has a picture.
   // A listed episode retains its turn and only races another route for that file.
   function useBufferedProgram(){
@@ -10137,20 +10146,20 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl,archiveHandoff){retur
       const spare=iaRepairSpare(ch,it.id);
       // A cold tune can prepare a different episode. During a handoff,
       // give the guide's listed episode first use of the extra media slot.
-      if(!sportsControl&&(archiveHandoff?.listed||preservePicture||!spare)&&learnRoute&&archiveHandoff&&v.readyState<2&&altQ.length){
+      if(!sportsControl&&(archiveHandoff?.listed||!spare||preservePicture&&!fastUnlisted)&&learnRoute&&archiveHandoff&&v.readyState<2&&altQ.length){
         mirror=routeHealth.warmMirror?.(it,altQ[0],function(){if(v.readyState<2)moveToMirror();});
         if(mirror){if(nativeAudit)nativeAudit("archive-mirror-preload",{id:it.id});return;}
       }
       if(!spare)return;
       iaWarmWanted[iaQueueKey(ch)]=Date.now()+120000;
-      const backups=sportsControl?routeHealth.client().rows(iaQueueKey(ch)).filter(function(row){
+      const backups=sportsControl||fastUnlisted?routeHealth.client().rows(iaQueueKey(ch)).filter(function(row){
         return row.identifier!==it.id&&row.media.type==="video";
       }).slice(0,2):[spare];
       for(const backup of backups){
         stageIAMediaWarmer(ch,backup,routeHealth?.rankedMedia?.(ch.num,backup)||backup.media);
         watchBufferedProgram(iaMediaWarmers[iaMediaWarmKey(ch,backup)]);
       }
-    },canUseBuffered&&(sportsControl||!preservePicture&&archiveHandoff.preparedStart)?500:1500);
+    },canUseBuffered&&(fastUnlisted||sportsControl||!preservePicture&&archiveHandoff.preparedStart)?500:1500);
   }
   const nativeAudit=window.__rsPlaybackAudit?.source(ch.num);
   if(nativeAudit)nativeAudit("native-source",{id:it.id,provider:it.provider,hls:!!sourceHls,preloadedReadyState:staged?staged.readyState:null});

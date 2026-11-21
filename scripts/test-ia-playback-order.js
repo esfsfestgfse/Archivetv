@@ -87,8 +87,22 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file 
   const source = fs.readFileSync(path.join(root, file), 'utf8');
   const content = source.match(/<meta name="realsignal-ia-repair-channels" content="([^"]+)">/)?.[1];
   const pilot = runtime('', content);
-  for (const channel of ['10', '11', '12', '22', '150']) assert.equal(pilot.enabledForChannel(channel), true);
-  assert.equal(pilot.enabledForChannel('77'), false);
+  for (const channel of ['10', '11', '12', '22', '53', '77', '150', '216', '705', '903']) assert.equal(pilot.enabledForChannel(channel), true);
+});
+
+test('a full rollout fallback keeps channel ownership until the next eligible tune', () => {
+  let now = 100000;
+  const api = runtime('', '*', undefined, undefined, { now: () => now });
+  assert.equal(api.enabledForChannel(216), true);
+  assert.equal(api.fallbackForChannel('216'), true);
+  assert.equal(api.enabledForChannel(216), false);
+  assert.equal(api.enabledForChannel(150), true);
+  now += 61000;
+  assert.equal(api.enabledForChannel(216), false, 'a playing fallback does not switch owners mid-program');
+  api.beginTune(216);
+  assert.equal(api.enabledForChannel(216), true);
+  assert.equal(runtime('?iaRepair=0', '*').enabledForChannel(216), false);
+  assert.equal(runtime('?castReceiver=1', '*').enabledForChannel(216), false);
 });
 
 test('Cast connection dynamically returns promoted senders to legacy playback', () => {
@@ -301,7 +315,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     assert.equal(scope.theVideo, newer.v);
   });
 
-  for (const [hasSpare, preparedStart, listed, sports] of [[false,false,false], [true,false,false], [true,true,false], [true,false,true], [true,false,false,true]]) test(file + (sports ? ': Sports Vault promotes a decoded backup on an unlisted start' : listed ? ': a listed episode gets its own alternate even when another episode is ready' : hasSpare
+  for (const [hasSpare, preparedStart, listed, sports, fullRollout] of [[false,false,false], [true,false,false], [true,true,false], [true,false,true], [true,false,false,true], [true,false,false,false,true]]) test(file + (fullRollout ? ': rollout stations prepare their cold backup without a cache hit' : sports ? ': Sports Vault promotes a decoded backup on an unlisted start' : listed ? ': a listed episode gets its own alternate even when another episode is ready' : hasSpare
     ? ': a cold reserve takes over as soon as its qualified picture is ready' + (preparedStart ? ' on the prepared canary' : '')
     : ': a stalled origin can still try its alternate when no reserve is ready'), async () => {
     const source = fs.readFileSync(path.join(root, file), 'utf8'), timers = [], handlers = {};
@@ -312,7 +326,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     const spareVideo = Object.assign(new EventTarget(), {
       readyState: 0, videoWidth: 0, videoHeight: 0, duration: 0, src: spare.media.url,
     });
-    const scope = { window: { RealSignalSports: sports ? require('../assets/sports-programs.js') : null, RealSignalIAShelf: { ...runtime(), tracksRoutes: () => hasSpare,
+    const scope = { window: { RealSignalSports: sports ? require('../assets/sports-programs.js') : null, RealSignalIAShelf: { ...runtime(), fullRollout, tracksRoutes: () => hasSpare,
         warmMirror: (row, url) => { mirrorLoads.push(url); return { video: {}, release() {} }; },
         client: () => ({ rows: () => hasSpare ? [primary, spare] : [primary] }) } },
       iaQueueKey: ch => String(ch.num), iaMediaWarmKey: (ch, row) => ch.num + ':' + row.identifier, iaMediaWarmers: warmer, iaWarmWanted: {},
@@ -351,7 +365,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     if (hasSpare) {
       const standby = timers.find(timer => timer.ms > 0 && timer.ms < timers[0].ms);
       assert.ok(standby, 'start preparing one spare before the primary times out');
-      assert.equal(standby.ms, preparedStart || sports ? 500 : 1500, 'slow-start standby deadline');
+      assert.equal(standby.ms, preparedStart || sports || fullRollout ? 500 : 1500, 'slow-start standby deadline');
       standby.fn();
       assert.deepEqual(load, [spare.media.url], 'cold power-on prepares a distinct verified episode');
       assert.deepEqual(mirrorLoads, [], 'one spare uses the whole background media budget');
@@ -681,4 +695,19 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file 
   assert.deepEqual(Object.keys(scope.iaMediaWarmers).sort(), ['53:backup', '53:listed']);
   assert.equal(scope.iaMediaWarmers['53:listed'], active);
   assert.equal(shelf.peek(), pending, 'a stalled preload does not consume the reservation');
+});
+
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file + ': an unavailable shared shelf automatically tunes the same station through the fallback', async () => {
+  const shelf = { peek: () => null, async reserve() { throw Error('queue unavailable'); } };
+  const api = { ...runtime('', '*'), client: () => shelf };
+  const calls = [];
+  const scope = { window: { RealSignalIAShelf: api }, powered:true, token:1, curNum:216,
+    iaPilotBuffered: () => [], iaQueueKey: () => '216', iaRepairBody: () => ({}), nlog() {},
+    tuneIA(ch, sl, my) { calls.push([ch.num, my, api.enabledForChannel(ch.num)]); },
+    iaRetry() { assert.fail('the authorized playback fallback should be used first'); } };
+  const source=fs.readFileSync(path.join(root, file), 'utf8');
+  vm.createContext(scope);
+  vm.runInContext(source.slice(source.indexOf('async function tuneIARepair('), source.indexOf('async function tuneIA(ch,sl,my)')), scope);
+  await scope.tuneIARepair({num:216}, {}, 1);
+  assert.deepEqual(calls, [[216, 1, false]]);
 });

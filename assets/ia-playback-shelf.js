@@ -102,7 +102,7 @@
   // Connection quality is viewer-specific. Keep a bounded local history of
   // requested routes, including the delay of Archive's download redirect.
   var routeStorageKey = 'realsignal:archive-route-history:v1', routeHistory;
-  function tracksRoutes(channel) { return [10, 11, 12, 22, 53, 150].includes(Number(channel)); }
+  function tracksRoutes(channel) { return wholeLineup || [10, 11, 12, 22, 53, 150].includes(Number(channel)); }
   function routeStats() {
     if (!routeHistory) {
       routeHistory = Object.create(null);
@@ -181,13 +181,22 @@
   var query = new URLSearchParams(location.search), optIn = query.get('iaRepair');
   var promotion = typeof document !== 'undefined' && document.querySelector('meta[name="realsignal-ia-repair-channels"]');
   var promoted = promotion ? String(promotion.content || '').split(',').map(function (id) { return id.trim(); }).filter(Boolean) : [];
+  var wholeLineup = promoted.includes('*'), fallbackUntil = Object.create(null);
   var enabled = optIn !== '0' && (optIn === '1' || promoted.length > 0), client = null;
+  function beginTune(channel) {
+    if (fallbackUntil[channel] <= Date.now()) delete fallbackUntil[channel];
+  }
+  function fallbackForChannel(channel) {
+    if (!wholeLineup || !enabledForChannel(channel)) return false;
+    fallbackUntil[channel] = Date.now() + 60_000;
+    return true;
+  }
   function enabledForChannel(channel) {
     // Receiver acknowledgements need their own physical-device certification.
-    if (!enabled || query.get('castReceiver') === '1') return false;
+    if (!enabled || fallbackUntil[channel] || query.get('castReceiver') === '1') return false;
     try { if (typeof window.__rsCastIsConnected === 'function' && window.__rsCastIsConnected()) return false; }
     catch (_) { return false; }
-    return optIn === '1' || promoted.indexOf(String(channel)) >= 0;
+    return wholeLineup || optIn === '1' || promoted.indexOf(String(channel)) >= 0;
   }
   function apiBase() {
     var override = new URLSearchParams(location.search).get('iaRepairApi') || '';
@@ -220,7 +229,8 @@
     }
   };
   async function request(path, body) {
-    var controller = new AbortController(), timer = setTimeout(function () { controller.abort(); }, 12000);
+    var timeout = wholeLineup && path === '/ia/queue' ? 5500 : 12000;
+    var controller = new AbortController(), timer = setTimeout(function () { controller.abort(); }, timeout);
     try {
       var response = await fetch(apiBase() + path, { method: 'POST', mode: 'cors', headers: { 'content-type': 'application/json', 'x-realsignal-session': iaSessionId() }, body: JSON.stringify(Object.assign({}, body, { sessionId: iaSessionId() })), signal: controller.signal, keepalive: path === '/ia/playback' });
       if (!response.ok) {
@@ -232,10 +242,11 @@
     } finally { clearTimeout(timer); }
   }
   window.RealSignalIAShelf = {
-    enabled: enabled, enabledForChannel: enabledForChannel, create: create, lifecycle: lifecycle, sameFileAlternate: sameFileAlternate,
+    enabled: enabled, fullRollout: wholeLineup, enabledForChannel: enabledForChannel, beginTune: beginTune, fallbackForChannel: fallbackForChannel, create: create, lifecycle: lifecycle, sameFileAlternate: sameFileAlternate,
     tracksRoutes: tracksRoutes, rankedMedia: rankedMedia, recordRoute: recordRoute, warmMirror: warmMirror,
     queue: function (body) {
-      var preparedStart = query.get('iaPrepared') === '1' && ['10', '53', '150'].includes(String(body.channel));
+      var prepared = query.get('iaPrepared');
+      var preparedStart = prepared !== '0' && (wholeLineup || (prepared === '1' && ['10', '53', '150'].includes(String(body.channel))));
       return request('/ia/queue', Object.assign({}, body, { iaRepair: true, serverCatalog: true }, preparedStart ? { preparedStart: true } : {}));
     },
     client: function () { return client || (client = create({ journal: startJournal, queue: function (body) { return window.RealSignalIAShelf.queue(body); }, report: function (body) { return request('/ia/playback', body); } })); }

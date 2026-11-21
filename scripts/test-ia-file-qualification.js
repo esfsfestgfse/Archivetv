@@ -795,3 +795,18 @@ test('strict file shelves are isolated without invalidating legacy cache identit
     assert.equal(Object.hasOwn(JSON.parse(unchanged.familyFingerprint),'stationDepthPolicy'),false,'other lane cache identities are unchanged');
   });
 });
+
+test('the Two Italian Guys public-access special stays off Halloween Cartoons', async () => {
+  const {iaReviewedFileAllowed}=await import('../ia_file_contract.js');
+  const item={identifier:'2-italian-guys-halloween::2 Italian Guys Halloween.mp4',media:{url:'https://archive.org/download/2-italian-guys-halloween/2%20Italian%20Guys%20Halloween.mp4'}};
+  const gates=[iaReviewedFileAllowed];
+  for(const file of ['the_dial_desktop.html','the_dial_mobile.html']){
+    const s=fs.readFileSync(file,'utf8'),c={};vm.createContext(c);
+    vm.runInContext(s.slice(s.indexOf('function iaReviewedFileAllowed('),s.indexOf('function iaHuntingAllowed(')),c);
+    gates.push(c.iaReviewedFileAllowed);
+  }
+  for(const gate of gates) {
+    assert.equal(gate(item,'705'),false);
+    assert.equal(gate(item,'708'),true);
+  }
+});

@@ -646,3 +646,39 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file 
   assert.equal(duringRecovery.id, next.id, 'reopening the guide retains the in-flight episode');
   assert.equal(scope.guidePlaybackSnapshot(channel).next.id, waiting.identifier, 'the next reservation takes over once the handoff ends');
 });
+
+test('Sports Vault reserves extra events while other Archive shelves keep their normal request size', async () => {
+  const counts = [];
+  const shelf = runtime().create({ queue: async body => { counts.push(body.count); return { items: [] }; } });
+  await shelf.reserve('53', {});
+  await shelf.reserve('11', {});
+  assert.deepEqual(counts, [5, 3]);
+});
+
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file + ': a stalled Sports Vault warmer opens its slot without evicting the decoded listing', async () => {
+  const pending = item('slow'), listed = item('listed'), backup = item('backup');
+  const reserved = [pending, listed, backup], timers = new Map(), loads = [];
+  const shelf = { rows: () => reserved, peek: () => pending };
+  const createVideo = () => Object.assign(new EventTarget(), { readyState: 0, videoWidth: 0,
+    load() { if (this.src) loads.push(this.src); }, pause() {}, removeAttribute() { delete this.src; } });
+  const source = fs.readFileSync(path.join(root, file), 'utf8');
+  const scope = { window: { RealSignalIAShelf: { ...runtime(), client: () => shelf } },
+    powered: true, token: 1, curNum: 53, Date, document: { createElement: createVideo },
+    iaRepairEnabled: () => true, iaRepairBody: () => ({}), iaPilotBuffered: () => [],
+    nlog() {}, setTimeout(fn, delay) { const key = timers.size + 1; timers.set(key, { fn, delay }); return key; }, clearTimeout() {} };
+  vm.createContext(scope);
+  for (const [start, end] of [['var iaMediaWarmers=', 'function warmIAQueueHead('], ['async function preloadNext(', 'function schedulePreload(']]) {
+    vm.runInContext(source.slice(source.indexOf(start), source.indexOf(end, source.indexOf(start))), scope);
+  }
+  await scope.preloadNext({ num: 53 }, {}, 1);
+  const active = scope.iaMediaWarmers['53:listed'];
+  Object.assign(active.el, { readyState: 2, videoWidth: 640, videoHeight: 480, duration: 1800 });
+  active.el.dispatchEvent(new Event('loadeddata'));
+  const expirations = [...timers.values()].filter(timer => timer.delay < 90000);
+  assert.equal(expirations.length, 2, 'both attached slots have their own deadline');
+  expirations.forEach(timer => timer.fn());
+  assert.deepEqual(loads, [pending.media.url, listed.media.url, backup.media.url]);
+  assert.deepEqual(Object.keys(scope.iaMediaWarmers).sort(), ['53:backup', '53:listed']);
+  assert.equal(scope.iaMediaWarmers['53:listed'], active);
+  assert.equal(shelf.peek(), pending, 'a stalled preload does not consume the reservation');
+});

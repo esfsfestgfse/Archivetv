@@ -52,7 +52,7 @@
       var value = state(key);
       if (value.inflight) return value.inflight;
       var revision;
-      value.inflight = flush(value).then(function () { revision = value.revision; return options.queue(Object.assign({}, body, { channel: String(key), count: 3, iaRepair: true, sessionRefill: value.items.length > 0 })); }).then(async function (payload) {
+      value.inflight = flush(value).then(function () { revision = value.revision; return options.queue(Object.assign({}, body, { channel: String(key), count: String(key) === '53' ? 5 : 3, iaRepair: true, sessionRefill: value.items.length > 0 })); }).then(async function (payload) {
         // Events overlapping the request must be reconciled in their server cycle,
         // not hidden forever or accidentally resurrected from a stale preload.
         await flush(value);

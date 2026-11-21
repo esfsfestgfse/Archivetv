@@ -9,13 +9,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 7.3.6</title>
+<title>REALSIGNAL · Retro Cable 7.3.7</title>
 <meta name="realsignal-ia-repair-channels" content="10,11,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=7.2.19"></script>
-<script src="assets/ia-playback-shelf.js?v=7.3.6"></script>
+<script src="assets/ia-playback-shelf.js?v=7.3.7"></script>
 <script src="assets/sports-programs.js?v=7.0.0"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
 <script src="assets/youtube-embed-runtime.js?v=7.2.1"></script>
@@ -1702,7 +1702,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="7.3.6-desktop-retro-cable";
+window.__ATV_BUILD="7.3.7-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7595,13 +7595,14 @@ function iaQueueKey(ch){return String((ch&&ch.num)||((ch&&ch.nm)||""));}
 function iaQueueRotationFor(ch){var key=iaQueueKey(ch);if(!Object.prototype.hasOwnProperty.call(iaQueueRotation,key)){var hash=iaRotationSessionSeed;for(var i=0;i<key.length;i++)hash=((hash*33)^key.charCodeAt(i))>>>0;iaQueueRotation[key]=hash%128;}return Math.max(0,Math.min(4095,Math.floor(Number(iaQueueRotation[key])||0)));}
 function iaAdvanceQueueRotation(ch){var key=iaQueueKey(ch);iaQueueRotation[key]=(iaQueueRotationFor(ch)+1)%4096;store.set("iaQueueRotation",iaQueueRotation);}
 function iaMediaWarmKey(ch,item){return iaQueueKey(ch)+":"+String(item&&item.identifier||item&&item.id||"");}
-function releaseIAMediaWarmer(key,keepElement){var w=iaMediaWarmers[key];if(!w)return null;delete iaMediaWarmers[key];if(iaMediaWarmByChannel[w.channel]===key)delete iaMediaWarmByChannel[w.channel];clearTimeout(w.timer);var i=iaMediaWarmerOrder.indexOf(key);if(i>=0)iaMediaWarmerOrder.splice(i,1);if(!keepElement){try{w.el.pause();w.el.removeAttribute("src");w.el.load();}catch(e){}}return w.el;}
+function releaseIAMediaWarmer(key,keepElement){var w=iaMediaWarmers[key];if(!w)return null;delete iaMediaWarmers[key];if(iaMediaWarmByChannel[w.channel]===key)delete iaMediaWarmByChannel[w.channel];clearTimeout(w.timer);clearTimeout(w.stallTimer);var i=iaMediaWarmerOrder.indexOf(key);if(i>=0)iaMediaWarmerOrder.splice(i,1);if(!keepElement){try{w.el.pause();w.el.removeAttribute("src");w.el.load();}catch(e){}}return w.el;}
 function takeIAMediaWarmer(ch,item){return releaseIAMediaWarmer(iaMediaWarmKey(ch,item),true);}
-function stageIAMediaWarmer(ch,item,pl){
+function stageIAMediaWarmer(ch,item,pl,onStall){
   var ck=iaQueueKey(ch);
   if(!pl||!pl.url||!iaWarmWanted[ck]||iaWarmWanted[ck]<Date.now())return;
   var key=iaMediaWarmKey(ch,item),prior=iaMediaWarmByChannel[ck];
-  if(!key||iaMediaWarmers[key])return;
+  if(!key)return;
+  if(iaMediaWarmers[key]){if(onStall)iaMediaWarmers[key].onStall=onStall;return;}
   var pilot=window.RealSignalIAShelf?.tracksRoutes?.(ch.num)&&iaRepairEnabled(ch);
   if(pilot){
     if(Object.values(iaMediaWarmers).filter(function(w){return w.channel===ck;}).length>=2)return;
@@ -7613,14 +7614,25 @@ function stageIAMediaWarmer(ch,item,pl){
   try{
     var el=document.createElement(pl.type==="audio"?"audio":"video");
     el.preload="auto";el.muted=true;el.playsInline=true;
-    var warmer={el:el,channel:ck,timer:setTimeout(function(){releaseIAMediaWarmer(key,false);},90000)};
+    var warmer={el:el,channel:ck,onStall:onStall,timer:setTimeout(function(){releaseIAMediaWarmer(key,false);},90000)};
     iaMediaWarmers[key]=warmer;iaMediaWarmerOrder.push(key);iaMediaWarmByChannel[ck]=key;
     if(pilot){
       el.addEventListener("loadeddata",function(){
         if(iaMediaWarmers[key]!==warmer||el.readyState<2||!(el.videoWidth>0))return;
         warmer.readyOrder=++iaReadyOrder;
+        clearTimeout(warmer.stallTimer);
         try{window.RealSignalGuide?.refresh();}catch(e){}
       },{once:true});
+    }
+    if(pilot&&ck==="53"){
+      function releaseStalled(){
+        if(iaMediaWarmers[key]!==warmer||warmer.readyOrder)return;
+        releaseIAMediaWarmer(key,false);
+        window.__rsPlaybackAudit?.source?.(ch.num)?.("archive-preload-stalled",{id:item.identifier});
+        warmer.onStall?.();
+      }
+      warmer.stallTimer=setTimeout(releaseStalled,2200);
+      el.addEventListener("error",releaseStalled,{once:true});
     }
     el.src=pl.url;el.load();
     while(iaMediaWarmerOrder.length>IA_MEDIA_WARM_MAX)releaseIAMediaWarmer(iaMediaWarmerOrder[0],false);
@@ -9557,17 +9569,24 @@ async function preloadNext(ch,sl,my){
   if(iaRepairEnabled(ch)){
     if(!powered||my!==token||curNum!==ch.num)return;
     var shelf=window.RealSignalIAShelf.client(),key=iaQueueKey(ch);
+    var stalled=Number(ch.num)===53?new Set():null;
     function stage(next){
       if(!next)return;
       iaWarmWanted[key]=Date.now()+120000;
-      stageIAMediaWarmer(ch,next,window.RealSignalIAShelf.rankedMedia?.(ch.num,next)||next.media);
+      var onStall=stalled?function(){
+        if(!powered||my!==token||curNum!==ch.num)return;
+        stalled.add(iaMediaWarmKey(ch,next));
+        stagePilotReservations();
+      }:null;
+      stageIAMediaWarmer(ch,next,window.RealSignalIAShelf.rankedMedia?.(ch.num,next)||next.media,onStall);
     }
 
     var pilot=window.RealSignalIAShelf.tracksRoutes?.(ch.num);
     function stagePilotReservations(){
       var candidates=new Map();
       iaPilotBuffered(ch,sl).concat(shelf.rows(key)).forEach(function(row){
-        if(candidates.size<2)candidates.set(iaMediaWarmKey(ch,row),row);
+        var warmKey=iaMediaWarmKey(ch,row);
+        if(candidates.size<2&&!stalled?.has(warmKey))candidates.set(warmKey,row);
       });
       Object.keys(iaMediaWarmers).forEach(function(warmKey){
         if(iaMediaWarmers[warmKey].channel===key&&!candidates.has(warmKey))releaseIAMediaWarmer(warmKey,false);
@@ -9578,7 +9597,7 @@ async function preloadNext(ch,sl,my){
       var queued=shelf.peek(key);
       if(pilot)stagePilotReservations();else stage(queued);
       // Refill behind both ready programs so consecutive skips have a head start.
-      if(shelf.rows(key).length>=3)return;
+      if(shelf.rows(key).length>=(stalled?5:3))return;
       await shelf.reserve(key,iaRepairBody(ch,sl));
       if(!powered||curNum!==ch.num)return;
       var next=shelf.peek(key);
@@ -10075,8 +10094,13 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl,archiveHandoff){retur
       }
       if(!spare)return;
       iaWarmWanted[iaQueueKey(ch)]=Date.now()+120000;
-      stageIAMediaWarmer(ch,spare,routeHealth?.rankedMedia?.(ch.num,spare)||spare.media);
-      watchBufferedProgram(iaMediaWarmers[iaMediaWarmKey(ch,spare)]);
+      const backups=sportsControl?routeHealth.client().rows(iaQueueKey(ch)).filter(function(row){
+        return row.identifier!==it.id&&row.media.type==="video";
+      }).slice(0,2):[spare];
+      for(const backup of backups){
+        stageIAMediaWarmer(ch,backup,routeHealth?.rankedMedia?.(ch.num,backup)||backup.media);
+        watchBufferedProgram(iaMediaWarmers[iaMediaWarmKey(ch,backup)]);
+      }
     },canUseBuffered&&(sportsControl||!preservePicture&&archiveHandoff.preparedStart)?500:1500);
   }
   const nativeAudit=window.__rsPlaybackAudit?.source(ch.num);

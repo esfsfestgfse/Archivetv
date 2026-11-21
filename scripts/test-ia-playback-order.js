@@ -87,7 +87,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file 
   const source = fs.readFileSync(path.join(root, file), 'utf8');
   const content = source.match(/<meta name="realsignal-ia-repair-channels" content="([^"]+)">/)?.[1];
   const pilot = runtime('', content);
-  for (const channel of ['10', '12', '22', '150']) assert.equal(pilot.enabledForChannel(channel), true);
+  for (const channel of ['10', '11', '12', '22', '150']) assert.equal(pilot.enabledForChannel(channel), true);
   assert.equal(pilot.enabledForChannel('77'), false);
 });
 
@@ -301,7 +301,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     assert.equal(scope.theVideo, newer.v);
   });
 
-  for (const [hasSpare, preparedStart] of [[false,false], [true,false], [true,true]]) test(file + (hasSpare
+  for (const [hasSpare, preparedStart, listed] of [[false,false,false], [true,false,false], [true,true,false], [true,false,true]]) test(file + (listed ? ': a listed episode gets its own alternate even when another episode is ready' : hasSpare
     ? ': a cold reserve takes over as soon as its qualified picture is ready' + (preparedStart ? ' on the prepared canary' : '')
     : ': a stalled origin can still try its alternate when no reserve is ready'), async () => {
     const source = fs.readFileSync(path.join(root, file), 'utf8'), timers = [], handlers = {};
@@ -333,10 +333,21 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     const repairStart = source.indexOf('function iaRepairEvent(');
     vm.runInContext(source.slice(repairStart, source.indexOf('async function tuneIA(ch,sl,my)', repairStart)), scope);
     vm.runInContext(source.slice(source.indexOf('function playFile('), source.indexOf('function showNow(')), scope);
-    const handoff = { allowBuffered: true, preparedStart };
+    const handoff = { allowBuffered: !listed, listed, preparedStart };
     const pending = scope.playFile({ id: primary.identifier, ...primary.media }, { num: 10 }, {}, 1, 0, handoff);
     assert.ok(timers[0].ms <= 4000, 'a stalled origin must not hold Next for twelve seconds');
     assert.deepEqual(load, [], 'a fast startup should never need to load the spare');
+    if (listed) {
+      Object.assign(spareVideo, { readyState: 4, videoWidth: 640, videoHeight: 480, duration: 1500 });
+      warmer['10:' + spare.identifier] = { el: spareVideo };
+      timers[0].fn();
+      assert.equal(video.src, 'https://archive.org/download/series/Season%201/Pilot.mp4');
+      const retry = timers.find(timer => timer.ms === 3500);
+      assert.ok(retry, 'one bounded retry is made for the same file');
+      retry.fn();
+      assert.equal(await pending, false, 'only after both routes fail is a new episode eligible');
+      return;
+    }
     if (hasSpare) {
       const standby = timers.find(timer => timer.ms > 0 && timer.ms < timers[0].ms);
       assert.ok(standby, 'start preparing one spare before the primary times out');
@@ -535,7 +546,7 @@ test('measured route outcomes rank exact-file mirrors across page loads within t
   const program = {identifier:'series::Season 1/Pilot.mp4',media:{url:primary,alts:[mirror,wrongFile],type:'video'}};
   assert.equal(api.rankedMedia(10, program).url, primary, 'a fresh profile follows the published route');
   api.recordRoute(10, program, wrongFile, 17);
-  api.recordRoute(11, program, mirror, 20);
+  api.recordRoute(77, program, mirror, 20);
   assert.equal(api.rankedMedia(10,program).url,primary);
   api.recordRoute(10, program, primary, null);
   api.recordRoute(10, program, mirror, 810);
@@ -545,10 +556,10 @@ test('measured route outcomes rank exact-file mirrors across page loads within t
   assert.ok(ranked.alts.includes(primary), 'the original route remains eligible for fallback');
   assert.ok(!ranked.alts.includes(wrongFile));
   assert.equal(program.media.url,primary, 'ranking must not mutate the catalog');
-  for (const channel of [12, 22]) {
-    assert.equal(nextPage.rankedMedia(channel,program).url,mirror, 'both Game Shows channels use the measured route');
+  for (const channel of [11, 12, 22]) {
+    assert.equal(nextPage.rankedMedia(channel,program).url,mirror, 'repaired television channels use the measured route');
   }
-  assert.equal(nextPage.rankedMedia(11,program).url,primary, 'route ranking stays inside the active pilot');
+  assert.equal(nextPage.rankedMedia(77,program).url,primary, 'route ranking stays inside the active pilot');
   api.recordRoute(10,program,api.sameFileAlternate(program),650);
   const unrelated = {identifier:'other::Show.mp4',media:{url:'https://dn600700.us.archive.org/0/items/other/Show.mp4'}};
   assert.equal(api.rankedMedia(10,unrelated).url,unrelated.media.url,'a fast redirect for one file cannot rate unrelated Archive redirects');
@@ -601,4 +612,37 @@ for (const file of ['the_dial_desktop.html','the_dial_mobile.html']) test(file +
   vm.runInContext(source.slice(start,source.indexOf('async function tuneIA(ch,sl,my)',start)),scope);
   await scope.tuneIARepair({num:10},{},1);
   assert.deepEqual(calls,[[pending.identifier,pending.media.url],[pending.identifier,prepared.src]]);
+});
+
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file + ': Modern Rerun lists and selects the same decoded reservation', async () => {
+  const source = fs.readFileSync(path.join(root, file), 'utf8');
+  const waiting = item('another-episode'), ready = item('listed-episode');
+  const shelf = { rows: () => [waiting, ready], peek: () => waiting };
+  const archive = { ...runtime(), client: () => shelf };
+  const calls = []; let complete;
+  const video = { readyState: 2, videoWidth: 640, videoHeight: 480, duration: 1800, src: ready.media.url };
+  const scope = { window: { RealSignalIAShelf: archive, RealSignalGuideContract: require('../assets/guide-contract.js') },
+    powered: true, curNum: 11, token: 1, curItem: null, curVideo: null, IA_READY_TARGET: 3, liveGuideState: {},
+    iaRepairEnabled: () => true, slotFor: () => ({}), iaQueueKey: ch => String(ch.num),
+    iaMediaWarmKey: (ch, row) => ch.num + ':' + row.identifier, iaMediaWarmers: {},
+    iaCachedProgramAllowed: () => true, iaDisplayTitle: row => row.title, nlog() {},
+    iaRetry() { assert.fail('the recorded reservation is playable'); },
+    playFile(media, ch, sl, token, retry, handoff) { calls.push([media.id, handoff.listed]); return new Promise(resolve => { complete = resolve; }); } };
+  vm.createContext(scope);
+  for (const [start, end] of [['function guidePlaybackSnapshot(', 'function guideListing('], ['function iaPilotBuffered(', 'async function tuneIA(ch,sl,my)']]) {
+    vm.runInContext(source.slice(source.indexOf(start), source.indexOf(end, source.indexOf(start))), scope);
+  }
+  const channel = { num: 11, nm: 'Modern Rerun TV' };
+  assert.equal(scope.guidePlaybackSnapshot(channel).next, null, 'a URL without a decoded reservation is pending');
+  scope.iaMediaWarmers['11:' + ready.identifier] = { el: video, readyOrder: 1 };
+  const next = scope.guidePlaybackSnapshot(channel).next;
+  assert.equal(next.id, ready.identifier);
+  const playing = scope.tuneIARepair(channel, {}, 1);
+  assert.deepEqual(calls, [[next.id, true]], 'Next hands the listed reservation to same-file recovery');
+  delete scope.iaMediaWarmers['11:' + ready.identifier];
+  scope.iaMediaWarmers['11:' + waiting.identifier] = { el: { ...video, src: waiting.media.url }, readyOrder: 2 };
+  const duringRecovery = scope.guidePlaybackSnapshot(channel).next;
+  complete(true); await playing;
+  assert.equal(duringRecovery.id, next.id, 'reopening the guide retains the in-flight episode');
+  assert.equal(scope.guidePlaybackSnapshot(channel).next.id, waiting.identifier, 'the next reservation takes over once the handoff ends');
 });

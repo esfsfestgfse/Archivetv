@@ -16,13 +16,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · Retro Cable 7.3.4</title>
-<meta name="realsignal-ia-repair-channels" content="10,12,22,150">
+<title>REALSIGNAL · Retro Cable 7.3.5</title>
+<meta name="realsignal-ia-repair-channels" content="10,11,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=7.2.19"></script>
-<script src="assets/ia-playback-shelf.js?v=7.3.4"></script>
+<script src="assets/ia-playback-shelf.js?v=7.3.5"></script>
 <script src="assets/sports-programs.js?v=7.0.0"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
 <script src="assets/youtube-embed-runtime.js?v=7.2.19"></script>
@@ -1741,7 +1741,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="7.3.4-mobile-retro-cable";
+window.__ATV_BUILD="7.3.5-mobile-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -8863,9 +8863,14 @@ function guidePlaybackSnapshot(ch,viewing){
       if(index>=0)queue=(profile.personalRotation===true?[preview.items[index]]:preview.items.slice(index).concat(preview.items.slice(0,index))).filter(function(item){return !(item&&item.meta&&item.meta.verification&&item.meta.verification.playback===false);});
     }
   }else if(ch&&!ch.source){
-    if(iaRepairEnabled(ch))queue=window.RealSignalIAShelf.tracksRoutes?.(ch.num)
-      ? iaPilotBuffered(ch,slotFor(ch,0,{preview:true}))
-      : window.RealSignalIAShelf.client().rows(iaQueueKey(ch));
+    if(iaRepairEnabled(ch)){
+      if(window.RealSignalIAShelf.tracksRoutes?.(ch.num)){
+        queue=iaPilotBuffered(ch,slotFor(ch,0,{preview:true}));
+        var handoff=tuneIARepair.guideHandoff;
+        if(handoff?.token===token&&handoff.channel===ch.num)queue.unshift(handoff.item);
+        queue=queue.map(function(item){return {...item,title:iaDisplayTitle(item,ch)};});
+      }else queue=window.RealSignalIAShelf.client().rows(iaQueueKey(ch));
+    }
     else{
       var sl=slotFor(ch,0,{preview:true});
       queue=(iaProgramQueues[iaQueueKey(ch)]||[]).filter(function(item){return iaProgramAllowed(item,sl,true)&&iaProgramMedia[item.identifier]!==null&&!iaPendingTooLong(item.identifier);}).map(function(item,index){
@@ -9782,7 +9787,8 @@ async function tuneIARepair(ch,sl,my){
       }
       if(!item)break;
       var media={...(window.RealSignalIAShelf.rankedMedia?.(ch.num,item)||item.media),id:item.identifier,title:iaDisplayTitle(item,ch),year:item.year,meta:item};
-      var handoff={allowBuffered:!buffered,preparedStart:shelf.hasPreparedStart?.(key)};
+      var handoff={allowBuffered:!buffered,listed:!!buffered,preparedStart:shelf.hasPreparedStart?.(key)};
+      if(buffered)tuneIARepair.guideHandoff={token:my,channel:ch.num,item:buffered};
       if(await playFile(media,ch,sl,my,0,handoff))return;
       if(handoff.buffered){nextBuffered=handoff.buffered;continue;}
       if(handoff.prepared){
@@ -9791,12 +9797,13 @@ async function tuneIARepair(ch,sl,my){
         if(await playFile(sameFile,ch,sl,my,0,handoff))return;
       }
       if(my!==token||!powered||curNum!==ch.num)return;
-      // Removing the failure from the local shelf is synchronous. Try a reserved spare
-      // immediately; reserve() still flushes events before asking for more items.
+      // Only release the listed title when its own routes are exhausted.
+      if(tuneIARepair.guideHandoff?.token===my)tuneIARepair.guideHandoff=null;
       iaRepairEvent(ch,media,"failed");
       try{window.RealSignalGuide?.refresh();}catch(e){}
     }
   }catch(error){nlog("ia-repair-tune",false,String(error));}
+  finally{if(tuneIARepair.guideHandoff?.token===my)tuneIARepair.guideHandoff=null;}
   if(my===token&&powered&&curNum===ch.num)iaRetry(ch,my);
 }
 async function tuneIA(ch,sl,my){
@@ -10075,7 +10082,7 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl,archiveHandoff){retur
       const hasPicture=warm&&!warm.el.error&&warm.el.readyState>=2&&warm.el.videoWidth>0;
       const failedRoute=learnRoute&&my===token&&powered&&!document.hidden&&v.readyState<2?routeHealth.recordRoute(ch.num,it,v.src,null):"";
       if(boundedIaStart&&nativeAudit)nativeAudit("archive-start-timeout",{id:it.id,readyState:v.readyState,spareReady:!!hasPicture,host:failedRoute||undefined});
-      if(boundedIaStart&&!hasPicture&&(moveToMirror()||tryAlternate()))return;
+      if(boundedIaStart&&(archiveHandoff?.listed||!hasPicture)&&(moveToMirror()||tryAlternate()))return;
       fin(false);
     },timeout);
   }
@@ -10102,7 +10109,7 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl,archiveHandoff){retur
       const spare=iaRepairSpare(ch,it.id);
       // A cold tune can prepare a different episode. During a handoff,
       // give the guide's listed episode first use of the extra media slot.
-      if((preservePicture||!spare)&&learnRoute&&archiveHandoff&&v.readyState<2&&altQ.length){
+      if((archiveHandoff?.listed||preservePicture||!spare)&&learnRoute&&archiveHandoff&&v.readyState<2&&altQ.length){
         mirror=routeHealth.warmMirror?.(it,altQ[0],function(){if(v.readyState<2)moveToMirror();});
         if(mirror){if(nativeAudit)nativeAudit("archive-mirror-preload",{id:it.id});return;}
       }

@@ -102,7 +102,7 @@
   // Connection quality is viewer-specific. Keep a bounded local history of
   // requested routes, including the delay of Archive's download redirect.
   var routeStorageKey = 'realsignal:archive-route-history:v1', routeHistory;
-  function tracksRoutes(channel) { return [10, 12, 22, 150].includes(Number(channel)); }
+  function tracksRoutes(channel) { return [10, 11, 12, 22, 150].includes(Number(channel)); }
   function routeStats() {
     if (!routeHistory) {
       routeHistory = Object.create(null);

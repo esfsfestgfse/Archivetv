@@ -339,6 +339,9 @@ for (const file of ['the_dial_desktop.html','the_dial_mobile.html']) test(file +
   context.iaDisplayTitle=item=>item.title;
   context.token=1;
   actualFunctions(file,context,['iaPilotBuffered']);
+  const source=fs.readFileSync(path.join(root,file),'utf8');
+  const start=source.indexOf('async function tuneIARepair('),end=source.indexOf('async function tuneIA(',start);
+  vm.runInContext(source.slice(start,end),context);
   assert.equal(api.snapshot(150).next,null,'a transport URL alone cannot be a guide promise');
   const prepared=(readyOrder,videoWidth=640,duration=1440)=>({readyOrder,el:{readyState:2,videoWidth,videoHeight:480,duration}});
   context.iaMediaWarmers['150:'+b.identifier]=prepared(1,0);
@@ -347,9 +350,6 @@ for (const file of ['the_dial_desktop.html','the_dial_mobile.html']) test(file +
   context.iaMediaWarmers['150:'+b.identifier]=prepared(3);
   assert.equal(api.snapshot(150).next.id,c.identifier,'a newer buffer cannot displace the listed title');
   context.playFile=async (program)=>{assert.equal(program.id,c.identifier);return true;};
-  const source=fs.readFileSync(path.join(root,file),'utf8');
-  const start=source.indexOf('async function tuneIARepair('),end=source.indexOf('async function tuneIA(',start);
-  vm.runInContext(source.slice(start,end),context);
   await context.tuneIARepair(channel,{},1);
 });
 

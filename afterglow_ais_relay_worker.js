@@ -2367,12 +2367,13 @@ const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
     iaDirectRecovery("NJY-008_126109-126708", "NJY-008_126109-126708", "126109_Knots-Landing-Episode-Teaser-Promo-CBS-WCBS-2_1991-11-06.ia.mp4", "Knots Landing — Episode Teaser", "television trailer teaser promo coming attractions", 1991),
   ],
   "502": [
+    iaDirectRecovery("wbgu-2-wdcrv-nywrk::WBGU2_wdcrv_nywrk.mp4", "wbgu-2-wdcrv-nywrk", "WBGU2_wdcrv_nywrk.mp4", "WBGU PBS · Woodcarving & New Yankee Workshop (1990 VHS Recording)", "off-air vhs tape recording television broadcast with original commercials WOC", 1990, "video", 3545.26, 852, 682, {"dir":"/0/items/wbgu-2-wdcrv-nywrk","d1":"dn600307.us.archive.org"}),
+    iaDirectRecovery("01-14-1997-wtol-cbs-tape-3pt-1yr-2026::01-14-1997-Wtol-cbs-tape3pt1yr2026.mp4", "01-14-1997-wtol-cbs-tape-3pt-1yr-2026", "01-14-1997-Wtol-cbs-tape3pt1yr2026.mp4", "WTOL CBS · Country Justice (1997, With Original Commercials)", "off-air vhs tape recording television broadcast with original commercials WOC", 1997, "video", 7194.7, 640, 480, {"dir":"/16/items/01-14-1997-wtol-cbs-tape-3pt-1yr-2026","d1":"ia800708.us.archive.org","d2":"ia600708.us.archive.org"}),
+    iaDirectRecovery("02-10-1988-GoBots-Battle-of-the-Rock-Lords-Showtime-Airing-WOC::02.10.1988 - GoBots Battle of the Rock Lords (Showtime Airing) WOC [boomereboot].mp4", "02-10-1988-GoBots-Battle-of-the-Rock-Lords-Showtime-Airing-WOC", "02.10.1988 - GoBots Battle of the Rock Lords (Showtime Airing) WOC [boomereboot].mp4", "Showtime · GoBots: Battle of the Rock Lords (1988 Broadcast, WOC)", "off-air vhs tape recording television broadcast with original commercials WOC", 1988, "video", 4632.13, 640, 480, {"dir":"/1/items/02-10-1988-GoBots-Battle-of-the-Rock-Lords-Showtime-Airing-WOC","d1":"ia600505.us.archive.org","d2":"ia800505.us.archive.org"}),
     iaDirectRecovery("vintage-commercials-t42a-wpwr-tng-neutral-zone-abc-twin-peaks-may-1990-part-1::tape.mp4", "vintage-commercials-t42a-wpwr-tng-neutral-zone-abc-twin-peaks-may-1990-part-1", "tape.mp4", "WPWR Chicago · Star Trek and Twin Peaks (1990 VHS Recording)", "vhs tape off-air recording television broadcast with original commercials science fiction television", 1990, "video", 6107.02, 640, 480),
     iaDirectRecovery("vintage-commercials-v25a-wttw-newshour-chicago-tonight-mystery-jan-1999-part-1::tape.mp4", "vintage-commercials-v25a-wttw-newshour-chicago-tonight-mystery-jan-1999-part-1", "tape.mp4", "WTTW Chicago · NewsHour, Rick Steves and Mystery! (1999 VHS Recording)", "vhs tape off-air recording television broadcast with original commercials public television", 1999, "video", 7207.71, 640, 480),
-    iaDirectRecovery("vintage-commercials-tvh4a-66th-academy-awards-abc7-chicago-mar-21-1994::tape.mp4", "vintage-commercials-tvh4a-66th-academy-awards-abc7-chicago-mar-21-1994", "tape.mp4", "ABC Chicago · 66th Academy Awards (1994 VHS Recording)", "vhs tape off-air recording television broadcast with original commercials television awards broadcast", 1994, "video", 21195, 720, 480),
     iaDirectRecovery("vintage-commercials-tvh8a-nbc5-unsolved-mysteries-apr-21-1995-oct-6-1993-disc-a::tape.mp4", "vintage-commercials-tvh8a-nbc5-unsolved-mysteries-apr-21-1995-oct-6-1993-disc-a", "tape.mp4", "NBC Chicago · Unsolved Mysteries (1993–1995 VHS Recording)", "vhs tape off-air recording television broadcast with original commercials mystery television", 1995, "video", 7205.74, 640, 480),
     iaDirectRecovery("vintage-commercials-v24b-sci-fi-taken-encore-marathon-dec-14-2002-part-2::tape.mp4", "vintage-commercials-v24b-sci-fi-taken-encore-marathon-dec-14-2002-part-2", "tape.mp4", "Sci-Fi Channel · Taken Encore Marathon (2002 VHS Recording)", "vhs tape off-air recording television broadcast with original commercials science fiction television", 2002, "video", 7207.71, 640, 480),
-    iaDirectRecovery("vintage-commercials-tvh6b-69th-academy-awards-abc7-chicago-mar-24-1997-disc-b::tape.mp4", "vintage-commercials-tvh6b-69th-academy-awards-abc7-chicago-mar-24-1997-disc-b", "tape.mp4", "ABC Chicago · 69th Academy Awards (1997 VHS Recording)", "vhs tape off-air recording television broadcast with original commercials television awards broadcast", 1997, "video", 7207.71, 640, 480),
     iaDirectRecovery("TVS-television-south-junction-1990-by-television-heaven-uk_20220719::TVS 1990.mp4", "TVS-television-south-junction-1990-by-television-heaven-uk_20220719", "TVS 1990.mp4", "TVS Junction — 1990 VHS Capture", "vhs tape television broadcast off-air recording home video", 1990),
     iaDirectRecovery("wusa-washington-afternoon-programs-1999::CBS Daytime.mp4", "wusa-washington-afternoon-programs-1999", "CBS Daytime.mp4", "WUSA CBS Daytime — December 1999 VHS Capture", "vhs tape television broadcast off-air recording home video", 1999),
     iaDirectRecovery("wbgu-2-wdcrv-nywrk::WBGU1_cntry_bweav.mp4", "wbgu-2-wdcrv-nywrk", "WBGU1_cntry_bweav.mp4", "WBGU Country Basket Weaving — VHS Capture", "vhs tape television broadcast off-air recording home video", 1990),
@@ -6085,11 +6086,14 @@ function iaReviewedFileAllowed(item, channel) {
     }
   }
   if (String(channel) === '502') {
+    // These original tape files repeatedly stalled before decoding a frame.
+    if (file === 'tape.mp4' && /^vintage-commercials-tvh(?:4a-66th|6b-69th)-academy-awards-/i.test(source)) return false;
     const evidence = [item.title, source, file, item.subject, item.subjects].filter(Boolean).join(' ').replace(/[_-]+/g, ' ');
     if (/\b(?:home movies?|wedding videos?|footage of a wedding|camcorder footage|private party)\b/i.test(evidence)) return false;
     if (!/\b(?:off air|woc|with (?:original )?(?:commercials|ads)|(?:vhs|betamax) (?:capture|recording|aircheck)|(?:broadcast|taped|recorded) (?:on |from )?(?:vhs|betamax)|television aircheck)\b/i.test(evidence)) return false;
   }
   if (String(channel) === '709') {
+    if (/\b(?:this week in plymouth|chamber of commerce)\b/i.test(String(item.title || ''))) return false;
     const title = String(item.title || '').replace(/^Thanksgiving TV\s*[·:–—-]\s*/i, '');
     const selected = [title,source,file].join(' ').replace(/[_-]+/g, ' ');
     if (/\b(?:home movies?|personal footage|football|basketball|thanksgiving game|twitch|podcasts?|fan ?made|stock music|b roll|bloopers|highlights?|how to|clip|commercial compilation)\b/i.test(selected)) return false;
@@ -11593,7 +11597,7 @@ async function getIaQueue(request, url, env, ctx) {
     ...(channel === "75" ? { stationSportsPolicy: "water-programs-6128" } : {}),
     ...(channel === "76" ? { stationSportsPolicy: "stockcar-programs-6129" } : {}),
     ...(["77","78","79"].includes(channel) ? { stationSportsPolicy: channel === "79" ? "recreation-matches-6131" : "final-sports-programs-6130" } : {}),
-    ...(["131", "502", "575", "709"].includes(channel) ? { reviewedArchiveFiles: "742" } : {}),
+    ...(["131", "502", "575", "709"].includes(channel) ? { reviewedArchiveFiles: ["502", "709"].includes(channel) ? "743" : "742" } : {}),
     ...(channel === "22" ? { stationPolicy: "adult-game-shows-2" } : {}) };
   const familyFingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count, contentPolicy: IA_GLOBAL_VIDEO_POLICY_VERSION, ...fileContract });
   const lastGoodDigest = await stableKey(familyFingerprint);

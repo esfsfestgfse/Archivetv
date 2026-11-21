@@ -16,13 +16,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · Retro Cable 7.4.2</title>
+<title>REALSIGNAL · Retro Cable 7.4.3</title>
 <meta name="realsignal-ia-repair-channels" content="*">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=7.2.19"></script>
-<script src="assets/ia-playback-shelf.js?v=7.4.2"></script>
+<script src="assets/ia-playback-shelf.js?v=7.4.3"></script>
 <script src="assets/sports-programs.js?v=7.0.0"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
 <script src="assets/youtube-embed-runtime.js?v=7.2.19"></script>
@@ -1741,7 +1741,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="7.4.2-mobile-retro-cable";
+window.__ATV_BUILD="7.4.3-mobile-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7972,11 +7972,14 @@ function iaReviewedFileAllowed(item, channel) {
     }
   }
   if (String(channel) === '502') {
+    // These original tape files repeatedly stalled before decoding a frame.
+    if (file === 'tape.mp4' && /^vintage-commercials-tvh(?:4a-66th|6b-69th)-academy-awards-/i.test(source)) return false;
     const evidence = [item.title, source, file, item.subject, item.subjects].filter(Boolean).join(' ').replace(/[_-]+/g, ' ');
     if (/\b(?:home movies?|wedding videos?|footage of a wedding|camcorder footage|private party)\b/i.test(evidence)) return false;
     if (!/\b(?:off air|woc|with (?:original )?(?:commercials|ads)|(?:vhs|betamax) (?:capture|recording|aircheck)|(?:broadcast|taped|recorded) (?:on |from )?(?:vhs|betamax)|television aircheck)\b/i.test(evidence)) return false;
   }
   if (String(channel) === '709') {
+    if (/\b(?:this week in plymouth|chamber of commerce)\b/i.test(String(item.title || ''))) return false;
     const title = String(item.title || '').replace(/^Thanksgiving TV\s*[·:–—-]\s*/i, '');
     const selected = [title,source,file].join(' ').replace(/[_-]+/g, ' ');
     if (/\b(?:home movies?|personal footage|football|basketball|thanksgiving game|twitch|podcasts?|fan ?made|stock music|b roll|bloopers|highlights?|how to|clip|commercial compilation)\b/i.test(selected)) return false;

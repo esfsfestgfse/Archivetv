@@ -303,11 +303,14 @@ export function iaReviewedFileAllowed(item, channel) {
     }
   }
   if (String(channel) === '502') {
+    // These original tape files repeatedly stalled before decoding a frame.
+    if (file === 'tape.mp4' && /^vintage-commercials-tvh(?:4a-66th|6b-69th)-academy-awards-/i.test(source)) return false;
     const evidence = [item.title, source, file, item.subject, item.subjects].filter(Boolean).join(' ').replace(/[_-]+/g, ' ');
     if (/\b(?:home movies?|wedding videos?|footage of a wedding|camcorder footage|private party)\b/i.test(evidence)) return false;
     if (!/\b(?:off air|woc|with (?:original )?(?:commercials|ads)|(?:vhs|betamax) (?:capture|recording|aircheck)|(?:broadcast|taped|recorded) (?:on |from )?(?:vhs|betamax)|television aircheck)\b/i.test(evidence)) return false;
   }
   if (String(channel) === '709') {
+    if (/\b(?:this week in plymouth|chamber of commerce)\b/i.test(String(item.title || ''))) return false;
     const title = String(item.title || '').replace(/^Thanksgiving TV\s*[·:–—-]\s*/i, '');
     const selected = [title,source,file].join(' ').replace(/[_-]+/g, ' ');
     if (/\b(?:home movies?|personal footage|football|basketball|thanksgiving game|twitch|podcasts?|fan ?made|stock music|b roll|bloopers|highlights?|how to|clip|commercial compilation)\b/i.test(selected)) return false;

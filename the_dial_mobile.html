@@ -16,13 +16,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · Retro Cable 7.4.0</title>
+<title>REALSIGNAL · Retro Cable 7.4.1</title>
 <meta name="realsignal-ia-repair-channels" content="*">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=7.2.19"></script>
-<script src="assets/ia-playback-shelf.js?v=7.4.0"></script>
+<script src="assets/ia-playback-shelf.js?v=7.4.1"></script>
 <script src="assets/sports-programs.js?v=7.0.0"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
 <script src="assets/youtube-embed-runtime.js?v=7.2.19"></script>
@@ -1741,7 +1741,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="7.4.0-mobile-retro-cable";
+window.__ATV_BUILD="7.4.1-mobile-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7641,7 +7641,7 @@ function stageIAMediaWarmer(ch,item,pl,onStall){
   var key=iaMediaWarmKey(ch,item),prior=iaMediaWarmByChannel[ck];
   if(!key)return;
   if(iaMediaWarmers[key]){if(onStall)iaMediaWarmers[key].onStall=onStall;return;}
-  var pilot=!ch.audio&&window.RealSignalIAShelf?.tracksRoutes?.(ch.num)&&iaRepairEnabled(ch);
+  var pilot=window.RealSignalIAShelf?.tracksRoutes?.(ch.num)&&(!ch.audio||window.RealSignalIAShelf.fullRollout)&&iaRepairEnabled(ch);
   if(pilot){
     if(Object.values(iaMediaWarmers).filter(function(w){return w.channel===ck;}).length>=2)return;
   }else if(prior&&prior!==key){
@@ -7656,7 +7656,7 @@ function stageIAMediaWarmer(ch,item,pl,onStall){
     iaMediaWarmers[key]=warmer;iaMediaWarmerOrder.push(key);iaMediaWarmByChannel[ck]=key;
     if(pilot){
       el.addEventListener("loadeddata",function(){
-        if(iaMediaWarmers[key]!==warmer||el.readyState<2||!(el.videoWidth>0))return;
+        if(iaMediaWarmers[key]!==warmer||el.readyState<2||!ch.audio&&!(el.videoWidth>0))return;
         warmer.readyOrder=++iaReadyOrder;
         clearTimeout(warmer.stallTimer);
         try{window.RealSignalGuide?.refresh();}catch(e){}
@@ -8877,7 +8877,7 @@ function guidePlaybackSnapshot(ch,viewing){
     }
   }else if(ch&&!ch.source){
     if(iaRepairEnabled(ch)){
-      if(!ch.audio&&window.RealSignalIAShelf.tracksRoutes?.(ch.num)){
+      if(window.RealSignalIAShelf.tracksRoutes?.(ch.num)&&(!ch.audio||window.RealSignalIAShelf.fullRollout)){
         queue=iaPilotBuffered(ch,slotFor(ch,0,{preview:true}));
         var handoff=tuneIARepair.guideHandoff;
         if(handoff?.token===token&&handoff.channel===ch.num)queue.unshift(handoff.item);
@@ -9633,7 +9633,7 @@ async function preloadNext(ch,sl,my){
       stageIAMediaWarmer(ch,next,window.RealSignalIAShelf.rankedMedia?.(ch.num,next)||next.media,onStall);
     }
 
-    var pilot=!ch.audio&&window.RealSignalIAShelf.tracksRoutes?.(ch.num);
+    var pilot=window.RealSignalIAShelf.tracksRoutes?.(ch.num)&&(!ch.audio||window.RealSignalIAShelf.fullRollout);
     function stagePilotReservations(){
       var candidates=new Map();
       iaPilotBuffered(ch,sl).concat(shelf.rows(key)).forEach(function(row){
@@ -9778,11 +9778,11 @@ function iaRepairBody(ch,sl){
 function iaRepairEvent(ch,it,event){if(!iaRepairEnabled(ch)||!it||it.isAd||it.isSignoff||it.ch!=null&&Number(it.ch)!==Number(ch.num))return Promise.resolve();return window.RealSignalIAShelf.client().event(iaQueueKey(ch),it,event).catch(function(error){nlog("ia-repair-event",false,String(error));});}
 
 function iaPilotBuffered(ch,sl){
-  if(ch.audio||!window.RealSignalIAShelf?.tracksRoutes?.(ch.num))return [];
+  if(!window.RealSignalIAShelf?.tracksRoutes?.(ch.num)||ch.audio&&!window.RealSignalIAShelf.fullRollout)return [];
   var rows=window.RealSignalIAShelf.client().rows(iaQueueKey(ch)),prepared=[];
   for(var item of rows){
     var warm=iaMediaWarmers[iaMediaWarmKey(ch,item)],video=warm?.el;
-    if(!warm?.readyOrder||video.error||video.readyState<2||!(video.videoWidth>video.videoHeight&&video.videoHeight>0)||!(Number.isFinite(video.duration)&&video.duration>0))continue;
+    if(!warm?.readyOrder||video.error||video.readyState<2||!ch.audio&&!(video.videoWidth>video.videoHeight&&video.videoHeight>0)||!(Number.isFinite(video.duration)&&video.duration>0))continue;
     var media={...item.media,url:video.src||item.media.url,runtime:video.duration,width:video.videoWidth,height:video.videoHeight};
     var decoded={...item,media,duration:video.duration};
     if(iaCachedProgramAllowed(ch,decoded,sl))prepared.push({item:decoded,order:warm.readyOrder});
@@ -9792,11 +9792,12 @@ function iaPilotBuffered(ch,sl){
 }
 function iaRepairSpare(ch,currentId){
   return window.RealSignalIAShelf.client().rows(iaQueueKey(ch)).find(function(item){
-    return item.identifier!==currentId&&item.media.type==="video";
+    return item.identifier!==currentId&&item.media.type===(ch.audio?"audio":"video");
   });
 }
 async function tuneIARepair(ch,sl,my){
   var shelf=window.RealSignalIAShelf.client(),key=iaQueueKey(ch),nextBuffered;
+  var startDeadline=window.RealSignalIAShelf.fullRollout?Date.now()+8500:0;
   try{
     for(var attempt=0;attempt<3;attempt++){
       if(my!==token||!powered||curNum!==ch.num)return;
@@ -9806,9 +9807,9 @@ async function tuneIARepair(ch,sl,my){
         await shelf.reserve(key,iaRepairBody(ch,sl));if(my!==token||!powered||curNum!==ch.num)return;
         buffered=iaPilotBuffered(ch,sl)[0];item=buffered||shelf.peek(key);
       }
-      if(!item)break;
+      if(!item||!buffered&&startDeadline&&Date.now()>=startDeadline)break;
       var media={...(window.RealSignalIAShelf.rankedMedia?.(ch.num,item)||item.media),id:item.identifier,title:iaDisplayTitle(item,ch),year:item.year,meta:item};
-      var handoff={allowBuffered:!buffered,listed:!!buffered,preparedStart:shelf.hasPreparedStart?.(key)};
+      var handoff={allowBuffered:!buffered,listed:!!buffered,preparedStart:shelf.hasPreparedStart?.(key),startDeadline:buffered?0:startDeadline};
       if(buffered)tuneIARepair.guideHandoff={token:my,channel:ch.num,item:buffered};
       if(await playFile(media,ch,sl,my,0,handoff))return;
       if(handoff.buffered){nextBuffered=handoff.buffered;continue;}
@@ -10098,9 +10099,11 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl,archiveHandoff){retur
   /* PeerTube direct files are already metadata/rights/landscape verified, but some
      instances take several seconds to expose the first decoded frame. Do not
      discard a good Source Suite item at the generic IA timeout. */
-  const boundedIaStart=iaRepairEnabled(ch)&&!isAudio&&!it.isAd&&!it.isSignoff;
+  const boundedIaStart=iaRepairEnabled(ch)&&(!isAudio||routeHealth?.fullRollout)&&!it.isAd&&!it.isSignoff;
+  const canUseBuffered=(learnRoute||boundedIaStart&&isAudio)&&archiveHandoff?.allowBuffered&&!prepared;
+  const fastUnlisted=canUseBuffered&&routeHealth.fullRollout;
   let done=false,to,adRecoveryTimer,spareTimer,mirror;
-  const startTimeout=sportsControl?.startTimeout??(ch?.source==="onthisday"?3000:(boundedIaStart||sportsControl)?(prepared?1800:4000):(it.isAd?900:(ch&&ch.source==="v2preview"&&/peertube/i.test(String(it.provider||""))?15000:(isFallback>0?7000:(isAudio?9000:12000)))));
+  const startTimeout=sportsControl?.startTimeout??(ch?.source==="onthisday"?3000:(boundedIaStart||sportsControl)?(prepared?1800:fastUnlisted?2500:4000):(it.isAd?900:(ch&&ch.source==="v2preview"&&/peertube/i.test(String(it.provider||""))?15000:(isFallback>0?7000:(isAudio?9000:12000)))));
   function finishAd(){if(!it.isAd||my!==token||!powered||curVideo!==v)return false;clearTimeout(adRecoveryTimer);try{v.pause();}catch(e){}v.dispatchEvent(new Event("ended"));return true;}
   function moveToMirror(){
     if(!mirror||mirror.video.error||done||my!==token||!powered||curNum!==ch.num)return false;
@@ -10112,22 +10115,21 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl,archiveHandoff){retur
   }
   function armStart(timeout=startTimeout){
     clearTimeout(to);
+    if(archiveHandoff?.startDeadline)timeout=Math.min(timeout,Math.max(0,archiveHandoff.startDeadline-Date.now()));
     to=setTimeout(function(){
       const spare=boundedIaStart&&!sportsControl&&my===token&&iaRepairSpare(ch,it.id);
       const warm=spare&&iaMediaWarmers[iaMediaWarmKey(ch,spare)];
-      const hasPicture=warm&&!warm.el.error&&warm.el.readyState>=2&&warm.el.videoWidth>0;
+      const hasPicture=warm&&!warm.el.error&&warm.el.readyState>=2&&(isAudio||warm.el.videoWidth>0);
       const failedRoute=learnRoute&&my===token&&powered&&!document.hidden&&v.readyState<2?routeHealth.recordRoute(ch.num,it,v.src,null):"";
       if(boundedIaStart&&nativeAudit)nativeAudit("archive-start-timeout",{id:it.id,readyState:v.readyState,spareReady:!!hasPicture,host:failedRoute||undefined});
       if(boundedIaStart&&(archiveHandoff?.listed||!hasPicture)&&(moveToMirror()||tryAlternate()))return;
       fin(false);
     },timeout);
   }
-  const canUseBuffered=learnRoute&&archiveHandoff?.allowBuffered&&!prepared;
-  const fastUnlisted=canUseBuffered&&routeHealth.fullRollout;
   // An unlisted tune can switch as soon as a qualified backup has a picture.
   // A listed episode retains its turn and only races another route for that file.
   function useBufferedProgram(){
-    if(done||my!==token||!powered||curNum!==ch.num||(v.readyState>=2&&v.videoWidth>0))return;
+    if(done||my!==token||!powered||curNum!==ch.num||(v.readyState>=2&&(isAudio||v.videoWidth>0)))return;
     const next=iaPilotBuffered(ch,sl)[0];
     if(!next||next.identifier===it.id)return;
     archiveHandoff.buffered=next;
@@ -10153,7 +10155,7 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl,archiveHandoff){retur
       if(!spare)return;
       iaWarmWanted[iaQueueKey(ch)]=Date.now()+120000;
       const backups=sportsControl||fastUnlisted?routeHealth.client().rows(iaQueueKey(ch)).filter(function(row){
-        return row.identifier!==it.id&&row.media.type==="video";
+        return row.identifier!==it.id&&row.media.type===expectedType;
       }).slice(0,2):[spare];
       for(const backup of backups){
         stageIAMediaWarmer(ch,backup,routeHealth?.rankedMedia?.(ch.num,backup)||backup.media);
@@ -10235,7 +10237,7 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl,archiveHandoff){retur
   const archiveAlternate=boundedIaStart&&!(sportsControl&&archiveHandoff)?window.RealSignalIAShelf?.sameFileAlternate?.(it):"";
   const initialRoute=learnRoute?v.src:it.url;
   const altQ=prepared||sportsControl&&archiveHandoff?[]:(learnRoute?[it.url]:[]).concat(it.alts||(it.alt?[it.alt]:[]),archiveAlternate).filter(function(url,index,all){return url&&url!==initialRoute&&all.indexOf(url)===index;}).slice(0,boundedIaStart?1:8);
-  function tryAlternate(){if(done||my!==token||!powered||!altQ.length)return false;const nx=altQ.shift();try{nlog("video",true,"retrying the same program on an alternate origin");if(learnRoute)routeStarted=performance.now();v.src=nx;v.load();}catch(e){}if(boundedIaStart){if(nativeAudit)nativeAudit("archive-same-file-retry",{id:it.id});armStart(3500);}tryPlay();return true;}
+  function tryAlternate(){if(done||my!==token||!powered||!altQ.length||archiveHandoff?.startDeadline&&Date.now()>=archiveHandoff.startDeadline)return false;const nx=altQ.shift();try{nlog("video",true,"retrying the same program on an alternate origin");if(learnRoute)routeStarted=performance.now();v.src=nx;v.load();}catch(e){}if(boundedIaStart){if(nativeAudit)nativeAudit("archive-same-file-retry",{id:it.id});armStart(fastUnlisted?1600:3500);}tryPlay();return true;}
   v.addEventListener("error",()=>{try{nlog("video",false,"err"+((v.error&&v.error.code)||"?")+" "+((v.src||"").split("/").pop().slice(-40)));}catch(e){}
     if(it.isAd&&done&&finishAd())return;
     if(!done&&moveToMirror())return;

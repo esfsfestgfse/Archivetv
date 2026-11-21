@@ -349,7 +349,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     vm.runInContext(source.slice(source.indexOf('function playFile('), source.indexOf('function showNow(')), scope);
     const handoff = { allowBuffered: !listed, listed, preparedStart };
     const pending = scope.playFile({ id: primary.identifier, title: 'NHL 1989 All Star Game Full Game', ...primary.media, runtime: 7200, width: 640, height: 480, alts: ['https://archive.org/download/series/Season%201/Pilot.mp4'] }, { num: channel }, {}, 1, 0, handoff);
-    assert.ok(timers[0].ms <= 4000, 'a stalled origin must not hold Next for twelve seconds');
+    assert.ok(timers[0].ms <= (fullRollout ? 2500 : 4000), 'an unlisted slow origin has a bounded first attempt');
     assert.deepEqual(load, [], 'a fast startup should never need to load the spare');
     if (listed) {
       Object.assign(spareVideo, { readyState: 4, videoWidth: 640, videoHeight: 480, duration: 1500 });
@@ -710,4 +710,27 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file 
   vm.runInContext(source.slice(source.indexOf('async function tuneIARepair('), source.indexOf('async function tuneIA(ch,sl,my)')), scope);
   await scope.tuneIARepair({num:216}, {}, 1);
   assert.deepEqual(calls, [[216, 1, false]]);
+});
+
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file + ': Archive audio guide waits for decoded audio and selects that reservation', async () => {
+  const source=fs.readFileSync(path.join(root,file),'utf8');
+  const pending={...item('pending-song'),media:{type:'audio',url:'https://archive.org/download/a/song.mp3',runtime:180}};
+  const ready={...item('ready-song'),media:{type:'audio',url:'https://archive.org/download/b/song.mp3',runtime:180}};
+  const shelf={rows:()=>[pending,ready],peek:()=>pending}, played=[];
+  const scope={window:{RealSignalIAShelf:{...runtime('', '*'),client:()=>shelf},RealSignalGuideContract:require('../assets/guide-contract.js')},
+    curNum:903,token:1,powered:true,curItem:null,curVideo:null,liveGuideState:{},IA_READY_TARGET:3,
+    iaQueueKey:()=> '903',iaMediaWarmKey:(_ch,row)=>row.identifier,iaMediaWarmers:{},iaDisplayTitle:row=>row.title,
+    iaCachedProgramAllowed:()=>true,iaRepairEnabled:()=>true,slotFor:()=>({}),nlog(){},
+    iaRetry(){assert.fail('decoded audio is already available');},
+    async playFile(media){played.push(media.id);return true;}};
+  vm.createContext(scope);
+  for(const [a,b] of [['function guidePlaybackSnapshot(','function guideListing('],['function iaPilotBuffered(','async function tuneIA(ch,sl,my)']]) {
+    vm.runInContext(source.slice(source.indexOf(a),source.indexOf(b,source.indexOf(a))),scope);
+  }
+  const ch={num:903,nm:'Jazz',audio:true};
+  assert.equal(scope.guidePlaybackSnapshot(ch).next,null);
+  scope.iaMediaWarmers[ready.identifier]={readyOrder:1,el:{readyState:2,duration:180}};
+  assert.equal(scope.guidePlaybackSnapshot(ch).next.id,ready.identifier);
+  await scope.tuneIARepair(ch,{},1);
+  assert.deepEqual(played,[ready.identifier]);
 });

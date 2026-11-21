@@ -645,7 +645,7 @@ for(const channel of ['11','118'])test(channel+': other viewers cannot exhaust t
 
 for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': only played/skipped programs enter the persistent viewer history sent on queue requests',async()=>{
   const source=fs.readFileSync(path.join(root,file),'utf8'),values=new Map(),packets=[];
-  const s={console,Response,Date,Promise,iaSessionId:()=> 'viewer-test',IA_API_BASE:'https://api.invalid/api/v3',IA_RELAY_BASE:'https://relay.invalid/ia',
+  const s={console,Response,Date,Promise,window:{RealSignalIAShelf:{identityPilot:channel=>channel===502}},iaSessionId:()=> 'viewer-test',IA_API_BASE:'https://api.invalid/api/v3',IA_RELAY_BASE:'https://relay.invalid/ia',
     store:{get:(key,fallback)=>structuredClone(values.has(key)?values.get(key):fallback),set:(key,value)=>values.set(key,structuredClone(value))},
     fetch:async(url,options)=>{const body=JSON.parse(options.body);packets.push({url,body});if(url.endsWith('/played'))throw Error('temporary report outage');return Response.json({items:[{identifier:'queued-not-watched',media:{url:'https://archive.org/download/q/1.mp4'}}]});}};
   vm.createContext(s);vm.runInContext(source.slice(source.indexOf('async function iaQueueFetch('),source.indexOf('function iaRelaySearchURL(')),s);
@@ -653,6 +653,9 @@ for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': 
   s.iaReportPlayed({num:11},{id:'series::Episode 2.mp4'},'skipped');
   s.iaReportPlayed({num:118},{id:'other-station::Episode.mp4'},'visible');
   s.iaReportPlayed({num:11},{id:'advertisement',isAd:true},'visible');
+  s.iaReportPlayed({num:502},{id:'pilot-tape::Episode.mp4'},'visible');
+  assert.equal(values.has('iaViewerRecent:502'),false,'pilot recovery uses a separate viewer history');
+  assert.equal(packets.some(packet=>packet.body.channel==='502'),false,'pilot recovery does not report to the shared relay ledger');
   await s.iaQueueFetch({channel:'11',count:3});await s.iaQueueFetch({channel:'11',count:3});
   const sent=packets.filter(x=>x.url.endsWith('/queue'));
   assert.deepEqual(Array.from(sent[0].body.viewerRecentIds||[]),['series::Episode 1.mp4','series::Episode 2.mp4'],'network-report failure cannot erase local viewing history');

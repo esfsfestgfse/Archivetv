@@ -132,7 +132,7 @@ function browserAdapter(file, search = '?v6=1') {
     iaPendingTooLong: () => false, iaMediaWarmKey: (ch, item) => String(ch.num) + ':' + item.identifier,
     liveGuideState: {}, __chanStatus: {}, __v2PreviewState: {},
     V2_PREVIEW_PROFILES: { example: { name: 'Example' } },
-    iaRepairEnabled: () => false, iaQueueKey: ch => String(ch.num), slotFor: () => ({}), iaProgramAllowed: () => true,
+    iaRepairEnabled: () => false, iaQueueKey: ch => String(ch.num), slotFor: () => ({}), iaProgramAllowed: () => true, iaSkipBlocked: () => false, iaCachedProgramAllowed: () => true, iaDisplayTitle: row => row.title,
     v2NextFreshIndex: (profile, state, currentId) => { state.cursor = 999; return state.items.findIndex(item => item.id !== currentId); },
     v2FreshCursor: (profile, state) => { state.currentTitle = ''; return Number(state.cursor) < state.items.length ? state.cursor : 0; },
     byNum: n => Number(n) === 150 ? channel : null,
@@ -143,6 +143,7 @@ function browserAdapter(file, search = '?v6=1') {
   };
   context.window = context;
   vm.createContext(context);
+  actualFunctions(file, context, ['iaLegacyHandoffMedia']);
   vm.runInContext(match[0], context);
   const bridge = path.join(root, 'assets/guide-contract-client.js');
   assert.ok(fs.existsSync(bridge), 'shared presentation adapter must exist');
@@ -290,7 +291,7 @@ for (const file of ['the_dial_mobile.html', 'the_dial_desktop.html']) {
     const advertised = api.snapshot(150).next.id;
     assert.equal(JSON.stringify(context.iaProgramQueues), before);
     actualFunctions(file, context, ['takeIAQueue']);
-    assert.equal(advertised, context.takeIAQueue(channel, {}, true).identifier);
+    assert.equal(advertised, context.takeIAQueue(channel, {}, true, context.iaLegacyHandoffMedia).identifier);
     assert.equal(advertised, b.identifier);
   });
   test(file + ': read-only eligibility still enforces active skip and failed-media cooldowns', () => {

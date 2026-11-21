@@ -669,31 +669,31 @@ test('Sports Vault reserves extra events while other Archive shelves keep their 
   assert.deepEqual(counts, [5, 3]);
 });
 
-for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file + ': a stalled Sports Vault warmer opens its slot without evicting the decoded listing', async () => {
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) for (const channel of [53,575,929]) test(file + ' CH ' + channel + ': a stalled Archive warmer opens its slot without evicting the decoded listing', async () => {
   const pending = item('slow'), listed = item('listed'), backup = item('backup');
   const reserved = [pending, listed, backup], timers = new Map(), loads = [];
   const shelf = { rows: () => reserved, peek: () => pending };
   const createVideo = () => Object.assign(new EventTarget(), { readyState: 0, videoWidth: 0,
     load() { if (this.src) loads.push(this.src); }, pause() {}, removeAttribute() { delete this.src; } });
   const source = fs.readFileSync(path.join(root, file), 'utf8');
-  const scope = { window: { RealSignalIAShelf: { ...runtime(), client: () => shelf } },
-    powered: true, token: 1, curNum: 53, Date, document: { createElement: createVideo },
+  const scope = { window: { RealSignalIAShelf: { ...runtime(), fullRollout: true, tracksRoutes: () => true, client: () => shelf } },
+    powered: true, token: 1, curNum: channel, Date, document: { createElement: createVideo },
     iaRepairEnabled: () => true, iaRepairBody: () => ({}), iaPilotBuffered: () => [],
     nlog() {}, setTimeout(fn, delay) { const key = timers.size + 1; timers.set(key, { fn, delay }); return key; }, clearTimeout() {} };
   vm.createContext(scope);
   for (const [start, end] of [['var iaMediaWarmers=', 'function warmIAQueueHead('], ['async function preloadNext(', 'function schedulePreload(']]) {
     vm.runInContext(source.slice(source.indexOf(start), source.indexOf(end, source.indexOf(start))), scope);
   }
-  await scope.preloadNext({ num: 53 }, {}, 1);
-  const active = scope.iaMediaWarmers['53:listed'];
+  await scope.preloadNext({ num: channel, audio: channel === 929 }, {}, 1);
+  const active = scope.iaMediaWarmers[channel + ':listed'];
   Object.assign(active.el, { readyState: 2, videoWidth: 640, videoHeight: 480, duration: 1800 });
   active.el.dispatchEvent(new Event('loadeddata'));
   const expirations = [...timers.values()].filter(timer => timer.delay < 90000);
   assert.equal(expirations.length, 2, 'both attached slots have their own deadline');
   expirations.forEach(timer => timer.fn());
   assert.deepEqual(loads, [pending.media.url, listed.media.url, backup.media.url]);
-  assert.deepEqual(Object.keys(scope.iaMediaWarmers).sort(), ['53:backup', '53:listed']);
-  assert.equal(scope.iaMediaWarmers['53:listed'], active);
+  assert.deepEqual(Object.keys(scope.iaMediaWarmers).sort(), [channel + ':backup', channel + ':listed']);
+  assert.equal(scope.iaMediaWarmers[channel + ':listed'], active);
   assert.equal(shelf.peek(), pending, 'a stalled preload does not consume the reservation');
 });
 
@@ -733,4 +733,57 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file 
   assert.equal(scope.guidePlaybackSnapshot(ch).next.id,ready.identifier);
   await scope.tuneIARepair(ch,{},1);
   assert.deepEqual(played,[ready.identifier]);
+});
+
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file + ': fallback guide and manual Next agree on the first usable queued file', () => {
+  const source = fs.readFileSync(path.join(root, file), 'utf8');
+  const blocked = item('blocked'), pending = item('pending'), next = item('next');
+  const ch = { num: 502 }, slot = { channel: 502 };
+  const scope = {
+    window: { RealSignalGuideContract: { select: input => input.queue } }, curItem: null, curVideo: null, curNum: 502, powered: true,
+    iaProgramQueues: { 502: [blocked, pending, next] }, iaProgramPendingAt: {},
+    iaProgramMedia: { blocked: blocked.media, next: next.media },
+    iaMediaWarmers: { blocked: { el: { readyState: 4 } }, pending: { el: { readyState: 4 } } },
+    iaQueueKey: () => '502', iaMediaWarmKey: (_channel, row) => row.identifier,
+    slotFor: () => slot, iaRepairEnabled: () => false, iaProgramAllowed: () => true, iaPendingTooLong: () => false,
+    iaSkipBlocked: (_channel, row) => row.id === blocked.identifier,
+    iaCachedProgramAllowed: () => true, iaDisplayTitle: row => row.title,
+    isTemporarilySkipped: () => false, iaReadyShelfSave() {}, iaAdvanceQueueRotation() {},
+    warmIAQueueHead() {}, refillIAQueue() {}, liveGuideState: {}, IA_READY_TARGET: 5
+  };
+  vm.createContext(scope);
+  for (const [start, stop] of [['function takeIAQueue(', '\nfunction '], ['function iaLegacyHandoffMedia(', 'function guideListing(']]) {
+    const at=source.indexOf(start);
+    vm.runInContext(source.slice(at, source.indexOf(stop, at+start.length)),scope);
+  }
+  const listed = scope.guidePlaybackSnapshot(ch);
+  assert.equal(listed[0]?.identifier,next.identifier);
+  const picked = scope.takeIAQueue(ch,slot,true,scope.iaLegacyHandoffMedia);
+  assert.equal(picked?.identifier,next.identifier);
+});
+
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file + ': native handoff keeps the VHS subject evidence used by the guide', async () => {
+  const source = fs.readFileSync(path.join(root, file), 'utf8').replace(/\r\n/g, '\n');
+  const listed = { ...item('barnabys-magic-coat'), subject: 'off-air VHS recording' };
+  const ch = { num: 502 };
+  const scope = {
+    URL, powered: true, curNum: 502, token: 1,
+    window: { RealSignalIAShelf: { client: () => ({ peek: () => listed }) } },
+    iaQueueKey: () => '502', iaPilotBuffered: () => [listed], iaDisplayTitle: row => row.title,
+    nlog() {}, iaRepairEvent() {}, iaRetry() {},
+    playFile: async media => scope.iaReviewedFileAllowed(media, 502)
+  };
+  vm.createContext(scope);
+  for (const [a,b] of [['function iaReviewedFileAllowed(', '\nfunction '], ['async function tuneIARepair(', 'async function tuneIA(ch,sl,my)']]) {
+    const at = source.indexOf(a);
+    vm.runInContext(source.slice(at,source.indexOf(b,at+a.length)),scope);
+  }
+  let played;
+  scope.playFile = async media => {
+    if (!scope.iaReviewedFileAllowed(media, 502)) return false;
+    played = media.id;
+    return true;
+  };
+  await scope.tuneIARepair(ch, {}, 1);
+  assert.equal(played, listed.identifier);
 });

@@ -9,13 +9,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 7.4.3</title>
+<title>REALSIGNAL · Retro Cable 7.4.4</title>
 <meta name="realsignal-ia-repair-channels" content="*">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=7.2.19"></script>
-<script src="assets/ia-playback-shelf.js?v=7.4.3"></script>
+<script src="assets/ia-playback-shelf.js?v=7.4.4"></script>
 <script src="assets/sports-programs.js?v=7.0.0"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
 <script src="assets/youtube-embed-runtime.js?v=7.2.1"></script>
@@ -1702,7 +1702,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="7.4.3-desktop-retro-cable";
+window.__ATV_BUILD="7.4.4-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7602,8 +7602,23 @@ function stageIAMediaWarmer(ch,item,pl,onStall){
   if(!pl||!pl.url||!iaWarmWanted[ck]||iaWarmWanted[ck]<Date.now())return;
   var key=iaMediaWarmKey(ch,item),prior=iaMediaWarmByChannel[ck];
   if(!key)return;
-  if(iaMediaWarmers[key]){if(onStall)iaMediaWarmers[key].onStall=onStall;return;}
   var pilot=window.RealSignalIAShelf?.tracksRoutes?.(ch.num)&&(!ch.audio||window.RealSignalIAShelf.fullRollout)&&iaRepairEnabled(ch);
+  function watchStall(warmer){
+    if(!pilot||(!warmer.onStall&&ck!=="53")||warmer.readyOrder||warmer.stallTimer!=null)return;
+    function releaseStalled(){
+      if(iaMediaWarmers[key]!==warmer||warmer.readyOrder)return;
+      releaseIAMediaWarmer(key,false);
+      window.__rsPlaybackAudit?.source?.(ch.num)?.("archive-preload-stalled",{id:item.identifier});
+      warmer.onStall?.();
+    }
+    warmer.stallTimer=setTimeout(releaseStalled,2200);
+    warmer.el.addEventListener("error",releaseStalled,{once:true});
+  }
+  if(iaMediaWarmers[key]){
+    if(onStall)iaMediaWarmers[key].onStall=onStall;
+    watchStall(iaMediaWarmers[key]);
+    return;
+  }
   if(pilot){
     if(Object.values(iaMediaWarmers).filter(function(w){return w.channel===ck;}).length>=2)return;
   }else if(prior&&prior!==key){
@@ -7624,16 +7639,7 @@ function stageIAMediaWarmer(ch,item,pl,onStall){
         try{window.RealSignalGuide?.refresh();}catch(e){}
       },{once:true});
     }
-    if(pilot&&ck==="53"){
-      function releaseStalled(){
-        if(iaMediaWarmers[key]!==warmer||warmer.readyOrder)return;
-        releaseIAMediaWarmer(key,false);
-        window.__rsPlaybackAudit?.source?.(ch.num)?.("archive-preload-stalled",{id:item.identifier});
-        warmer.onStall?.();
-      }
-      warmer.stallTimer=setTimeout(releaseStalled,2200);
-      el.addEventListener("error",releaseStalled,{once:true});
-    }
+    watchStall(warmer);
     el.src=pl.url;el.load();
     while(iaMediaWarmerOrder.length>IA_MEDIA_WARM_MAX)releaseIAMediaWarmer(iaMediaWarmerOrder[0],false);
     nlog("first-frame",true,"staging CH "+ck);
@@ -8475,7 +8481,7 @@ function iaSeedEmergencyShelf(ch,sl,items){var k=iaQueueKey(ch),emergency=iaEmer
 function waitIAQueueReady(ch,sl,ms){return new Promise(function(resolve){var q=(iaProgramQueues[iaQueueKey(ch)]||[]).slice(0,3),done=false,left=0,timer=setTimeout(function(){finish(null);},Math.max(500,Number(ms)||5200));function finish(pl){if(done)return;done=true;clearTimeout(timer);resolve(pl||null);}q.forEach(function(it){var p=it&&iaProgramMedia[it.identifier];if(!p){return;}left++;if(typeof p.then!=="function"){if(p.url)finish(p);else if(!--left)finish(null);return;}p.then(function(pl){if(pl&&pl.url)finish(pl);else if(!--left)finish(null);}).catch(function(){if(!--left)finish(null);});});if(!left)finish(null);});}
 function iaPendingTooLong(id){return !!(iaProgramPendingAt[id]&&Date.now()-iaProgramPendingAt[id]>8500);}
 async function refillIAQueue(ch,sl,count){var k=iaQueueKey(ch);iaReadyShelfRestore(ch,sl);if(iaProgramInflight[k])return iaProgramInflight[k];var ask=Math.max(1,Math.min(5,Number(count)||IA_READY_TARGET)),followCount=ask===1?IA_READY_TARGET:ask;iaProgramInflight[k]=iaQueueRequest(ch,sl,ask).then(function(items){var desiredRotation=iaQueueRotationFor(ch),serverRotated=!!(items&&(items.rotationApplied||items.underfillDepthRotation))&&Number(items.rotation)===Number(desiredRotation),freshRotation=serverRotated||(!items.fallback&&!items.stale&&Number(items.rotation)===Number(desiredRotation)),old=freshRotation?[]:(iaProgramQueues[k]||[]),byId={},order=[];old.concat(items).forEach(function(it){var id=it&&it.identifier;if(!it||!id||iaProgramFailed(id)||iaPendingTooLong(id)||!iaProgramAllowed(it,sl))return;if(!byId[id])order.push(id);if(!byId[id]||(it.media&&it.media.url&&!byId[id].media))byId[id]=it;});iaProgramQueues[k]=order.map(function(id){return byId[id];}).slice(0,5);if(!iaProgramQueues[k].length)iaProgramQueues[k]=iaEmergencyItems(sl);iaSeedEmergencyShelf(ch,sl,items);/* Active IA lanes keep three media candidates resolving: one on air, one for Skip, and one spare for a transient source miss. */warmIAQueue(ch,sl,items.hydrating,ask===1?3:((typeof curNum!=="undefined"&&ch.num===curNum)?3:1));iaReadyShelfSave(ch);var needsFresh=!!items.fallback||!!items.stale,needsMore=needsFresh||!!items.hydrating||!!items.partial||(iaProgramQueues[k].length<IA_READY_TARGET&&Number(items.candidates)>iaProgramQueues[k].length);if(iaProgramQueues[k].length){var retry=(items.localFallback||needsFresh||items.hydrating)?(iaQueueRetries[k]||0)+1:0;iaQueueRetries[k]=retry;if(needsMore&&(!items.localFallback||retry<=3)&&(!needsFresh||retry<=3)&&(!items.hydrating||retry<=3))setTimeout(function(){if(powered)refillIAQueue(ch,sl,followCount);},items.localFallback?5000*Math.pow(2,retry-1):needsFresh?5600:items.hydrating?1200:2200);}else{var retry=(iaQueueRetries[k]||0)+1;iaQueueRetries[k]=retry;/* Cold IA shards may legitimately take longer than three polls. Keep retrying only while the relay says it is hydrating, with a hard cap so a dead rail never loops forever. */var maxRetry=items.hydrating?12:3;if(retry<=maxRetry)setTimeout(function(){if(powered)refillIAQueue(ch,sl,followCount);},items.hydrating?Math.min(8000,1400*retry):retry*4500);}nlog("queue",true,"CH "+k+" ready="+iaProgramQueues[k].length+(needsMore?needsFresh?" · refreshing rotation":" · topping up":""));if(gwrap&&gwrap.classList.contains("show"))refreshGuideRows();return iaProgramQueues[k];}).finally(function(){delete iaProgramInflight[k];});return iaProgramInflight[k];}
-function takeIAQueue(ch,sl,requireReady){var k=iaQueueKey(ch),q=iaProgramQueues[k]||[],warmAt=-1,resolvedAt=-1,fallback=-1;for(var i=q.length-1;i>=0;i--){var id=q[i]&&q[i].identifier,bypassFreshness=!!(q[i]&&q[i]._freshnessFallback),bad=!iaProgramAllowed(q[i],sl)||iaProgramMedia[id]===null||iaPendingTooLong(id)||(!bypassFreshness&&id&&isTemporarilySkipped(id));if(bad){delete iaProgramPendingAt[id];q.splice(i,1);}}for(var j=0;j<q.length;j++){var it=q[j],w=iaMediaWarmers[iaMediaWarmKey(ch,it)],pl=iaProgramMedia[it.identifier];if(fallback<0)fallback=j;if(w&&w.el.readyState>=2){warmAt=j;break;}if(resolvedAt<0&&pl&&typeof pl.then!=="function"&&pl.url)resolvedAt=j;}var at=warmAt>=0?warmAt:(resolvedAt>=0?resolvedAt:fallback);if(requireReady&&warmAt<0&&resolvedAt<0){refillIAQueue(ch,sl);return null;}if(at>=0){var picked=q.splice(at,1)[0];iaReadyShelfSave(ch);/* Every consumed program advances the server catalog window. Waiting until one item remained rebuilt the same shelf during rapid skips. */iaAdvanceQueueRotation(ch);warmIAQueueHead(ch);refillIAQueue(ch,sl);return picked;}refillIAQueue(ch,sl);return null;}
+function takeIAQueue(ch,sl,requireReady,handoffMedia){var k=iaQueueKey(ch),q=iaProgramQueues[k]||[],warmAt=-1,resolvedAt=-1,fallback=-1;for(var i=q.length-1;i>=0;i--){var id=q[i]&&q[i].identifier,bypassFreshness=!!(q[i]&&q[i]._freshnessFallback),bad=!iaProgramAllowed(q[i],sl)||iaProgramMedia[id]===null||iaPendingTooLong(id)||(!bypassFreshness&&id&&isTemporarilySkipped(id));if(bad){delete iaProgramPendingAt[id];q.splice(i,1);}}for(var j=0;j<q.length;j++){var it=q[j],w=iaMediaWarmers[iaMediaWarmKey(ch,it)],pl=handoffMedia?handoffMedia(ch,sl,it):iaProgramMedia[it.identifier];if(handoffMedia&&!pl)continue;if(fallback<0)fallback=j;if(w&&w.el.readyState>=2){warmAt=j;break;}if(resolvedAt<0&&pl&&typeof pl.then!=="function"&&pl.url)resolvedAt=j;}var at=warmAt>=0?warmAt:(resolvedAt>=0?resolvedAt:fallback);if(requireReady&&warmAt<0&&resolvedAt<0){refillIAQueue(ch,sl);return null;}if(at>=0){var picked=q.splice(at,1)[0];iaReadyShelfSave(ch);/* Every consumed program advances the server catalog window. Waiting until one item remained rebuilt the same shelf during rapid skips. */iaAdvanceQueueRotation(ch);warmIAQueueHead(ch);refillIAQueue(ch,sl);return picked;}refillIAQueue(ch,sl);return null;}
 /* Archive is blocked outright in some desktop browsers. Keep every discovery probe short so
    a dead route never holds a channel change hostage for 15+ seconds. */
 function iaFastJSON(url,ms){return withTO(fetch(url,{mode:"cors"}).then(r=>{if(!r.ok)throw new Error("http "+r.status);return r.json();}),ms||1800);}
@@ -8863,6 +8869,13 @@ function guideOKMusicListing(ch,verified){
   var unseen=candidates.filter(function(item){return heard.indexOf(String(item.id||""))<0&&programs.indexOf(window.RealSignalOKEmbed.programKey(item))<0&&programs.indexOf(item.identityReference)<0;}).length;
   return {now:"NOW · "+guideItemTitle(current),next:next?("NEXT · "+guideItemTitle(next)+" · "+guideItemRuntime(next)):"NEXT · VERIFIED QUEUE REFRESHING",detail:(Number(verified&&verified.catalogDepth)||state.items.length)+" VERIFIED PROGRAMS · "+unseen+" UNSEEN · "+(current.provider||state.provider||"OK.ru"),state:"playing",live:false,ready:Math.min(5,state.items.length),capacity:5};
 }
+function iaLegacyHandoffMedia(ch,sl,item){
+  var media=item&&iaProgramMedia[item.identifier];
+  if(!media||typeof media.then==="function"||!media.url)return null;
+  var prepared={...media,id:item.identifier,title:iaDisplayTitle({title:media.title||item.title,meta:media.meta,identifier:item.identifier},ch),year:item.year,subject:item.subject||media.subject,_freshnessFallback:!!item._freshnessFallback};
+  if((!prepared._freshnessFallback&&iaSkipBlocked(ch.num,prepared,true))||!iaCachedProgramAllowed(ch,prepared,sl))return null;
+  return prepared;
+}
 function guidePlaybackSnapshot(ch,viewing){
   var current=ch&&ch.num===curNum&&curItem&&Number(curItem.ch)===Number(ch.num)?curItem:null;
   var queue=[],position=current&&curVideo?{currentTime:curVideo.currentTime,duration:curVideo.duration}:null;
@@ -8891,9 +8904,9 @@ function guidePlaybackSnapshot(ch,viewing){
     else{
       var sl=slotFor(ch,0,{preview:true});
       queue=(iaProgramQueues[iaQueueKey(ch)]||[]).filter(function(item){return iaProgramAllowed(item,sl,true)&&iaProgramMedia[item.identifier]!==null&&!iaPendingTooLong(item.identifier);}).map(function(item,index){
-        var media=iaProgramMedia[item.identifier];
+        var media=iaLegacyHandoffMedia(ch,sl,item);
         var warmer=iaMediaWarmers[iaMediaWarmKey(ch,item)],warm=!!(warmer&&warmer.el.readyState>=2);
-        return media&&typeof media.then!=="function"&&media.url?{item:Object.assign({},item,{media:media}),warm:warm,index:index}:null;
+        return media?{item:{...item,title:media.title,media:media},warm:warm,index:index}:null;
       }).filter(Boolean).sort(function(a,b){return Number(b.warm)-Number(a.warm)||a.index-b.index;}).map(function(row){return row.item;});
     }
   }
@@ -9619,7 +9632,8 @@ async function preloadNext(ch,sl,my){
   if(iaRepairEnabled(ch)){
     if(!powered||my!==token||curNum!==ch.num)return;
     var shelf=window.RealSignalIAShelf.client(),key=iaQueueKey(ch);
-    var stalled=Number(ch.num)===53?new Set():null;
+    var pilot=window.RealSignalIAShelf.tracksRoutes?.(ch.num)&&(!ch.audio||window.RealSignalIAShelf.fullRollout);
+    var stalled=pilot?new Set():null;
     function stage(next){
       if(!next)return;
       iaWarmWanted[key]=Date.now()+120000;
@@ -9631,7 +9645,6 @@ async function preloadNext(ch,sl,my){
       stageIAMediaWarmer(ch,next,window.RealSignalIAShelf.rankedMedia?.(ch.num,next)||next.media,onStall);
     }
 
-    var pilot=window.RealSignalIAShelf.tracksRoutes?.(ch.num)&&(!ch.audio||window.RealSignalIAShelf.fullRollout);
     function stagePilotReservations(){
       var candidates=new Map();
       iaPilotBuffered(ch,sl).concat(shelf.rows(key)).forEach(function(row){
@@ -9647,7 +9660,7 @@ async function preloadNext(ch,sl,my){
       var queued=shelf.peek(key);
       if(pilot)stagePilotReservations();else stage(queued);
       // Refill behind both ready programs so consecutive skips have a head start.
-      if(shelf.rows(key).length>=(stalled?5:3))return;
+      if(shelf.rows(key).length>=(Number(ch.num)===53?5:3))return;
       await shelf.reserve(key,iaRepairBody(ch,sl));
       if(!powered||curNum!==ch.num)return;
       var next=shelf.peek(key);
@@ -9806,7 +9819,7 @@ async function tuneIARepair(ch,sl,my){
         buffered=iaPilotBuffered(ch,sl)[0];item=buffered||shelf.peek(key);
       }
       if(!item||!buffered&&startDeadline&&Date.now()>=startDeadline)break;
-      var media={...(window.RealSignalIAShelf.rankedMedia?.(ch.num,item)||item.media),id:item.identifier,title:iaDisplayTitle(item,ch),year:item.year,meta:item};
+      var media={...(window.RealSignalIAShelf.rankedMedia?.(ch.num,item)||item.media),id:item.identifier,title:iaDisplayTitle(item,ch),year:item.year,subject:item.subject||item.subjects,meta:item};
       var handoff={allowBuffered:!buffered,listed:!!buffered,preparedStart:shelf.hasPreparedStart?.(key),startDeadline:buffered?0:startDeadline};
       if(buffered)tuneIARepair.guideHandoff={token:my,channel:ch.num,item:buffered};
       if(await playFile(media,ch,sl,my,0,handoff))return;
@@ -9909,7 +9922,7 @@ async function tuneIA(ch,sl,my){
     if(fq.length){ queries=fq.concat(queries); nlog("flow",true,"following "+(lastMeta.creator||lastMeta.collection)); }
   }
   var pc=preloadCache; /* 1.4: near-gapless cuts — the next program was resolved while the last one played */
-   if(pc&&pc.chNum===ch.num&&pc.pl&&(!curItem||pc.pl.id!==curItem.id)&&iaCachedProgramAllowed(ch,pc.pl,sl)&&!iaSkipBlocked(ch.num,pc.pl)&&(Date.now()-pc.at)<1800000&&banned.indexOf(pc.pl.id)<0&&!isTemporarilySkipped(pc.pl.id)){
+   if(pc&&pc.chNum===ch.num&&pc.pl&&(!curItem||pc.pl.id!==curItem.id)&&iaCachedProgramAllowed(ch,pc.pl,sl)&&(pc.pl._freshnessFallback||(!iaSkipBlocked(ch.num,pc.pl)&&!isTemporarilySkipped(pc.pl.id)))&&(Date.now()-pc.at)<1800000&&banned.indexOf(pc.pl.id)<0){
     preloadCache=null;
     nlog("preload",true,"instant start from preload");
     if(await playFile(pc.pl,ch,sl,my,0)) return;
@@ -15162,8 +15175,8 @@ async function skipOne(){ if(!powered){quickBanner("TURN THE TV ON FIRST");retur
   /* Promote a resolved program-director item before retuning. Unlike the normal
      preloader this is synchronous: SKIP can immediately consume a warm URL. */
   var warmHandoff=false;
-  if(sc&&!sc.source){var ss=slotFor(sc,0,{preview:true}), qi=takeIAQueue(sc,ss,true), qm=qi&&iaProgramMedia[qi.identifier];
-    if(qm&&typeof qm!=="function"&&qm.url&&!iaSkipBlocked(sc.num,qi)){preloadCache={chNum:sc.num,pl:{...qm,title:iaDisplayTitle({title:qm.title||qi.title,meta:qm.meta,identifier:qi.identifier||qm.id},sc),year:qi.year},at:Date.now()};warmHandoff=true;nlog("skip",true,'CH '+sc.num+' handoff: "'+String(preloadCache.pl.title||"").slice(0,40)+'" ['+String(qi.identifier||qm.id||"").slice(-72)+']');}
+  if(sc&&!sc.source){var ss=slotFor(sc,0,{preview:true}), qi=takeIAQueue(sc,ss,true,iaLegacyHandoffMedia), qm=iaLegacyHandoffMedia(sc,ss,qi);
+    if(qm){preloadCache={chNum:sc.num,pl:qm,at:Date.now()};warmHandoff=true;nlog("skip",true,'CH '+sc.num+' handoff: "'+String(preloadCache.pl.title||"").slice(0,40)+'" ['+String(qi.identifier||qm.id||"").slice(-72)+']');}
     /* Keep the current picture on screen while the already-running preloader
        finishes. A manual skip must not turn a verified channel into TUNING
        just because the next Archive CDN file is a few seconds late. */

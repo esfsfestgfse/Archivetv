@@ -146,3 +146,114 @@ test('an unreviewed Archive parent cannot inherit a canonical series from object
  const p=await(await call(new SessionRotation(rotationContext(),{}),{mode:'reserve',items:rows,count:3,diversity:{maxPerFamily:1}})).json();
  assert.equal(p.items.length,3);assert.equal(p.diversityRelaxed,false,'unreviewed mixed collections retain their separate editorial series');
 });
+
+
+function archiveCopy(source, file, title, extras = {}) {
+ return {identifier:source+'::'+file,sourceIdentifier:source,fileName:file,title,...extras,
+   media:{type:extras.type||'video',url:'https://archive.org/download/'+source+'/'+encodeURIComponent(file),verifiedAt:extras.verifiedAt||1}};
+}
+
+test('VHS pilot reserves a work once while keeping the exact alternate file ready for recovery',async()=>{
+ const channel='502';
+ const original=archiveCopy('01-sidekicks-1986-are-these-your-kicks','01 - Sidekicks 1986 - Are These Your Kicks).mp4','01 Sidekicks 1986 Are These Your Kicks)');
+ const alternate=archiveCopy('01-la-theorie-de-la-relativite-aka.-are-these-your-kicks-french-tv-english','01 - La Théorie De La Relativité (aka. Are These Your Kicks) [French TV, English].mp4','Sidekicks 1986 Ep 1 - Are These Your Kicks',{verifiedAt:10});
+ const other=archiveCopy('sidekicks-1986-open-house','open-house.mp4',"Disney's Sidekicks 1986 - Open House");
+ const dumbo=archiveCopy('001-40-winks-for-dink-tdc','40 Winks For Dink.mp4','Dumbo Circus Episode 40 Winks For Dink - Disney Channel');
+ const sonic=archiveCopy('sonic-satam-offair','episode.mp4','Sonic the Hedgehog SatAM (WOC)');
+ const ctx=rotationContext(), r=new SessionRotation(ctx,{}), select=async body=>(await call(r,{stationChannel:channel,archiveProgramIdentity:true,...body})).json();
+ const first=await select({mode:'reserve',items:[original,other,dumbo,sonic],count:3,diversity:{maxPerFamily:1}});
+ assert.deepEqual(first.items.map(x=>x.identifier),[original.identifier,dumbo.identifier,sonic.identifier]);
+ const refreshed=await select({mode:'reserve',items:[alternate],count:3});
+ assert.equal(refreshed.items[0].identifier,original.identifier,'a new transfer cannot replace a file already shown in the guide');
+ assert.equal(refreshed.catalogSize,4,'different tapes of the same episode count as one program');
+ assert.equal(refreshed.fileCatalogSize,5);
+ assert.equal((await call(r,{mode:'release',stationChannel:channel,archiveProgramIdentity:true,id:original.identifier,event:'failed'})).status,200);
+ const recovered=await select({mode:'reserve',items:[],count:3});
+ assert.equal(recovered.items[0].identifier,alternate.identifier);
+ assert.equal(recovered.items[0].media.url,alternate.media.url,'the identity must travel with its actual file');
+ await select({mode:'commit',id:alternate.identifier,event:'started'});
+ await select({mode:'commit',id:alternate.identifier,event:'skipped'});
+ const revisit=new SessionRotation(ctx,{});
+ const next=await(await call(revisit,{mode:'reserve',stationChannel:channel,archiveProgramIdentity:true,items:[original],count:5})).json();
+ assert.ok(next.items.some(x=>x.identifier===other.identifier),'a different episode of the same show stays eligible');
+ assert.ok(!next.items.some(x=>x.identifier===original.identifier||x.identifier===alternate.identifier));
+ assert.equal(next.cycleReset,false);
+});
+
+test('Classic Cartoons keeps the established episode identity and can recover through a second upload',async()=>{
+ const seriesTitle='Looney Tunes', channel='150';
+ const a=archiveCopy('looney-tunes-complete','Looney Tunes - S1950E01 - Home Tweet Home.mp4','Looney Tunes · Home Tweet Home',{seriesTitle});
+ const b=archiveCopy('remastered-cartoon-edition','Looney Tunes S1950E01 Home Tweet Home.ia.mp4','Looney Tunes · Home Tweet Home',{seriesTitle});
+ const c=archiveCopy('looney-tunes-complete','Looney Tunes - S1950E03 - Boobs in the Woods.mp4','Looney Tunes · Boobs in the Woods',{seriesTitle});
+ const r=new SessionRotation(rotationContext(),{}), select=async body=>(await call(r,{stationChannel:channel,archiveProgramIdentity:true,...body})).json();
+ const opened=await select({mode:'reserve',items:[a,b,c],count:2});
+ assert.deepEqual(opened.items.map(x=>x.identifier),[a.identifier,c.identifier]);
+ assert.equal(opened.fileCatalogSize,3);
+ await select({mode:'release',id:a.identifier,event:'failed'});
+ const recovered=await select({mode:'reserve',items:[],count:2});
+ assert.deepEqual(recovered.items.map(x=>x.identifier),[b.identifier,c.identifier]);
+ const openedCopy=await select({mode:'commit',id:b.identifier,event:'started'});
+ assert.ok(openedCopy.committed);
+});
+
+test('Wax Museum balances performers, groups confirmed record transfers, and preserves other sides and takes',async()=>{
+ const channel='929', audio=(source,file,title)=>archiveCopy(source,file,title,{type:'audio'});
+ const a=audio('victor-17826-a-first','Victor 17826A - If War Is What Sherman Said It Was.mp3','Billy Murray · If War Is What Sherman Said It Was');
+ const duplicate=audio('shellac-victor-17826-transfer','Victor 17826A - If War Is What Sherman Said It Was.flac','Billy Murray · If War Is What Sherman Said It Was');
+ const take=audio('victor-17826-alternate-take','Victor 17826A - If War Is What Sherman Said It Was - take 2.mp3','Billy Murray · If War Is What Sherman Said It Was (Take 2)');
+ const sideB=audio('victor-17826-b-other-side','Victor 17826B - Some Little Bug Is Going to Find You.mp3','Billy Murray · Some Little Bug Is Going to Find You');
+ const ada=audio('Experience_957','2 Experience.mp3','Ada Jones · Experience');
+ const caruso=audio('victor-88376-dreams-of-long-ago','Victor 88376 - Dreams of Long Ago.mp3','Enrico Caruso · Dreams of Long Ago');
+ const ctx=rotationContext(), r=new SessionRotation(ctx,{}), select=async body=>(await call(r,{stationChannel:channel,archiveProgramIdentity:true,...body})).json();
+ const p=await select({mode:'reserve',items:[a,duplicate,take,sideB,ada,caruso],count:3,diversity:{maxPerFamily:1}});
+ assert.deepEqual(p.items.map(x=>x.identifier),[a.identifier,ada.identifier,caruso.identifier]);
+ assert.equal(p.catalogSize,5);
+ assert.equal(p.fileCatalogSize,6);
+ assert.equal(p.diversityRelaxed,false);
+ await select({mode:'commit',id:a.identifier,event:'started'});
+ await select({mode:'commit',id:a.identifier,event:'completed'});
+ const next=await select({mode:'reserve',items:[duplicate],count:5});
+ assert.ok(!next.items.some(x=>x.identifier===duplicate.identifier));
+ assert.ok(next.items.some(x=>x.identifier===sideB.identifier));
+ assert.ok(next.items.some(x=>x.identifier===take.identifier));
+});
+
+test('VHS uses a repeatedly stalled tape only after faster unseen programs',async()=>{
+ const slow=archiveCopy('vintage-commercials-v25a-wttw-newshour-chicago-tonight-mystery-jan-1999-part-1','tape.mp4','WTTW Chicago · NewsHour VHS recording');
+ const fast=[item('good-a',0),item('good-b',0),item('good-c',0)];
+ const r=new SessionRotation(rotationContext(),{}), select=async body=>(await call(r,{stationChannel:'502',archiveProgramIdentity:true,...body})).json();
+ const start=await select({mode:'reserve',items:[slow,...fast],count:3});
+ assert.equal(start.catalogSize,4);
+ assert.deepEqual(start.items.map(x=>x.identifier),fast.map(x=>x.identifier));
+ for(const row of fast)await select({mode:'commit',id:row.identifier,event:'started'});
+ const last=await select({mode:'reserve',items:[],count:1});
+ assert.equal(last.items[0].identifier,slow.identifier);
+ assert.equal(last.cycleReset,false);
+});
+
+test('the hosted preview separates its reservations and failure reports from the same viewer’s regular queue',async()=>{
+ const {default:api}=await import('../realsignal_api_v2_worker.js');
+ const a=archiveCopy('01-sidekicks-1986-are-these-your-kicks','01 - Sidekicks 1986 - Are These Your Kicks).mp4','Sidekicks 1986 · Are These Your Kicks');
+ const b=archiveCopy('01-la-theorie-de-la-relativite-aka.-are-these-your-kicks-french-tv-english','01 - La Théorie De La Relativité (aka. Are These Your Kicks) [French TV, English].mp4','Sidekicks 1986 Ep 1 - Are These Your Kicks');
+ const rows=[a,b].map(row=>({...row,subject:'off-air VHS recording',media:{...row.media,runtime:1380,width:640,height:480,verification:'transport',verifiedAt:Date.now()}}));
+ const objects=new Map(),env={
+  ROTATION:{getByName(name){if(!objects.has(name))objects.set(name,new SessionRotation(rotationContext(),{}));return objects.get(name);}},
+  RELAY:{fetch:async()=>Response.json({items:rows,candidateItems:rows,ready:rows.length})}
+ };
+ const send=async(route,body)=>api.fetch(new Request('https://api.example/api/v3/ia/'+route,{
+  method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({channel:'502',sessionId:'same-viewer-ia-preview',...body})
+ }),env,{waitUntil(p){Promise.resolve(p).catch(()=>{});}});
+ const base={count:1,iaRepair:true,serverCatalog:true,mediaTypes:['movies']};
+ const normal=await(await send('queue',base)).json();
+ const trial=await(await send('queue',{...base,archiveProgramIdentity:true})).json();
+ assert.equal(normal.v2.catalogSize,2);
+ assert.equal(trial.v2.catalogSize,1);
+ assert.equal(trial.v2.fileCatalogSize,2);
+ assert.equal(trial.items[0].identifier,normal.items[0].identifier);
+ const failed=await send('playback',{archiveProgramIdentity:true,id:trial.items[0].identifier,event:'failed'});
+ assert.equal(failed.status,202);
+ const repaired=await(await send('queue',{...base,archiveProgramIdentity:true,sessionRefill:true})).json();
+ assert.notEqual(repaired.items[0].identifier,trial.items[0].identifier);
+ const unchanged=await(await send('queue',base)).json();
+ assert.equal(unchanged.items[0].identifier,normal.items[0].identifier);
+});

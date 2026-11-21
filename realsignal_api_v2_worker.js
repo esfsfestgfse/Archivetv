@@ -5,7 +5,7 @@
  * catalog writes, and a queue consumer around the proven ais-relay adapter.
  */
 
-import { SessionRotation, familyId } from "./realsignal_api_rotation.js";
+import { SessionRotation, archiveIdentityPilot, familyId } from "./realsignal_api_rotation.js";
 import { normalizeIaFileRecord, qualifyIaFileRecord, iaMinimumFileRuntimeSeconds, iaGameShowEraAllowed, iaGameShowYear, iaReviewedCartoonSource, iaKnownVideoPolicyViolation, iaSportingLifeAllowed, iaCourtroomAllowed, iaCookingAllowed, iaHuntingAllowed, iaReviewedFileAllowed } from "./ia_file_contract.js";
 import { EdgeRateLimiter } from "./realsignal_api_rate_limit.js";
 import { RokuSession } from "./realsignal_roku_session.js";
@@ -557,8 +557,11 @@ function uniqueQueueItems(items, body, limit = body && body.iaRepair === true &&
   }
   const seen = new Set();
   const out = [];
+  // The owner groups programs for rotation. Keep distinct verified files
+  // until it selects a representative or needs a recovery copy.
+  const keepCopies = body?.iaRepair === true && body.sourceCatalog !== true && archiveIdentityPilot(body.channel, body.archiveProgramIdentity);
   for (const item of items) {
-    const key = queueItemIdentity(item);
+    const key = keepCopies ? queueItemKey(item) : queueItemIdentity(item);
     if (!key || seen.has(key) || !catalogFallbackAllowed(item, body)) continue;
     seen.add(key);
     out.push(["12", "22"].includes(String(body && body.channel)) ? { ...item, year: iaGameShowYear(item) } : item);
@@ -756,6 +759,11 @@ async function upsertCatalogJob(env, job) {
   }
 }
 
+function iaReservationName(session, channel, requested) {
+  const pilotNamespace = archiveIdentityPilot(channel, requested) ? "program-identity:" : "";
+  return "ia-repair:" + pilotNamespace + "session:" + session + ":channel:" + channel;
+}
+
 async function rotateShelf(env, body, payload, request) {
   if (!env.ROTATION || typeof env.ROTATION.getByName !== "function") {
     if (body.iaRepair === true) throw new Error("IA reservation binding unavailable");
@@ -768,7 +776,7 @@ async function rotateShelf(env, body, payload, request) {
   // Previous standard game-show sessions may contain now-excluded kids' shows.
   // Change only that catalog namespace; viewer playback history still applies.
   const stationPolicy = !reservationMode && body.sourceCatalog !== true && channel === "22" ? ":adult-game-shows-2" : "";
-  const stub = env.ROTATION.getByName(`${reservationMode ? "ia-repair:" : ""}session:${session}:channel:${channel}${stationPolicy}`);
+  const stub = env.ROTATION.getByName(reservationMode ? iaReservationName(session, channel, body.archiveProgramIdentity) : `session:${session}:channel:${channel}${stationPolicy}`);
   const rawCandidates = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
     ? payload.candidateItems
     : ((payload && payload.items) || []);
@@ -833,7 +841,7 @@ async function rotateShelf(env, body, payload, request) {
   }).length;
   const selectedReady = body.sourceCatalog === true ? Math.max(upstreamReady, playableSelected) : playableSelected;
   const exhaustion = selected && selected.exhaustion && typeof selected.exhaustion === 'object' ? selected.exhaustion : {};
-  return { payload: { ...payload, items: selectedItems, candidateItems: selectedCatalog, candidates: selectedCatalog.length, ready: Math.min(selectedReady, selectedItems.length), v2: { sessionScoped: true, cursor: selected.cursor, cycleReset: !!selected.cycleReset, ...(reservationMode ? { cycleGeneration: Number(selected.cycleGeneration) || 0 } : {}), ...(body.sourceCatalog !== true && !reservationMode ? { playableCatalogSize: Number(selected.playableCatalogSize) || 0, pendingCatalogSize: Number(selected.pendingCatalogSize) || 0, exhaustionScope: "resolved-session-window" } : {}), catalogSize: Number(selected.catalogSize) || selectedCatalog.length, catalogAdded: Number(selected.catalogAdded) || 0, unseen: Number(selected.unseen) || 0, seenInCatalog: Number(exhaustion.seenInCatalog) || 0, seenInCatalogBeforeSelection: Number(exhaustion.seenInCatalogBeforeSelection) || 0, unseenBeforeSelection: Number(exhaustion.unseenBeforeSelection) || 0, unseenAfterSelection: Number(exhaustion.unseenAfterSelection) || 0, catalogExhausted: !!exhaustion.catalogExhausted, repeatAllowed: !!exhaustion.repeatAllowed, selectionRepeatIds: Array.isArray(selected.selectionRepeatIds) ? selected.selectionRepeatIds : [] } }, rotation: selected };
+  return { payload: { ...payload, items: selectedItems, candidateItems: selectedCatalog, candidates: selectedCatalog.length, ready: Math.min(selectedReady, selectedItems.length), v2: { sessionScoped: true, cursor: selected.cursor, cycleReset: !!selected.cycleReset, ...(reservationMode ? { cycleGeneration: Number(selected.cycleGeneration) || 0 } : {}), ...(body.sourceCatalog !== true && !reservationMode ? { playableCatalogSize: Number(selected.playableCatalogSize) || 0, pendingCatalogSize: Number(selected.pendingCatalogSize) || 0, exhaustionScope: "resolved-session-window" } : {}), catalogSize: Number(selected.catalogSize) || selectedCatalog.length, catalogAdded: Number(selected.catalogAdded) || 0, ...(Number.isInteger(selected.fileCatalogSize) ? { fileCatalogSize: selected.fileCatalogSize } : {}), unseen: Number(selected.unseen) || 0, seenInCatalog: Number(exhaustion.seenInCatalog) || 0, seenInCatalogBeforeSelection: Number(exhaustion.seenInCatalogBeforeSelection) || 0, unseenBeforeSelection: Number(exhaustion.unseenBeforeSelection) || 0, unseenAfterSelection: Number(exhaustion.unseenAfterSelection) || 0, catalogExhausted: !!exhaustion.catalogExhausted, repeatAllowed: !!exhaustion.repeatAllowed, selectionRepeatIds: Array.isArray(selected.selectionRepeatIds) ? selected.selectionRepeatIds : [] } }, rotation: selected };
 }
 
 async function handleIaPlayback(request, env, ctx, requestId) {
@@ -846,14 +854,15 @@ async function handleIaPlayback(request, env, ctx, requestId) {
   if (!channel || !id || id.length > 500 || !["started", "completed", "skipped", "failed"].includes(event)) return json({ error: "invalid playback event" }, 400);
   if (!env.ROTATION) return json({ error: "session rotation unavailable" }, 503);
   const session = safeSession(body.sessionId || request.headers.get("x-realsignal-session") || `ip-${requestClientKey(request)}`);
-  const stub = env.ROTATION.getByName(`ia-repair:session:${session}:channel:${safeSession(channel)}`);
+  const programPilot = archiveIdentityPilot(channel, body.archiveProgramIdentity);
+  const stub = env.ROTATION.getByName(iaReservationName(session, safeSession(channel), programPilot));
   const result = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ mode: event === "failed" ? "release" : "commit", stationChannel: channel, id, event }) }));
+    body: JSON.stringify({ mode: event === "failed" ? "release" : "commit", stationChannel: channel, archiveProgramIdentity: programPilot, id, event }) }));
   if (!result.ok) return json({ error: "playback identity not reserved" }, result.status);
   /* Only an actual start enters cross-session watched history. Skipping a
      reservation suppresses it within this session, not everybody's catalog. */
   const acknowledgement = await result.json();
-  if (event === "started" && acknowledgement.committed) {
+  if (event === "started" && acknowledgement.committed && !programPilot) {
     await rememberFreshness(env, channel, [id], ctx);
     ctx.waitUntil(forwardToRelay(request, env, "/ia/played", { ...body, iaRepair: true }, requestId).then(response => {
       if (!response.ok) console.warn(JSON.stringify({ event: "ia-played-forward-failed", channel, status: response.status }));
@@ -1946,7 +1955,7 @@ async function handleQueue(request, env, ctx, id) {
     if (!env.ROTATION) return json({ error: "IA reservations temporarily unavailable", requestId: id }, 503);
     try {
       const session = safeSession(body.sessionId || body.session || request.headers.get("x-realsignal-session") || `ip-${requestClientKey(request)}`);
-      const stub = env.ROTATION.getByName(`ia-repair:session:${session}:channel:${safeSession(body.channel)}`);
+      const stub = env.ROTATION.getByName(iaReservationName(session, safeSession(body.channel), body.archiveProgramIdentity));
       const response = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", body: JSON.stringify({ mode: "peek", count, rules: body }) }));
       if (!response.ok) throw Error("reservation peek " + response.status);
       const state = await response.json();
@@ -1971,6 +1980,7 @@ async function handleQueue(request, env, ctx, id) {
   delete upstreamBody.sessionId;
   delete upstreamBody.session;
   delete upstreamBody.preparedStart;
+  delete upstreamBody.archiveProgramIdentity;
   const canonical = canonicalPilotProfile(body.channel);
   if (body.iaRepair !== true && canonicalPilotEnabled(env, body.channel)) {
     const canonicalPayload = canonicalPilotPayload(canonical.manifest, canonical.profile, body, count);

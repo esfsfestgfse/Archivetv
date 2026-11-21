@@ -229,10 +229,12 @@
     }
   };
   async function request(path, body) {
+    var sessionBody = Object.assign({}, body, { sessionId: iaSessionId() });
+    if (query.get('iaProgramIdentity') === '1') sessionBody.archiveProgramIdentity = true;
     var timeout = wholeLineup && path === '/ia/queue' ? 5500 : 12000;
     var controller = new AbortController(), timer = setTimeout(function () { controller.abort(); }, timeout);
     try {
-      var response = await fetch(apiBase() + path, { method: 'POST', mode: 'cors', headers: { 'content-type': 'application/json', 'x-realsignal-session': iaSessionId() }, body: JSON.stringify(Object.assign({}, body, { sessionId: iaSessionId() })), signal: controller.signal, keepalive: path === '/ia/playback' });
+      var response = await fetch(apiBase() + path, { method: 'POST', mode: 'cors', headers: { 'content-type': 'application/json', 'x-realsignal-session': iaSessionId() }, body: JSON.stringify(sessionBody), signal: controller.signal, keepalive: path === '/ia/playback' });
       if (!response.ok) {
         var error = Error('IA repair ' + response.status);
         error.status = response.status;

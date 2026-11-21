@@ -486,14 +486,15 @@ test('classic pilot reserves one copy per episode, rotates eras, and keeps viewe
   const newer = make('upload-d::Top Cat S01E04.mp4', 'Top Cat S01E04', 1961, 'Top Cat');
   const fresh = make('upload-e::Popeye S01E02.mp4', 'Popeye S01E02', 1933, 'Popeye');
   const r = new SessionRotation(rotationContext(), {}), other = new SessionRotation(rotationContext(), {});
-  const reserve = async (viewer, items, count) => (await viewer.reservation({mode:'reserve',stationChannel:'150',items,count})).json();
+  const reserve = async (viewer, items, count) => (await viewer.reservation({mode:'reserve',stationChannel:'150',archiveProgramIdentity:true,items,count})).json();
   await reserve(r, [a], 1);
-  const started = await r.reservation({mode:'commit',stationChannel:'150',event:'started',id:a.identifier});
+  const started = await r.reservation({mode:'commit',stationChannel:'150',archiveProgramIdentity:true,event:'started',id:a.identifier});
   assert.equal(started.status, 200);
   const rows = [aCopy, old, newer, fresh];
   const next = await reserve(r, rows, 3);
   assert.ok(!next.items.some(row => row.identifier === aCopy.identifier));
-  assert.equal(next.catalog.length, 4);
+  assert.equal(next.catalogSize, 4);
+  assert.equal(next.catalog.length, 5, "both physical copies are retained for recovery");
   assert.equal(next.items[0].identifier, newer.identifier, 'a new decade takes priority within unseen shows');
   assert.ok(next.items.some(row => row.identifier === fresh.identifier), 'the next episode is a distinct program');
   assert.equal((await reserve(other, [aCopy], 1)).items[0].identifier, aCopy.identifier);

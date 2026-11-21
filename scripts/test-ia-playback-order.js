@@ -301,18 +301,18 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     assert.equal(scope.theVideo, newer.v);
   });
 
-  for (const [hasSpare, preparedStart, listed] of [[false,false,false], [true,false,false], [true,true,false], [true,false,true]]) test(file + (listed ? ': a listed episode gets its own alternate even when another episode is ready' : hasSpare
+  for (const [hasSpare, preparedStart, listed, sports] of [[false,false,false], [true,false,false], [true,true,false], [true,false,true], [true,false,false,true]]) test(file + (sports ? ': Sports Vault promotes a decoded backup on an unlisted start' : listed ? ': a listed episode gets its own alternate even when another episode is ready' : hasSpare
     ? ': a cold reserve takes over as soon as its qualified picture is ready' + (preparedStart ? ' on the prepared canary' : '')
     : ': a stalled origin can still try its alternate when no reserve is ready'), async () => {
     const source = fs.readFileSync(path.join(root, file), 'utf8'), timers = [], handlers = {};
     const video = { tagName: 'VIDEO', readyState: 0, style: {}, classList: { toggle() {} }, pause() {}, removeAttribute() {}, load() {}, remove() {}, setAttribute() {}, play: () => Promise.resolve(), addEventListener: (type, fn) => { handlers[type] = fn; } };
-    const spare = item('different-reserved-episode'), primary = { identifier:'series::Season 1/Pilot.mp4',
+    const spare = { ...item('different-reserved-episode'), ...(sports ? { title: 'NBA Finals 1998 Game 6 Full Game' } : {}) }, primary = { identifier:'series::Season 1/Pilot.mp4',
       media:{ type:'video', url:'https://dn600301.us.archive.org/0/items/series/Season%201/Pilot.mp4' } };
-    const warmer = {}, load = [], mirrorLoads = [];
+    const channel = sports ? 53 : 10, warmer = {}, load = [], mirrorLoads = [];
     const spareVideo = Object.assign(new EventTarget(), {
       readyState: 0, videoWidth: 0, videoHeight: 0, duration: 0, src: spare.media.url,
     });
-    const scope = { window: { RealSignalIAShelf: { ...runtime(), tracksRoutes: () => hasSpare,
+    const scope = { window: { RealSignalSports: sports ? require('../assets/sports-programs.js') : null, RealSignalIAShelf: { ...runtime(), tracksRoutes: () => hasSpare,
         warmMirror: (row, url) => { mirrorLoads.push(url); return { video: {}, release() {} }; },
         client: () => ({ rows: () => hasSpare ? [primary, spare] : [primary] }) } },
       iaQueueKey: ch => String(ch.num), iaMediaWarmKey: (ch, row) => ch.num + ':' + row.identifier, iaMediaWarmers: warmer, iaWarmWanted: {},
@@ -324,7 +324,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
       iaCachedProgramAllowed: () => true,
       document: { createElement: () => video, body: { classList: { contains: () => false } } },
       theVideo: video, videoCtl: null, AbortController, curVideo: null, screenArea: { innerHTML: '', appendChild() {} },
-      iaRepairEnabled: () => true, takeIAMediaWarmer: () => null, killMedia() {}, nlog() {}, token: 1, powered: true, curNum: 10,
+      iaRepairEnabled: () => true, takeIAMediaWarmer: () => null, killMedia() {}, nlog() {}, token: 1, powered: true, curNum: channel,
       soundBlocked: false, muted: false, vol: 0.5, lastGesture: Date.now(), Date, performance,
       setTimeout: (fn, ms) => { const t = { fn, ms }; timers.push(t); return t; }, clearTimeout() {} };
     vm.createContext(scope);
@@ -334,7 +334,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     vm.runInContext(source.slice(repairStart, source.indexOf('async function tuneIA(ch,sl,my)', repairStart)), scope);
     vm.runInContext(source.slice(source.indexOf('function playFile('), source.indexOf('function showNow(')), scope);
     const handoff = { allowBuffered: !listed, listed, preparedStart };
-    const pending = scope.playFile({ id: primary.identifier, ...primary.media }, { num: 10 }, {}, 1, 0, handoff);
+    const pending = scope.playFile({ id: primary.identifier, title: 'NHL 1989 All Star Game Full Game', ...primary.media, runtime: 7200, width: 640, height: 480, alts: ['https://archive.org/download/series/Season%201/Pilot.mp4'] }, { num: channel }, {}, 1, 0, handoff);
     assert.ok(timers[0].ms <= 4000, 'a stalled origin must not hold Next for twelve seconds');
     assert.deepEqual(load, [], 'a fast startup should never need to load the spare');
     if (listed) {
@@ -351,7 +351,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     if (hasSpare) {
       const standby = timers.find(timer => timer.ms > 0 && timer.ms < timers[0].ms);
       assert.ok(standby, 'start preparing one spare before the primary times out');
-      assert.equal(standby.ms, preparedStart ? 500 : 1500, 'early backup is confined to prepared starts');
+      assert.equal(standby.ms, preparedStart || sports ? 500 : 1500, 'slow-start standby deadline');
       standby.fn();
       assert.deepEqual(load, [spare.media.url], 'cold power-on prepares a distinct verified episode');
       assert.deepEqual(mirrorLoads, [], 'one spare uses the whole background media budget');

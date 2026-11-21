@@ -102,7 +102,7 @@
   // Connection quality is viewer-specific. Keep a bounded local history of
   // requested routes, including the delay of Archive's download redirect.
   var routeStorageKey = 'realsignal:archive-route-history:v1', routeHistory;
-  function tracksRoutes(channel) { return [10, 11, 12, 22, 150].includes(Number(channel)); }
+  function tracksRoutes(channel) { return [10, 11, 12, 22, 53, 150].includes(Number(channel)); }
   function routeStats() {
     if (!routeHistory) {
       routeHistory = Object.create(null);
@@ -235,7 +235,7 @@
     enabled: enabled, enabledForChannel: enabledForChannel, create: create, lifecycle: lifecycle, sameFileAlternate: sameFileAlternate,
     tracksRoutes: tracksRoutes, rankedMedia: rankedMedia, recordRoute: recordRoute, warmMirror: warmMirror,
     queue: function (body) {
-      var preparedStart = query.get('iaPrepared') === '1' && ['10', '150'].includes(String(body.channel));
+      var preparedStart = query.get('iaPrepared') === '1' && ['10', '53', '150'].includes(String(body.channel));
       return request('/ia/queue', Object.assign({}, body, { iaRepair: true, serverCatalog: true }, preparedStart ? { preparedStart: true } : {}));
     },
     client: function () { return client || (client = create({ journal: startJournal, queue: function (body) { return window.RealSignalIAShelf.queue(body); }, report: function (body) { return request('/ia/playback', body); } })); }

@@ -37,19 +37,23 @@ test('a shallow Classic TV catalog imports repairs promptly without blocking pla
   }finally{Date.now=originalNow;}
 });
 
-test('a prepared start keeps the foreground off D1 and the relay and retains viewer reservations', async () => {
+for (const channel of ['10', '53']) test(channel + ': a prepared start keeps the foreground off D1 and the relay and retains viewer reservations', async () => {
   const oldCaches = globalThis.caches;
   const cache = new Map(), objects = new Map(), rotationModes = [];
   let catalogReads = 0, relayReads = 0, phase = 'warm';
-  const families = ['Dragnet', 'Benson', 'Jack Benny', 'Get Smart', 'Bonanza', 'Green Acres', 'I Love Lucy', 'The Munsters'];
+  const sports = channel === '53';
+  const families = sports ? ['NBA Finals', 'MLB World Series', 'NHL Stanley Cup Finals', 'NFL Super Bowl', 'FIFA World Cup', 'Rose Bowl', 'NCAA College Basketball Duke vs Auburn', 'Masters Tournament']
+    : ['Dragnet', 'Benson', 'Jack Benny', 'Get Smart', 'Bonanza', 'Green Acres', 'I Love Lucy', 'The Munsters'];
   const programs = families.flatMap((family, series) => Array.from({ length: 4 }, (_, episode) => {
     const source = 'series-' + series, file = 'episode-' + episode + '.mp4', id = source + '::' + file;
     const url = 'https://archive.org/download/' + source + '/' + file;
+    const title = sports ? (1990 + episode) + ' ' + family + ' Full Broadcast' : family + ' · Episode ' + episode;
+    const runtime = sports ? 7200 : 1320;
     return {
-      id, source_identifier: source, provider: 'Internet Archive', title: family + ' · Episode ' + episode,
-      media_type: 'video', media_url: url, aspect_ratio: 4/3, duration_seconds: 1320, year: '1965',
-      metadata_json: JSON.stringify({ seriesTitle: family, fileName: file, media: { type: 'video', url, runtime: 1320 },
-        subject: 'classic television', runtimeSeconds: 1320, width: 640, height: 480, verification: 'transport', verifiedAt: Date.now() })
+      id, source_identifier: source, provider: 'Internet Archive', title,
+      media_type: 'video', media_url: url, aspect_ratio: 4/3, duration_seconds: runtime, year: sports ? String(1990 + episode) : '1965',
+      metadata_json: JSON.stringify({ seriesTitle: family, fileName: file, media: { type: 'video', url, runtime },
+        subject: sports ? 'sports full event broadcast' : 'classic television', runtimeSeconds: runtime, width: 640, height: 480, verification: 'transport', verifiedAt: Date.now() })
     };
   }));
   globalThis.caches = { default: {
@@ -76,7 +80,7 @@ test('a prepared start keeps the foreground off D1 and the relay and retains vie
   const background = [], ctx = { waitUntil: p => background.push(Promise.resolve(p)) };
   const tune = (sessionId, options={}) => worker.fetch(new Request('https://api.example/api/v3/ia/queue', {
     method: 'POST',
-    body: JSON.stringify({ channel:'10', count:3, sessionId, serverCatalog:true, iaRepair:true, preparedStart:true, mediaTypes:['movies'], ...options })
+    body: JSON.stringify({ channel, count:3, sessionId, serverCatalog:true, iaRepair:true, preparedStart:true, mediaTypes:['movies'], ...options })
   }), env, ctx);
   try {
     const warm = await tune('warm-station');
@@ -94,7 +98,7 @@ test('a prepared start keeps the foreground off D1 and the relay and retains vie
     assert.deepEqual(rotationModes,['reserve'],'the opening avoids a separate history peek');
     const picked=shelf.items[0].identifier;
     const commit=await worker.fetch(new Request('https://api.example/api/v3/ia/playback',{method:'POST',
-      body:JSON.stringify({sessionId:'viewer',channel:'10',id:picked,event:'started'})}),{ROTATION:env.ROTATION,RELAY:{fetch:async()=>new Response(null,{status:204})}},ctx);
+      body:JSON.stringify({sessionId:'viewer',channel,id:picked,event:'started'})}),{ROTATION:env.ROTATION,RELAY:{fetch:async()=>new Response(null,{status:204})}},ctx);
     assert.equal(commit.status,202);
     const returnShelf=await(await tune('viewer')).json();
     assert.ok(returnShelf.items.every(i=>i.identifier!==picked),'the same viewer cannot reopen a watched episode');

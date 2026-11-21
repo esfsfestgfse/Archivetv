@@ -9,13 +9,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 7.3.5</title>
+<title>REALSIGNAL · Retro Cable 7.3.6</title>
 <meta name="realsignal-ia-repair-channels" content="10,11,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=7.2.19"></script>
-<script src="assets/ia-playback-shelf.js?v=7.3.5"></script>
+<script src="assets/ia-playback-shelf.js?v=7.3.6"></script>
 <script src="assets/sports-programs.js?v=7.0.0"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
 <script src="assets/youtube-embed-runtime.js?v=7.2.1"></script>
@@ -1702,7 +1702,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="7.3.5-desktop-retro-cable";
+window.__ATV_BUILD="7.3.6-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -9949,9 +9949,18 @@ function playFile(it,ch,sl,my,isFallback,archiveHandoff){
     return Object.assign({},row,{id:row.identifier||row.id,type:media.type||row.type||"video",url:media.url||row.url,
       runtime:media.runtime||row.runtime||row.duration,width:media.width||row.width,height:media.height||row.height,
       alts:[],meta:meta});}
-  var session=sports.recovery(it,{channel:ch.num,isCurrent:function(){return my===token&&powered&&curNum===ch.num;},
+  var sportsHandoff=Number(ch.num)===53?archiveHandoff:null;
+  var openingDeadline=sportsHandoff?.allowBuffered?performance.now()+3500:0,opened=false;
+  var session=sports.recovery(it,{channel:ch.num,isCurrent:function(){return my===token&&powered&&curNum===ch.num&&!sportsHandoff?.buffered;},
     allowed:function(row){var copy=playable(row);return ch.source==="v2preview"?v2RightsOkay(copy.rights,copy.provider,copy):iaCachedProgramAllowed(ch,copy,sl);},
-    play:async function(row,control){var copy=playable(row),ok=await playFileOnce(copy,ch,sl,my,isFallback,control);
+    play:async function(row,control){
+      if(openingDeadline&&!opened){
+        var remaining=openingDeadline-performance.now();
+        if(remaining<=0)return false;
+        control.startTimeout=Math.min(2500,remaining);
+      }
+      var copy=playable(row),ok=await playFileOnce(copy,ch,sl,my,isFallback,control,opened?null:sportsHandoff);
+      if(ok)opened=true;
       if(ok&&my===token&&String(copy.id)!==String(it.id)){
         Object.assign(it,copy);
         if(ch.source==="v2preview"){var state=v2PreviewState[ch.num],profile=V2_PREVIEW_PROFILES[ch.previewKey];if(state){state.currentId=copy.id;state.currentTitle=copy.title;state.currentDuration=Number(copy.duration||copy.runtime)||0;state.provider=copy.provider;}if(profile)v2Remember(profile.name,copy);refreshGuideData();}
@@ -10015,7 +10024,7 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl,archiveHandoff){retur
      discard a good Source Suite item at the generic IA timeout. */
   const boundedIaStart=iaRepairEnabled(ch)&&!isAudio&&!it.isAd&&!it.isSignoff;
   let done=false,to,adRecoveryTimer,spareTimer,mirror;
-  const startTimeout=ch?.source==="onthisday"?3000:(boundedIaStart||sportsControl)?(prepared?1800:4000):(it.isAd?900:(ch&&ch.source==="v2preview"&&/peertube/i.test(String(it.provider||""))?15000:(isFallback>0?7000:(isAudio?9000:12000))));
+  const startTimeout=sportsControl?.startTimeout??(ch?.source==="onthisday"?3000:(boundedIaStart||sportsControl)?(prepared?1800:4000):(it.isAd?900:(ch&&ch.source==="v2preview"&&/peertube/i.test(String(it.provider||""))?15000:(isFallback>0?7000:(isAudio?9000:12000)))));
   function finishAd(){if(!it.isAd||my!==token||!powered||curVideo!==v)return false;clearTimeout(adRecoveryTimer);try{v.pause();}catch(e){}v.dispatchEvent(new Event("ended"));return true;}
   function moveToMirror(){
     if(!mirror||mirror.video.error||done||my!==token||!powered||curNum!==ch.num)return false;
@@ -10054,13 +10063,13 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl,archiveHandoff){retur
     if(warmer.readyOrder)useBufferedProgram();
   }
   armStart();
-  if(boundedIaStart&&!sportsControl&&!prepared&&(learnRoute&&archiveHandoff||iaRepairSpare(ch,it.id))){
+  if(boundedIaStart&&(!sportsControl||canUseBuffered)&&!prepared&&(learnRoute&&archiveHandoff||iaRepairSpare(ch,it.id))){
     spareTimer=setTimeout(function(){
       if(done||my!==token||!powered||curNum!==ch.num||!iaRepairEnabled(ch))return;
       const spare=iaRepairSpare(ch,it.id);
       // A cold tune can prepare a different episode. During a handoff,
       // give the guide's listed episode first use of the extra media slot.
-      if((archiveHandoff?.listed||preservePicture||!spare)&&learnRoute&&archiveHandoff&&v.readyState<2&&altQ.length){
+      if(!sportsControl&&(archiveHandoff?.listed||preservePicture||!spare)&&learnRoute&&archiveHandoff&&v.readyState<2&&altQ.length){
         mirror=routeHealth.warmMirror?.(it,altQ[0],function(){if(v.readyState<2)moveToMirror();});
         if(mirror){if(nativeAudit)nativeAudit("archive-mirror-preload",{id:it.id});return;}
       }
@@ -10068,7 +10077,7 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl,archiveHandoff){retur
       iaWarmWanted[iaQueueKey(ch)]=Date.now()+120000;
       stageIAMediaWarmer(ch,spare,routeHealth?.rankedMedia?.(ch.num,spare)||spare.media);
       watchBufferedProgram(iaMediaWarmers[iaMediaWarmKey(ch,spare)]);
-    },canUseBuffered&&!preservePicture&&archiveHandoff.preparedStart?500:1500);
+    },canUseBuffered&&(sportsControl||!preservePicture&&archiveHandoff.preparedStart)?500:1500);
   }
   const nativeAudit=window.__rsPlaybackAudit?.source(ch.num);
   if(nativeAudit)nativeAudit("native-source",{id:it.id,provider:it.provider,hls:!!sourceHls,preloadedReadyState:staged?staged.readyState:null});
@@ -10141,9 +10150,9 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl,archiveHandoff){retur
   }
   v.addEventListener("loadeddata",()=>{ if(sportsControl&&sportsControl.seekSeconds>0){try{v.currentTime=Math.min(sportsControl.seekSeconds,Math.max(0,Number(v.duration)-1));}catch(e){}}else if(resumeSeekSec>0){ try{v.currentTime=resumeSeekSec;}catch(e){} resumeSeekSec=0; } },{signal:sig});
   // Older catalog rows can have a verified direct URL without its same-file download route.
-  const archiveAlternate=boundedIaStart?window.RealSignalIAShelf?.sameFileAlternate?.(it):"";
+  const archiveAlternate=boundedIaStart&&!(sportsControl&&archiveHandoff)?window.RealSignalIAShelf?.sameFileAlternate?.(it):"";
   const initialRoute=learnRoute?v.src:it.url;
-  const altQ=prepared?[]:(learnRoute?[it.url]:[]).concat(it.alts||(it.alt?[it.alt]:[]),archiveAlternate).filter(function(url,index,all){return url&&url!==initialRoute&&all.indexOf(url)===index;}).slice(0,boundedIaStart?1:8);
+  const altQ=prepared||sportsControl&&archiveHandoff?[]:(learnRoute?[it.url]:[]).concat(it.alts||(it.alt?[it.alt]:[]),archiveAlternate).filter(function(url,index,all){return url&&url!==initialRoute&&all.indexOf(url)===index;}).slice(0,boundedIaStart?1:8);
   function tryAlternate(){if(done||my!==token||!powered||!altQ.length)return false;const nx=altQ.shift();try{nlog("video",true,"retrying the same program on an alternate origin");if(learnRoute)routeStarted=performance.now();v.src=nx;v.load();}catch(e){}if(boundedIaStart){if(nativeAudit)nativeAudit("archive-same-file-retry",{id:it.id});armStart(3500);}tryPlay();return true;}
   v.addEventListener("error",()=>{try{nlog("video",false,"err"+((v.error&&v.error.code)||"?")+" "+((v.src||"").split("/").pop().slice(-40)));}catch(e){}
     if(it.isAd&&done&&finishAd())return;

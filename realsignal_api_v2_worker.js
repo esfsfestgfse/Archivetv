@@ -24,7 +24,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
 const V3_RELEASE = "7.0.0";
-const IA_PREPARED_START_CHANNELS = new Set(["10", "150"]);
+const IA_PREPARED_START_CHANNELS = new Set(["10", "53", "150"]);
 const IA_PREPARED_START_MAX_ITEMS = 96;
 const IA_PREPARED_START_MIN_ITEMS = 24;
 const IA_PREPARED_START_MAX_AGE = 10 * 60_000;

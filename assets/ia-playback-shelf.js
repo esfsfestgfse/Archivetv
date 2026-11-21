@@ -3,7 +3,13 @@
 (function () {
   function create(options) {
     var channels = Object.create(null);
-    function state(key) { return channels[key] || (channels[key] = { items: [], removed: Object.create(null), outbox: [], flushing: null, inflight: null, playing: '', revision: 0, generation: 0 }); }
+    function state(key) {
+      if (!channels[key]) {
+        var outbox = (options.journal?.load(key) || []).map(function (packet) { return { packet: packet, revision: 0, restored: true }; });
+        channels[key] = { items: [], removed: Object.create(null), outbox: outbox, flushing: null, inflight: null, playing: '', revision: 0, generation: 0 };
+      }
+      return channels[key];
+    }
     function id(item) { return String(item && (item.identifier || item.id) || ''); }
     function rows(key) { var value = state(key); return value.items.filter(function (item) { return id(item) !== value.playing && !value.removed[id(item)]; }); }
     function flush(value) {
@@ -12,7 +18,12 @@
         while (value.outbox.length) {
           var entry = value.outbox[0], packet = entry.packet, acknowledgement;
           try { acknowledgement = await options.report(packet); }
-          catch (_) { acknowledgement = await options.report(packet); }
+          catch (error) {
+            // A saved start can outlive the server catalog that admitted it.
+            // A permanent rejection must not strand every later reservation.
+            if (!(entry.restored && error.status === 400)) acknowledgement = await options.report(packet);
+          }
+          if (packet.event === 'started') options.journal?.remove(packet.channel, packet);
           var generation = acknowledgement && acknowledgement.cycleGeneration;
           if (Number.isSafeInteger(generation) && generation >= 0) {
             value.generation = Math.max(value.generation, generation);
@@ -33,6 +44,7 @@
       else if (value.playing === identity) value.playing = '';
       var metadata = item.meta || item;
       var packet = { channel: String(key), id: identity, event: type, title: metadata.title || item.title || '', subject: metadata.subject || '', year: metadata.year || '', collection: metadata.collection || '' };
+      if (type === 'started' && options.journal) { packet.recordedAt = Date.now(); options.journal.add(key, packet); }
       value.outbox.push({ packet: packet, revision: value.revision });
       return flush(value);
     }
@@ -182,11 +194,40 @@
     if (/^https:\/\/realsignal-ia-audit-api\.tdy1990\.workers\.dev\/api\/v3$/.test(override) || /^http:\/\/(?:127\.0\.0\.1|localhost):\d+\/api\/v3$/.test(override)) return override;
     return IA_API_BASE;
   }
+  // A decoded start is recorded synchronously so a reload or tab close cannot
+  // lose it while a previous command is still waiting for its acknowledgement.
+  var startJournal = {
+    load: function (channel) {
+      try {
+        var rows = JSON.parse(localStorage.getItem('realsignal:ia-start:' + iaSessionId() + ':' + channel) || '[]');
+        var now = Date.now();
+        return Array.isArray(rows) ? rows.filter(function (row) {
+          return row?.channel === String(channel) && row.event === 'started' && typeof row.id === 'string' &&
+            row.id.length > 0 && row.id.length <= 500 && now - row.recordedAt >= 0 && now - row.recordedAt < 86400_000;
+        }).slice(-12) : [];
+      } catch (_) { return []; }
+    },
+    save: function (channel, rows) {
+      try {
+        var key = 'realsignal:ia-start:' + iaSessionId() + ':' + channel;
+        if (rows.length) localStorage.setItem(key, JSON.stringify(rows.slice(-12)));
+        else localStorage.removeItem(key);
+      } catch (_) {}
+    },
+    add: function (channel, packet) { this.save(channel, this.load(channel).concat(packet)); },
+    remove: function (channel, packet) {
+      this.save(channel, this.load(channel).filter(function (row) { return row.id !== packet.id || row.recordedAt !== packet.recordedAt; }));
+    }
+  };
   async function request(path, body) {
     var controller = new AbortController(), timer = setTimeout(function () { controller.abort(); }, 12000);
     try {
-      var response = await fetch(apiBase() + path, { method: 'POST', mode: 'cors', headers: { 'content-type': 'application/json', 'x-realsignal-session': iaSessionId() }, body: JSON.stringify(Object.assign({}, body, { sessionId: iaSessionId() })), signal: controller.signal });
-      if (!response.ok) throw Error('IA repair ' + response.status);
+      var response = await fetch(apiBase() + path, { method: 'POST', mode: 'cors', headers: { 'content-type': 'application/json', 'x-realsignal-session': iaSessionId() }, body: JSON.stringify(Object.assign({}, body, { sessionId: iaSessionId() })), signal: controller.signal, keepalive: path === '/ia/playback' });
+      if (!response.ok) {
+        var error = Error('IA repair ' + response.status);
+        error.status = response.status;
+        throw error;
+      }
       return await response.json();
     } finally { clearTimeout(timer); }
   }
@@ -197,6 +238,6 @@
       var preparedStart = query.get('iaPrepared') === '1' && ['10', '150'].includes(String(body.channel));
       return request('/ia/queue', Object.assign({}, body, { iaRepair: true, serverCatalog: true }, preparedStart ? { preparedStart: true } : {}));
     },
-    client: function () { return client || (client = create({ queue: function (body) { return window.RealSignalIAShelf.queue(body); }, report: function (body) { return request('/ia/playback', body); } })); }
+    client: function () { return client || (client = create({ journal: startJournal, queue: function (body) { return window.RealSignalIAShelf.queue(body); }, report: function (body) { return request('/ia/playback', body); } })); }
   };
 })();

@@ -191,6 +191,24 @@ test('failed acknowledgements remain queued for the next refill attempt', async 
   assert.equal(reports, 3); assert.equal(api.peek('10').identifier, 'B');
 });
 
+test('a reopened viewer acknowledges a decoded start lost on tab close before reserving again', async () => {
+  const data = new Map(), online = { value: false }, seen = new Set(), calls = [];
+  const journal = { load: key => data.get(key) || [],
+    add: (key, packet) => data.set(key, [...(data.get(key) || []), packet]),
+    remove: (key, packet) => data.set(key, (data.get(key) || []).filter(row => row.id !== packet.id)) };
+  const options = { journal, queue: async () => { calls.push('queue'); return { items: [item('A'), item('B')].filter(row => !seen.has(row.identifier)) }; },
+    report: async packet => { calls.push(packet.event); if (!online.value) throw Error('tab closed'); seen.add(packet.id); } };
+  const original = runtime().create(options);
+  await original.reserve('10', {});
+  await assert.rejects(original.event('10', item('A'), 'started'), /tab closed/);
+  online.value = true;
+  const reopened = runtime().create(options);
+  await reopened.reserve('10', {});
+  assert.equal(reopened.peek('10').identifier, 'B');
+  assert.deepEqual(calls, ['queue', 'started', 'started', 'started', 'queue']);
+  assert.deepEqual(data.get('10'), [], 'only unacknowledged starts persist');
+});
+
 test('delayed preload cannot strand the first reservation after genuine catalog exhaustion', async () => {
   const { SessionRotation } = await import(pathToFileURL(path.join(root, 'realsignal_api_rotation.js')));
   const rotation = new SessionRotation(rotationContext(), {});

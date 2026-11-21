@@ -16,13 +16,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · Retro Cable 7.4.5</title>
+<title>REALSIGNAL · Retro Cable 7.4.6</title>
 <meta name="realsignal-ia-repair-channels" content="*">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=7.2.19"></script>
-<script src="assets/ia-playback-shelf.js?v=7.4.5"></script>
+<script src="assets/ia-playback-shelf.js?v=7.4.6"></script>
 <script src="assets/sports-programs.js?v=7.0.0"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
 <script src="assets/youtube-embed-runtime.js?v=7.2.19"></script>
@@ -1741,7 +1741,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="7.4.5-mobile-retro-cable";
+window.__ATV_BUILD="7.4.6-mobile-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7552,7 +7552,7 @@ function iaSessionId(){var key="realsignal:v2-session",value="";try{value=localS
 /* One selected program, two hot verified candidates, and a deeper server
    catalog behind session rotation. The browser never owns freshness. */
 async function iaQueueFetch(body){var requestBody={...body,sessionId:iaSessionId(),serverCatalog:true};requestBody.viewerRecentIds=iaViewerRecentIds(body.channel);requestBody.recentIds=requestBody.viewerRecentIds.concat(Array.isArray(body.recentIds)?body.recentIds:[]).slice(-256);var options={method:"POST",mode:"cors",headers:{"content-type":"application/json","x-realsignal-session":iaSessionId()},body:JSON.stringify(requestBody)},v2Payload=null,v2Error=null;try{var response=await fetch(IA_API_BASE+"/ia/queue",options);if(response.ok){v2Payload=await response.json();if(v2Payload&&Array.isArray(v2Payload.items)&&v2Payload.items.length)return v2Payload;}else v2Error=new Error("v2 queue "+response.status);}catch(e){v2Error=e;}try{var legacy=await fetch(IA_RELAY_BASE+"/queue",options);if(legacy.ok){var legacyPayload=await legacy.json();if(legacyPayload&&Array.isArray(legacyPayload.items)&&legacyPayload.items.length)return legacyPayload;if(!v2Payload)return legacyPayload;}}catch(e){}if(v2Payload)return v2Payload;throw v2Error||new Error("queue unavailable");}
-function iaReportPlayed(ch,it,reason){if(!ch||!it||it.isAd||ch.source)return;var meta=it.meta||{},id=meta.identifier||meta.id||it.identifier||it.id;if(!id)return;iaViewerRecentIds(ch.num,String(id));var sports=typeof window!=="undefined"&&window.RealSignalSports;if(sports&&sports.enabled(ch.num)){var eventKey=sports.key(Object.assign({},it,meta,{identifier:String(id)}),ch.num);if(eventKey&&eventKey!==String(id))iaViewerRecentIds(ch.num,eventKey);}try{fetch(IA_RELAY_BASE+"/played",{method:"POST",mode:"cors",headers:{"content-type":"application/json","x-realsignal-session":iaSessionId()},body:JSON.stringify({channel:String(ch.num||""),id:String(id),title:meta.title||it.title||ch.nm,subject:meta.subject||meta.subjects||it.subject||"",year:meta.year||it.year||"",collection:meta.collection||it.collection||"",lane:meta.lane||it.lane||"",reason:reason||"visible"})}).catch(function(){});}catch(e){}}
+function iaReportPlayed(ch,it,reason){if(!ch||!it||it.isAd||ch.source||window.RealSignalIAShelf?.identityPilot?.(ch.num))return;var meta=it.meta||{},id=meta.identifier||meta.id||it.identifier||it.id;if(!id)return;iaViewerRecentIds(ch.num,String(id));var sports=typeof window!=="undefined"&&window.RealSignalSports;if(sports&&sports.enabled(ch.num)){var eventKey=sports.key(Object.assign({},it,meta,{identifier:String(id)}),ch.num);if(eventKey&&eventKey!==String(id))iaViewerRecentIds(ch.num,eventKey);}try{fetch(IA_RELAY_BASE+"/played",{method:"POST",mode:"cors",headers:{"content-type":"application/json","x-realsignal-session":iaSessionId()},body:JSON.stringify({channel:String(ch.num||""),id:String(id),title:meta.title||it.title||ch.nm,subject:meta.subject||meta.subjects||it.subject||"",year:meta.year||it.year||"",collection:meta.collection||it.collection||"",lane:meta.lane||it.lane||"",reason:reason||"visible"})}).catch(function(){});}catch(e){}}
 function iaViewerRecentIds(channel,playedId){try{var key="iaViewerRecent:"+String(channel),saved=store.get(key,[]),skipped=(store.get("iaSkipLedger",{})||{})[String(channel)],now=Date.now(),ids=(Array.isArray(skipped)?skipped:[]).filter(function(row){return row&&Number(row.at)>now-6*3600e3;}).slice(0,36).reverse().map(function(row){return row.id;}).concat(Array.isArray(saved)?saved:[]);if(playedId)ids.push(playedId);var seen={},out=[];for(var i=ids.length-1;i>=0;i--){var id=ids[i];if(typeof id!=="string"||!id.trim()||id.length>500||/[\r\n]/.test(id)||seen[id])continue;seen[id]=1;out.unshift(id);if(out.length>=256)break;}if(playedId)store.set(key,out);return out;}catch(e){return [];}}
 function iaRelaySearchURL(q,rows,page,sort){return IA_RELAY_BASE+"/search?"+[
   "q="+encodeURIComponent(q),"rows="+encodeURIComponent(rows),"page="+encodeURIComponent(page),"sort="+encodeURIComponent(sort||"downloads desc")].join("&");}
@@ -8917,7 +8917,7 @@ function iaLegacyHandoffMedia(ch,sl,item){
   var media=item&&iaProgramMedia[item.identifier];
   if(!media||typeof media.then==="function"||!media.url)return null;
   var prepared={...media,id:item.identifier,title:iaDisplayTitle({title:media.title||item.title,meta:media.meta,identifier:item.identifier},ch),year:item.year,subject:item.subject||media.subject,_freshnessFallback:!!item._freshnessFallback};
-  if((!prepared._freshnessFallback&&iaSkipBlocked(ch.num,prepared,true))||!iaCachedProgramAllowed(ch,prepared,sl))return null;
+  if(window.RealSignalIAShelf?.repeatInIdentityFallback?.(ch.num,prepared.id)||(!prepared._freshnessFallback&&iaSkipBlocked(ch.num,prepared,true))||!iaCachedProgramAllowed(ch,prepared,sl))return null;
   return prepared;
 }
 function guidePlaybackSnapshot(ch,viewing){
@@ -10081,6 +10081,7 @@ function unlockMedia(){ /* must be called from inside a real user gesture (power
 
 /* play a direct media file in a <video> (audio uses it too) */
 function playFile(it,ch,sl,my,isFallback,archiveHandoff){
+  if(ch&&!ch.source&&it&&!it.isAd&&!it.isSignoff&&window.RealSignalIAShelf?.repeatInIdentityFallback?.(ch.num,it.id))return Promise.resolve(false);
   var sports=window.RealSignalSports;
   if(!sports||!ch||!sports.enabled(ch.num)||!it||it.isAd||it.isSignoff||ch.audio||(typeof document!=="undefined"&&document.body.classList.contains("cast-receiver"))||(typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected()))return playFileOnce(it,ch,sl,my,isFallback,undefined,archiveHandoff);
   function playable(row){var media=row.media||{},meta=Object.assign({},row.meta||{},row);
@@ -10727,6 +10728,9 @@ function setCurItem(it,ch,sl,decoded){
            embedded:!!it.embedded,isAudio:(it.type==="audio"||ch.audio),captions:it.captions||null,
            ch:ch.num,chName:ch.nm,isAd:!!it.isAd,isSignoff:!!it.isSignoff,duration:Number(it.runtime||it.duration||it.meta&&it.meta.media&&it.meta.media.runtime)||null};
   markSeen(curItem.id); /* ads still markSeen (no repeat spots within 3h) but stay out of stats + dedup */
+  if(decoded!==false&&!ch.source&&!it.isAd&&!it.isSignoff&&curItem.id&&window.RealSignalIAShelf?.identityPilot?.(ch.num)){
+    iaViewerRecentIds("identity:"+ch.num,curItem.id);
+  }
   if(iaRepairEnabled(ch)){if(decoded!==false)iaRepairEvent(ch,it,"started");}else iaReportPlayed(ch,it);
   if(!it.isAd){
     const nt=normTitle(curItem.title); if(nt){ recentTitles.unshift(nt); if(recentTitles.length>12)recentTitles.length=12; }

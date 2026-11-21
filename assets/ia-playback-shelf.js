@@ -191,6 +191,14 @@
     fallbackUntil[channel] = Date.now() + 60_000;
     return true;
   }
+  function identityPilot(channel) {
+    return enabled && query.get('iaProgramIdentity') === '1' && query.get('castReceiver') !== '1' &&
+      ['150', '502', '929'].includes(String(channel));
+  }
+  function repeatInIdentityFallback(channel, id) {
+    return identityPilot(channel) && fallbackUntil[channel] > Date.now() &&
+      typeof id === 'string' && iaViewerRecentIds('identity:' + channel).includes(id);
+  }
   function enabledForChannel(channel) {
     // Receiver acknowledgements need their own physical-device certification.
     if (!enabled || fallbackUntil[channel] || query.get('castReceiver') === '1') return false;
@@ -230,7 +238,7 @@
   };
   async function request(path, body) {
     var sessionBody = Object.assign({}, body, { sessionId: iaSessionId() });
-    if (query.get('iaProgramIdentity') === '1') sessionBody.archiveProgramIdentity = true;
+    if (identityPilot(body.channel)) sessionBody.archiveProgramIdentity = true;
     var timeout = wholeLineup && path === '/ia/queue' ? 5500 : 12000;
     var controller = new AbortController(), timer = setTimeout(function () { controller.abort(); }, timeout);
     try {
@@ -245,6 +253,7 @@
   }
   window.RealSignalIAShelf = {
     enabled: enabled, fullRollout: wholeLineup, enabledForChannel: enabledForChannel, beginTune: beginTune, fallbackForChannel: fallbackForChannel, create: create, lifecycle: lifecycle, sameFileAlternate: sameFileAlternate,
+    identityPilot: identityPilot, repeatInIdentityFallback: repeatInIdentityFallback,
     tracksRoutes: tracksRoutes, rankedMedia: rankedMedia, recordRoute: recordRoute, warmMirror: warmMirror,
     queue: function (body) {
       var prepared = query.get('iaPrepared');

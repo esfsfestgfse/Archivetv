@@ -43,8 +43,8 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     assert.equal(audio.video.style.opacity, '0');
   });
 }
-function runtime(search = '?iaRepair=1', pilot = '', castConnected, localStorage, clock = Date) {
-  const scope = { window: { __rsCastIsConnected: castConnected }, URL, URLSearchParams, location: { search }, document: { querySelector: () => pilot ? { content: pilot } : null }, Date:clock, localStorage, Promise, setTimeout, clearTimeout };
+function runtime(search = '?iaRepair=1', pilot = '', castConnected, localStorage, clock = Date, iaViewerRecentIds) {
+  const scope = { window: { __rsCastIsConnected: castConnected }, URL, URLSearchParams, location: { search }, document: { querySelector: () => pilot ? { content: pilot } : null }, Date:clock, localStorage, iaViewerRecentIds, Promise, setTimeout, clearTimeout };
   vm.createContext(scope);
   vm.runInContext(fs.readFileSync(path.join(root, 'assets/ia-playback-shelf.js'), 'utf8'), scope);
   return scope.window.RealSignalIAShelf;
@@ -787,4 +787,46 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file 
   };
   await scope.tuneIARepair(ch, {}, 1);
   assert.equal(played, listed.identifier);
+});
+
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file + ': pilot fallback and its guide skip files already started in the pilot', async () => {
+  const source = fs.readFileSync(path.join(root, file), 'utf8').replace(/\r\n/g, '\n');
+  const ch = { num: 502 }, watched = { id: 'tape::watched.mp4', url: 'watched.mp4' };
+  const history = new Map();
+  let scope;
+  const api = runtime('?iaProgramIdentity=1', '*', undefined, undefined, Date,
+    channel => scope.iaViewerRecentIds(channel));
+  const fresh = { id: 'tape::fresh.mp4', url: 'fresh.mp4' };
+  const played = [];
+  scope = {
+    window: { RealSignalIAShelf: api },
+    store: { get: (key, fallback) => history.get(key) ?? fallback, set: (key, value) => history.set(key, value) },
+    markSeen() {}, iaRepairEnabled: channel => api.enabledForChannel(channel.num), iaRepairEvent() {},
+    iaReportPlayed() {},
+    iaProgramMedia: { [watched.id]: watched, [fresh.id]: fresh },
+    iaDisplayTitle: (_, channel) => String(channel.num), iaSkipBlocked: () => false,
+    iaCachedProgramAllowed: () => true,
+    playFileOnce(media) { played.push(media.id); return Promise.resolve(true); }
+  };
+  vm.createContext(scope);
+  for (const [start, stop] of [['function iaLegacyHandoffMedia(', 'function guidePlaybackSnapshot('], ['function playFile(', 'function playFileOnce(']]) {
+    const at = source.indexOf(start);
+    vm.runInContext(source.slice(at, source.indexOf(stop, at + start.length)), scope);
+  }
+  const recordStart = source.slice(source.indexOf('function setCurItem('));
+  vm.runInContext(recordStart.slice(0, recordStart.indexOf('  if(!it.isAd){')) + '}', scope);
+  const readHistory = source.slice(source.indexOf('function iaViewerRecentIds('), source.indexOf('function iaRelaySearchURL('));
+  vm.runInContext(readHistory, scope);
+  scope.setCurItem(watched, ch, {}, true);
+  scope.setCurItem(fresh, ch, {}, false);
+  assert.deepEqual(Array.from(scope.iaViewerRecentIds('identity:502')), [watched.id]);
+  assert.equal(api.fallbackForChannel(ch.num), true);
+  assert.equal(scope.iaLegacyHandoffMedia(ch, {}, { identifier: watched.id, _freshnessFallback: true }), null);
+  assert.equal(scope.iaLegacyHandoffMedia(ch, {}, { identifier: fresh.id }).id, fresh.id);
+  assert.equal(await scope.playFile(watched, ch), false);
+  assert.equal(await scope.playFile(fresh, ch), true);
+  assert.deepEqual(played, [fresh.id]);
+  scope.window.RealSignalIAShelf = runtime('', '*');
+  assert.equal(scope.window.RealSignalIAShelf.fallbackForChannel(ch.num), true);
+  assert.equal(await scope.playFile(watched, ch), true, 'the normal fallback keeps its current behavior');
 });

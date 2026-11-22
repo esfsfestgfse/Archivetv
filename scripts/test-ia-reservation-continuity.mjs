@@ -257,3 +257,21 @@ test('the hosted preview separates its reservations and failure reports from the
  const unchanged=await(await send('queue',base)).json();
  assert.equal(unchanged.items[0].identifier,normal.items[0].identifier);
 });
+test('VHS warmup can release slow reservations without watching or removing the files',async()=>{
+ const rows=['watchable-a','watchable-b','watchable-c','watchable-d'].map(name=>archiveCopy(name,'tape.mp4',name+' · VHS recording'));
+ const ctx=rotationContext(), session=new SessionRotation(ctx,{});
+ const select=async body=>(await call(session,{stationChannel:'502',archiveProgramIdentity:true,...body})).json();
+ const first=await select({mode:'reserve',items:rows,count:2});
+ const [listed,slow]=first.items;
+ const next=await select({mode:'reserve',warmDeferredIds:[slow.identifier],count:2});
+ assert.equal(next.items[0].identifier,listed.identifier,'a ready listing keeps its reservation');
+ assert.notEqual(next.items[1].identifier,slow.identifier,'a stalled file frees its slot');
+ assert.equal(next.fileCatalogSize,4);
+ assert.deepEqual(next.cooldownIds,[]);
+ assert.equal(next.seen,0);
+ const none=await select({mode:'reserve',warmDeferredIds:rows.map(x=>x.identifier),count:2});
+ assert.deepEqual(none.items,[]);
+ assert.equal(none.cycleReset,false,'temporary deferral cannot reset rotation');
+ const again=await select({mode:'reserve',count:4});
+ assert.ok(again.items.some(x=>x.identifier===slow.identifier),'a subsequent request can use the deferred file');
+});

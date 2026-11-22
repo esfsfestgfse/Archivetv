@@ -466,6 +466,10 @@ export class SessionRotation {
       const raw = typeof item === 'string' ? item : itemId(item);
       return pilot ? canonicalId(raw) : keyFor(canonicalId(raw));
     };
+    const requestedDeferrals = body.rules?.warmDeferredIds || body.warmDeferredIds;
+    const deferred = new Set(pilot && channel === '502' && body.mode === 'reserve' && Array.isArray(requestedDeferrals)
+      ? requestedDeferrals.slice(0,32).filter(id => typeof id === 'string' && id.length > 0 && id.length <= 500).map(copyKey)
+      : []);
     const rejectionKey = pilot ? copyKey : keyFor;
     const rejected = new Set((body.rejectedIds || []).map(rejectionKey));
     const qualified = item => !rejected.has(rejectionKey(item)) && (!body.rules || qualifyIaFileRecord(item, body.rules).accepted);
@@ -489,7 +493,7 @@ export class SessionRotation {
       : id => catalog.find(item => keyFor(item) === keyFor(id));
     const reservedRows = (current.reserved || []).map(findCopy).filter(item => {
       const id = itemId(item);
-      return item && (pilot ? available(item) : !cooldowns[keyFor(canonicalId(id))])
+      return item && (pilot ? available(item) && !deferred.has(copyKey(item)) : !cooldowns[keyFor(canonicalId(id))])
         && keyFor(canonicalId(id)) !== keyFor(canonicalId(current.playing)) && !hasSeen(id);
     });
     let reserved = pilot ? [...firstCopyPerProgram(reservedRows,keyFor).values()].map(itemId)
@@ -529,7 +533,7 @@ export class SessionRotation {
     const recent = new Set((Array.isArray(body.recentIds) ? body.recentIds : []).map(id => keyFor(canonicalId(id))));
     const playable = catalog.filter(item => keyFor(item) !== keyFor(canonicalId(current.playing)) && available(item));
     const preferred = new Map(reserved.map(id => [keyFor(id),id]));
-    const eligible = pilot ? [...firstCopyPerProgram(playable,keyFor,preferred).values()] : playable;
+    const eligible = pilot ? [...firstCopyPerProgram(playable.filter(item => !deferred.has(copyKey(item))),keyFor,preferred).values()] : playable;
     let fresh = eligible.filter(item => !hasSeen(itemId(item)));
     /* Exact-episode freshness is necessary but not sufficient for television.
        A 500-item catalog can still feel repetitive when the next shelf chooses
@@ -539,7 +543,7 @@ export class SessionRotation {
        Reservations are deliberately excluded: preload alone is not a watch. */
     const catalogByEpisode = new Map(catalog.map(item => [keyFor(item), item]));
     const seenFamilies = new Set([...seen].map(id => catalogByEpisode.get(keyFor(id))).filter(Boolean).map(familyFor));
-    const cycleReset = body.mode === "reserve" && !body.deferCycleReset && !fresh.length && eligible.length > 0;
+    const cycleReset = body.mode === "reserve" && !body.deferCycleReset && !deferred.size && !fresh.length && eligible.length > 0;
     const cycleGeneration = (current.cycleGeneration || 0) + (cycleReset ? 1 : 0);
     if (cycleReset) { seen.clear(); seenEpisodes.clear(); sportsSeen.clear(); fresh = eligible; reserved = []; }
     const selected = reserved.map(id => byId.get(id)).filter(Boolean);

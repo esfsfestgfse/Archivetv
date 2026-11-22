@@ -9,13 +9,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 7.4.7</title>
+<title>REALSIGNAL · Retro Cable 7.4.8</title>
 <meta name="realsignal-ia-repair-channels" content="*">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=7.2.19"></script>
-<script src="assets/ia-playback-shelf.js?v=7.4.7"></script>
+<script src="assets/ia-playback-shelf.js?v=7.4.8"></script>
 <script src="assets/sports-programs.js?v=7.0.0"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
 <script src="assets/youtube-embed-runtime.js?v=7.2.1"></script>
@@ -1702,7 +1702,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="7.4.7-desktop-retro-cable";
+window.__ATV_BUILD="7.4.8-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -9645,6 +9645,7 @@ async function preloadNext(ch,sl,my,openingId,watchBackup){
     var readyBackup=window.RealSignalIAShelf.readyBackup?.(ch.num);
     var warmOwner=readyBackup?{}:null;
     if(warmOwner)preloadNext._warmOwner=warmOwner;
+    var lastRefill=null,refilling=false;
     function stage(next){
       if(!next)return;
       iaWarmWanted[key]=Date.now()+120000;
@@ -9654,6 +9655,7 @@ async function preloadNext(ch,sl,my,openingId,watchBackup){
         if(!powered||my!==token||curNum!==ch.num)return;
         stalled.add(warmKey);
         stagePilotReservations();
+        if(readyBackup)refill();
       }:null;
       stageIAMediaWarmer(ch,next,window.RealSignalIAShelf.rankedMedia?.(ch.num,next)||next.media,onStall);
       watchBackup?.(iaMediaWarmers[iaMediaWarmKey(ch,next)]);
@@ -9671,21 +9673,34 @@ async function preloadNext(ch,sl,my,openingId,watchBackup){
       });
       candidates.forEach(stage);
     }
-    try {
+    async function refill(){
+      if(refilling||warmOwner&&preloadNext._warmOwner!==warmOwner)return;
+      var rows=shelf.rows(key);
+      if(rows.length>=(readyBackup||Number(ch.num)===53?5:3)&&
+         (!readyBackup||rows.filter(function(row){return row.identifier!==openingId&&!iaWarmDeferred(ch,row);}).length>=2))return;
+      var deferred=readyBackup?[...iaDeferredWarmFiles].filter(function(entry){
+        return entry[1]>Date.now()&&entry[0].startsWith(key+":");
+      }).map(function(entry){return entry[0].slice(key.length+1);}):[];
+      var fingerprint=deferred.join("\n");
+      if(lastRefill===fingerprint)return;
+      lastRefill=fingerprint;
       var queued=shelf.peek(key);
-      if(pilot)stagePilotReservations();else stage(queued);
-      // Refill behind both ready programs so consecutive skips have a head start.
-      if(shelf.rows(key).length>=(readyBackup||Number(ch.num)===53?5:3))return;
-      await shelf.reserve(key,iaRepairBody(ch,sl));
-      if(!powered||curNum!==ch.num)return;
-      var next=shelf.peek(key);
-      if(my===token&&pilot)stagePilotReservations();
-      if(next&&next.identifier!==(queued&&queued.identifier)){
-        if(my===token&&!pilot)stage(next);
-        refreshGuideData();
-        if(window.RealSignalGuide)window.RealSignalGuide.refresh();
-      }
-    } catch(error){nlog("ia-repair-preload",false,String(error));}
+      refilling=true;
+      try {
+        await shelf.reserve(key,{...iaRepairBody(ch,sl),...(deferred.length?{warmDeferredIds:deferred}:{})});
+        if(!powered||curNum!==ch.num)return;
+        var next=shelf.peek(key);
+        if(my===token&&pilot)stagePilotReservations();
+        if(next&&next.identifier!==(queued&&queued.identifier)){
+          if(my===token&&!pilot)stage(next);
+          refreshGuideData();
+          if(window.RealSignalGuide)window.RealSignalGuide.refresh();
+        }
+      }catch(error){nlog("ia-repair-preload",false,String(error));}
+      finally{refilling=false;}
+    }
+    if(pilot)stagePilotReservations();else stage(shelf.peek(key));
+    await refill();
     return;
   }
   /* This cache belongs to the channel, not a single tune token. Let it complete

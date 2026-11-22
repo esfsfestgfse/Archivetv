@@ -1938,6 +1938,10 @@ async function handleQueue(request, env, ctx, id) {
     const prepared = await handlePreparedIaStart(request, env, ctx, id, body);
     if (prepared) return prepared;
   }
+  const warmDeferredIds = body.iaRepair === true && body.sourceCatalog !== true && body.sessionRefill === true &&
+    String(body.channel) === '502' && archiveIdentityPilot(body.channel, body.archiveProgramIdentity) && Array.isArray(body.warmDeferredIds)
+    ? [...new Set(body.warmDeferredIds.slice(0,32).filter(id => typeof id === 'string' && id.length > 0 && id.length <= 500 && !/[\r\n]/.test(id)))] : [];
+  body = { ...body, warmDeferredIds };
   const requestedServerCatalog = body.serverCatalog === true;
   const catalogCanary = body.catalogCanary === "v2-session";
   const useServerCatalog = requestedServerCatalog && (!catalogCanary || IA_SESSION_CATALOG_CANARY_CHANNELS.has(String(body.channel)));
@@ -1963,10 +1967,12 @@ async function handleQueue(request, env, ctx, id) {
       upstreamBody.hydrationPreferredIds = state.reservationIds || [];
       // Fast skips already have a qualified catalog in the session. Serving
       // it directly keeps a fresh Archive discovery request off that path.
-      const hasDeepSession = preparedStart ? state.catalogSize > IA_PREPARED_START_MAX_ITEMS : String(body.channel) === "150";
-      if (body.sessionRefill === true && hasDeepSession && state.exhaustion?.unseenBeforeSelection >= count) {
+      const hasDeepSession = warmDeferredIds.length > 0 || (preparedStart
+        ? state.catalogSize > IA_PREPARED_START_MAX_ITEMS : String(body.channel) === "150");
+      const readyTarget = warmDeferredIds.length ? 2 : count;
+      if (body.sessionRefill === true && hasDeepSession && state.exhaustion?.unseenBeforeSelection >= readyTarget) {
         const refill = await rotateShelf(env, { ...body, deferCycleReset: true }, { items: [], ready: 0 }, request);
-        if (refill.payload.ready >= count) {
+        if (refill.payload.ready >= readyTarget) {
           if (shouldRefreshShallowCatalog(body.channel, 300_000)) ctx.waitUntil(refreshShallowCatalog(env, request, body, id, state.catalogSize));
           const { items, ready, candidates, v2 } = refill.payload;
           return json({ items, ready, candidates, v2, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, 200, {
@@ -1981,6 +1987,7 @@ async function handleQueue(request, env, ctx, id) {
   delete upstreamBody.session;
   delete upstreamBody.preparedStart;
   delete upstreamBody.archiveProgramIdentity;
+  delete upstreamBody.warmDeferredIds;
   const canonical = canonicalPilotProfile(body.channel);
   if (body.iaRepair !== true && canonicalPilotEnabled(env, body.channel)) {
     const canonicalPayload = canonicalPilotPayload(canonical.manifest, canonical.profile, body, count);

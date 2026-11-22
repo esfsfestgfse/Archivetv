@@ -511,7 +511,11 @@ export class SessionRotation {
       // ordered outbox, so every later refill retries the same 400 forever.
       // This is acknowledgement only: it cannot admit or start unknown media.
       const terminal = body.mode === "commit" && (body.event === "completed" || body.event === "skipped");
-      if (!id || !byId.has(id) && !(terminal && hasSeen(id))) return Response.json({ error: "unknown program identity" }, { status: 400 });
+      if (!id || !byId.has(id) && !(terminal && hasSeen(id))) {
+        // A release of an absent file has nothing to cool down or remove.
+        if (id && body.mode === "release" && body.event === "failed") return Response.json({ disposition: "obsolete" });
+        return Response.json({ error: "unknown program identity" }, { status: 400 });
+      }
       const previousSlot = reserved.indexOf(id);
       reserved = reserved.filter(value => value !== id);
       if (body.mode === "commit") {

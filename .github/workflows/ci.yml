@@ -99,7 +99,7 @@ jobs:
       - name: Test resumable IA search and episode discovery
         run: node --test scripts/test-ia-resumable-discovery.js
       - name: Test one IA playback order and post-start recovery
-        run: node --test scripts/test-ia-playback-order.js
+        run: node --test scripts/test-ia-playback-order.js scripts/test-ia-playback-ack.mjs
       - name: Verify IA reservation continuity after catalog eviction
         run: node --test scripts/test-ia-reservation-continuity.mjs
       - name: Test selected IA file runtime and decoded admission

@@ -871,7 +871,10 @@ async function handleIaPlayback(request, env, ctx, requestId) {
       if (!response.ok) console.warn(JSON.stringify({ event: "ia-played-forward-failed", channel, status: response.status }));
     }).catch(error => console.warn(JSON.stringify({ event: "ia-played-forward-failed", channel, error: String(error).slice(0, 160) }))));
   }
-  return json({ ok: true, channel, id, event, cycleGeneration: Number(acknowledgement.cycleGeneration) || 0 }, 202, { "Cache-Control": "no-store" });
+  const disposition = acknowledgement.disposition === "obsolete"
+    ? { disposition: "obsolete" }
+    : { cycleGeneration: Number(acknowledgement.cycleGeneration) || 0 };
+  return json({ ok: true, channel, id, event, ...disposition }, 202, { "Cache-Control": "no-store" });
 }
 
 function rotateCatalogItems(items, rotation) {

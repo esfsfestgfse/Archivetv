@@ -280,6 +280,7 @@ export function iaReviewedFileAllowed(item, channel) {
     if (source === 'animal-kingdom-david-michod-2010-spa' && /\)\s+SPA(?:\.|$)/i.test(file || title)) return false;
     if (/^(?:ccp-red-house|edgar-von-ghoul[-_]|homv-)/i.test(source) ||
         /\b(?:classic cinema plus|midnight chillers|house of master vyle)\b/i.test(title)) return false;
+    if (/\bcharles[\W_]+laughton[\W_]+directs[\W_]+the[\W_]+night[\W_]+of[\W_]+the[\W_]+hunter\b/i.test([source, title, file].join(' '))) return false;
   }
   if (station === '124' && (/^(?:hammer-frankenstein-film-music|alejandro-jodorowsky-el-ladron-del-arcoiris|homv-)/i.test(source) ||
       /\b(?:hammer frankenstein film music|the rainbow thief|the flesh and the fury|x[ -]posing twins of evil|house of master vyle|orwell.s nightmare)\b/i.test(title))) return false;

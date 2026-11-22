@@ -44,6 +44,8 @@ test('confirmed hosted, off-studio, and soundtrack uploads stay out of Noir and 
   const gate=relay().stationGate;
   const rejected=[['108','ccp-red-house','Classic Cinema Plus #3 (The Red House)'],
     ['108','homv-s-0-e-3-example','House of Master Vyle Presents Swamp Women'],
+    ['108','charles.-laughton.-directs.-the-night-of-the-hunter','Charles Laughton Directs The Night Of The Hunter'],
+    ['108','night-of-the-hunter-extras','Charles Laughton Directs “The Night of the Hunter”'],
     ['124','orwells-nightmare','Orwell’s Nightmare: 1984 · 1984 (1984)'],
     ['124','hammer-frankenstein-film-music','HAMMER FRANKENSTEIN FILM MUSIC'],
     ['124','alejandro-jodorowsky-el-ladron-del-arcoiris','Alejandro Jodorowsky - The Rainbow Thief']];
@@ -53,6 +55,7 @@ test('confirmed hosted, off-studio, and soundtrack uploads stay out of Noir and 
     assert.equal(gate(channel,row),false,title);
   }
   assert.ok(iaReviewedFileAllowed({identifier:'TheRedHouse',title:'The Red House (1947)'},'108'));
+  assert.ok(iaReviewedFileAllowed({identifier:'night-of-the-hunter-1955',title:'The Night of the Hunter (1955)',creator:'Charles Laughton'},'108'));
   assert.ok(iaReviewedFileAllowed({identifier:'xtheunknown',title:'X The Unknown (1956)'},'124'));
 });
 

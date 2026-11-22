@@ -16,13 +16,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · Retro Cable 7.4.14</title>
+<title>REALSIGNAL · Retro Cable 7.4.15</title>
 <meta name="realsignal-ia-repair-channels" content="*">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=7.2.19"></script>
-<script src="assets/ia-playback-shelf.js?v=7.4.14"></script>
+<script src="assets/ia-playback-shelf.js?v=7.4.15"></script>
 <script src="assets/sports-programs.js?v=7.0.0"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
 <script src="assets/youtube-embed-runtime.js?v=7.2.19"></script>
@@ -1727,7 +1727,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
 <script src="assets/weather-networks.js?v=7.0.0"></script>
 <link rel="stylesheet" href="assets/weather-local.css?v=7.0.0">
 <script src="assets/weather-local.js?v=7.0.0"></script>
-<script src="assets/source-program-policy.js?v=7.2.27"></script>
+<script src="assets/source-program-policy.js?v=7.4.15"></script>
 <script src="assets/peertube-media.js?v=7.0.0"></script>
 </head>
 <body>
@@ -1741,7 +1741,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="7.4.14-mobile-retro-cable";
+window.__ATV_BUILD="7.4.15-mobile-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7974,6 +7974,7 @@ function iaReviewedFileAllowed(item, channel) {
     if (source === 'animal-kingdom-david-michod-2010-spa' && /\)\s+SPA(?:\.|$)/i.test(file || title)) return false;
     if (/^(?:ccp-red-house|edgar-von-ghoul[-_]|homv-)/i.test(source) ||
         /\b(?:classic cinema plus|midnight chillers|house of master vyle)\b/i.test(title)) return false;
+    if (/\bcharles[\W_]+laughton[\W_]+directs[\W_]+the[\W_]+night[\W_]+of[\W_]+the[\W_]+hunter\b/i.test([source, title, file].join(' '))) return false;
   }
   if (station === '124' && (/^(?:hammer-frankenstein-film-music|alejandro-jodorowsky-el-ladron-del-arcoiris|homv-)/i.test(source) ||
       /\b(?:hammer frankenstein film music|the rainbow thief|the flesh and the fury|x[ -]posing twins of evil|house of master vyle|orwell.s nightmare)\b/i.test(title))) return false;
@@ -9458,9 +9459,10 @@ async function v2LoadProfile(ch,profile,my,force=false){
 
   var cached=store.get("v2source:"+key,null),cacheValid=!!cached&&Number(cached.version||0)===V2_SOURCE_CACHE_VERSION;
   var cachedItems=Array.isArray(cached&&cached.items)?qualify(cached.items,true):[];
-  var cacheFresh=!force&&cacheValid&&cachedItems.length>=V2_SOURCE_MIN_CATALOG&&Date.now()-Number(cached.at||0)<V2_SOURCE_CACHE_TTL;
+  var cachePruned=Array.isArray(cached?.items)&&cachedItems.length!==cached.items.length;
+  var cacheFresh=!force&&cacheValid&&!(cachePruned&&profile.profileKey==="ia-war-movies")&&cachedItems.length>=V2_SOURCE_MIN_CATALOG&&Date.now()-Number(cached.at||0)<V2_SOURCE_CACHE_TTL;
   if(sourceAudit)sourceAudit("cache-read",{retained:cachedItems.length,stateItems:state.items.length,fresh:cacheFresh});
-  if(Array.isArray(cached&&cached.items)&&cachedItems.length!==cached.items.length)
+  if(cachePruned)
     store.set("v2source:"+key,Object.assign({},cached,{items:cachedItems}));
   if(cacheValid&&!state.items.length&&unseen(cachedItems)){
     var ready=v2CatalogOrder(key,cachedItems.slice(),profile.profileKey);

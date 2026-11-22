@@ -33,9 +33,16 @@ const { DatabaseSync } = require("node:sqlite");
       ["youtube-war-movies", "YouTube", 623],
       ["ia-war-movies", "Internet Archive", 624]
     ];
-    const archiveFilm = reviewedWarFilms("ia-war-movies")[0];
+    const archiveFilm = reviewedWarFilms("ia-war-movies").find(item => item.id === "ia-war:what-price-glory-1926");
+    assert.ok(archiveFilm, "retain the film identity across Archive routes");
+    const stalledRoute = "https://archive.org/download/what-price-glory-1926/What%20Price%20Glory%20(1926).mp4";
+    const staleFilm = { ...archiveFilm, url: stalledRoute };
+    assert.equal(sourcePolicy.allow("ia-war-movies", staleFilm), false, "saved playback must drop the slow route");
+    assert.equal(sourcePolicy.allow("ia-war-movies", archiveFilm), true, "a new copy retains the program's identity");
+    assert.notEqual(archiveFilm.url, stalledRoute);
+    assert.equal(qualifySourceItem(sourceProfile({profileKey:"ia-war-movies"}), staleFilm), null);
     sql.prepare("INSERT INTO programs (id,provider,source_identifier,title,duration_seconds,aspect_ratio,media_url,first_seen_at,last_seen_at) VALUES (?,?,?,?,?,?,?,1,1)")
-      .run(archiveFilm.id, archiveFilm.provider, "legacy-archive-source-id", "Stale catalog title", archiveFilm.duration, archiveFilm.aspectRatio, archiveFilm.url);
+      .run(archiveFilm.id, archiveFilm.provider, "legacy-archive-source-id", "Stale catalog title", archiveFilm.duration, archiveFilm.aspectRatio, stalledRoute);
     sql.prepare("INSERT INTO channel_programs (channel_key,program_id,last_seen_at) VALUES (?,?,1)")
       .run("ia-war-movies", archiveFilm.id);
     const firstFilms = [];
@@ -54,6 +61,15 @@ const { DatabaseSync } = require("node:sqlite");
           vm.runInContext(body.match(new RegExp("^function " + name + "\\(.*$", "m"))[0], browser);
         }
         vm.runInContext(body.match(/^function v2WarFilmOrder\([\s\S]*?^}/m)[0], browser);
+        if (profileKey === "ia-war-movies") {
+          for (const name of ["v2SourceProgramAllowed", "v2PruneSourcePrograms"]) {
+            vm.runInContext(body.match(new RegExp("^function " + name + ".*$", "m"))[0], browser);
+          }
+          const state = { items: [staleFilm, archiveFilm], cursor: 0 };
+          browser.v2PruneSourcePrograms({profileKey}, state);
+          assert.equal(state.items.length, 1);
+          assert.equal(state.items[0].url, archiveFilm.url, "an already loaded shelf must drop the slow file");
+        }
         const movies = reviewedWarFilms(profileKey);
         const watched = movies.find(item => item.year >= 2000);
         saved.set("v2recent:" + profileKey, [watched.id]);
@@ -110,6 +126,11 @@ const { DatabaseSync } = require("node:sqlite");
         assert.ok(initial.items.filter(item => item.year >= 2000).length >= 2, "start with a mix of distinct modern Archive features");
         assert.ok(initial.items.some(item => item.year >= 1980 && item.year < 2000), "keep the middle era in rotation");
         assert.ok(initial.items.some(item => item.year < 1939), "keep the early classics in rotation");
+        assert.equal(items.find(item => item.id === archiveFilm.id)?.url, archiveFilm.url, "status must return the verified replacement");
+        const played = items.filter(item => item.id !== archiveFilm.id).map(item => item.id);
+        const remaining = await (await worker.fetch(request(played), env, ctx)).json();
+        assert.equal(remaining.items[0]?.id, archiveFilm.id, "retain the same title in late rotation");
+        assert.equal(remaining.items[0]?.url, archiveFilm.url, "late rotation must use the verified replacement");
       }
       firstFilms.push([profile, initial.items[0]]);
     }

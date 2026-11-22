@@ -27,6 +27,8 @@
     return disclosed(title)||description.split(/[.!?\n]+/).some(disclosed);
   }
   function allow(profileKey,item){
+    // The retired Archive file stalled at startup. Preserve the film identity for the verified copy.
+    if(profileKey==='ia-war-movies' && /\/(?:download|items)\/what-price-glory-1926\//i.test(String(item&&item.url||'')))return false;
     if(!/^(?:ok|vimeo)-/.test(String(profileKey||''))){
       if(synthetic(item))return false;
       // A podcast named in the program title is its format. A companion

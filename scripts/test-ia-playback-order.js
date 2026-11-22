@@ -830,3 +830,61 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file 
   assert.equal(scope.window.RealSignalIAShelf.fallbackForChannel(ch.num), true);
   assert.equal(await scope.playFile(watched, ch), true, 'the normal fallback keeps its current behavior');
 });
+
+test('VHS preview opens with three reservations and fills backup slots in the background', async () => {
+  const requests = [];
+  const pilot = runtime('?iaProgramIdentity=1', '*');
+  const shelf = pilot.create({ queue: async body => {
+    requests.push([body.count, body.sessionRefill]);
+    return { items: [item('opening')] };
+  } });
+  await shelf.reserve('502', {});
+  await shelf.reserve('502', {});
+  assert.deepEqual(requests, [[3,false],[5,true]]);
+});
+
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file + ': VHS Next skips unresponsive warmups and plays the backup shown in the guide', async () => {
+  const reservations = ['slow-a','slow-b','early-backup','later-backup','last-backup'].map(item);
+  const media = [], timers = new Map(), played = [];
+  const key = row => '502:' + row.identifier;
+  const api = { ...runtime('?iaProgramIdentity=1','*'), client: () => shelf };
+  const scope = {
+    window: { RealSignalIAShelf: api, RealSignalGuideContract: require('../assets/guide-contract.js') },
+    powered: true, token: 1, curNum: 502, Date, curItem: null, curVideo: null, liveGuideState: {}, IA_READY_TARGET: 3,
+    iaRepairEnabled: () => true, iaCachedProgramAllowed: () => true, iaRepairBody: () => ({}),
+    iaDisplayTitle: row => row.title, slotFor: () => ({}), nlog() {}, refreshGuideData() {},
+    iaRepairEvent() {}, iaRetry() { assert.fail('a decoded backup is available'); },
+    playFile: async row => { played.push(row.id); return true; },
+    setTimeout(fn, ms) { const id = timers.size + media.length + 1; timers.set(id, { fn, ms }); return id; },
+    clearTimeout(id) { timers.delete(id); },
+    document: { createElement() {
+      const el = Object.assign(new EventTarget(), { readyState: 0, videoWidth: 0,
+        pause() {}, load() {}, removeAttribute() { delete this.src; } });
+      media.push(el); return el;
+    } }
+  };
+  let rows = reservations.slice(0,3);
+  const shelf = { peek: () => rows[0], rows: () => rows,
+    async reserve() { rows = reservations; return rows; } };
+  const source = fs.readFileSync(path.join(root, file), 'utf8');
+  vm.createContext(scope);
+  const blocks = [['var iaMediaWarmers=', 'function warmIAQueueHead('], ['async function preloadNext(', 'function schedulePreload('],
+    ['function iaPilotBuffered(', 'async function tuneIA(ch,sl,my)'], ['function guidePlaybackSnapshot(', 'function guideListing(']];
+  for (const [start, end] of blocks) {
+    const at = source.indexOf(start);
+    vm.runInContext(source.slice(at, source.indexOf(end, at)), scope);
+  }
+  const channel = { num: 502 };
+  scope.curItem = { id: "on-air", ch: 502, title: "On air" };
+  await scope.preloadNext(channel, {}, 1);
+  scope.token = 2;
+  [...timers.values()].filter(timer => timer.ms === 2200).forEach(timer => timer.fn());
+  await scope.preloadNext(channel, {}, 2);
+  assert.deepEqual(Object.keys(scope.iaMediaWarmers).sort(), [key(reservations[2]), key(reservations[3])]);
+  const backup = scope.iaMediaWarmers[key(reservations[2])];
+  Object.assign(backup.el, { readyState: 2, videoWidth: 640, videoHeight: 480, duration: 1800 });
+  backup.el.dispatchEvent(new Event('loadeddata'));
+  assert.equal(scope.guidePlaybackSnapshot(channel).next.id, 'early-backup');
+  await scope.tuneIARepair(channel, {}, 2);
+  assert.deepEqual(played, ['early-backup']);
+});

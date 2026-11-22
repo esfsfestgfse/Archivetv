@@ -52,7 +52,12 @@
       var value = state(key);
       if (value.inflight) return value.inflight;
       var revision;
-      value.inflight = flush(value).then(function () { revision = value.revision; return options.queue(Object.assign({}, body, { channel: String(key), count: String(key) === '53' ? 5 : 3, iaRepair: true, sessionRefill: value.items.length > 0 })); }).then(async function (payload) {
+      value.inflight = flush(value).then(function () {
+        revision = value.revision;
+        var sessionRefill = value.items.length > 0;
+        var count = String(key) === '53' || sessionRefill && readyBackup(key) ? 5 : 3;
+        return options.queue(Object.assign({}, body, { channel: String(key), count: count, iaRepair: true, sessionRefill: sessionRefill }));
+      }).then(async function (payload) {
         // Events overlapping the request must be reconciled in their server cycle,
         // not hidden forever or accidentally resurrected from a stale preload.
         await flush(value);
@@ -195,6 +200,9 @@
     return enabled && query.get('iaProgramIdentity') === '1' && query.get('castReceiver') !== '1' &&
       ['150', '502', '929'].includes(String(channel));
   }
+  function readyBackup(channel) {
+    return String(channel) === '502' && identityPilot(channel);
+  }
   function repeatInIdentityFallback(channel, id) {
     return identityPilot(channel) && fallbackUntil[channel] > Date.now() &&
       typeof id === 'string' && iaViewerRecentIds('identity:' + channel).includes(id);
@@ -253,7 +261,7 @@
   }
   window.RealSignalIAShelf = {
     enabled: enabled, fullRollout: wholeLineup, enabledForChannel: enabledForChannel, beginTune: beginTune, fallbackForChannel: fallbackForChannel, create: create, lifecycle: lifecycle, sameFileAlternate: sameFileAlternate,
-    identityPilot: identityPilot, repeatInIdentityFallback: repeatInIdentityFallback,
+    identityPilot: identityPilot, repeatInIdentityFallback: repeatInIdentityFallback, readyBackup: readyBackup,
     tracksRoutes: tracksRoutes, rankedMedia: rankedMedia, recordRoute: recordRoute, warmMirror: warmMirror,
     queue: function (body) {
       var prepared = query.get('iaPrepared');

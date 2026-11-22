@@ -16,13 +16,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · Retro Cable 7.4.6</title>
+<title>REALSIGNAL · Retro Cable 7.4.7</title>
 <meta name="realsignal-ia-repair-channels" content="*">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=7.2.19"></script>
-<script src="assets/ia-playback-shelf.js?v=7.4.6"></script>
+<script src="assets/ia-playback-shelf.js?v=7.4.7"></script>
 <script src="assets/sports-programs.js?v=7.0.0"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
 <script src="assets/youtube-embed-runtime.js?v=7.2.19"></script>
@@ -1741,7 +1741,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="7.4.6-mobile-retro-cable";
+window.__ATV_BUILD="7.4.7-mobile-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7629,6 +7629,13 @@ function iaMarkProgramFailed(id){if(id)iaProgramFailures[id]=Date.now()+IA_PROGR
    exact element to the player. Six is enough for channel surfing without turning
    the dial into a background download farm. */
 var iaMediaWarmers={}, iaMediaWarmerOrder=[], iaMediaWarmByChannel={}, iaWarmWanted={}, IA_MEDIA_WARM_MAX=6, iaReadyOrder=0;
+var iaDeferredWarmFiles=new Map();
+function iaWarmDeferred(ch,item){return (iaDeferredWarmFiles.get(iaMediaWarmKey(ch,item))||0)>Date.now();}
+function iaDeferWarmFile(key){
+  iaDeferredWarmFiles.delete(key);
+  iaDeferredWarmFiles.set(key,Date.now()+30000);
+  if(iaDeferredWarmFiles.size>32)iaDeferredWarmFiles.delete(iaDeferredWarmFiles.keys().next().value);
+}
 function iaQueueKey(ch){return String((ch&&ch.num)||((ch&&ch.nm)||""));}
 function iaQueueRotationFor(ch){var key=iaQueueKey(ch);if(!Object.prototype.hasOwnProperty.call(iaQueueRotation,key)){var hash=iaRotationSessionSeed;for(var i=0;i<key.length;i++)hash=((hash*33)^key.charCodeAt(i))>>>0;iaQueueRotation[key]=hash%128;}return Math.max(0,Math.min(4095,Math.floor(Number(iaQueueRotation[key])||0)));}
 function iaAdvanceQueueRotation(ch){var key=iaQueueKey(ch);iaQueueRotation[key]=(iaQueueRotationFor(ch)+1)%4096;store.set("iaQueueRotation",iaQueueRotation);}
@@ -7672,6 +7679,7 @@ function stageIAMediaWarmer(ch,item,pl,onStall){
     if(pilot){
       el.addEventListener("loadeddata",function(){
         if(iaMediaWarmers[key]!==warmer||el.readyState<2||!ch.audio&&!(el.videoWidth>0))return;
+        if(window.RealSignalIAShelf.readyBackup?.(ch.num)&&(!(el.videoWidth>el.videoHeight)||!(Number.isFinite(el.duration)&&el.duration>0)))return;
         warmer.readyOrder=++iaReadyOrder;
         clearTimeout(warmer.stallTimer);
         try{window.RealSignalGuide?.refresh();}catch(e){}
@@ -9678,28 +9686,35 @@ setTimeout(warmRapidTune,700);
 /* Clock-bound appointment programming is retired. Clear settings written by old
    builds so an hour-gated plan can never reappear after an upgrade. */
 try{store.set("stationMgr",false);store.set("plan",{});}catch(e){}
-async function preloadNext(ch,sl,my){
+async function preloadNext(ch,sl,my,openingId,watchBackup){
   if(iaRepairEnabled(ch)){
     if(!powered||my!==token||curNum!==ch.num)return;
     var shelf=window.RealSignalIAShelf.client(),key=iaQueueKey(ch);
     var pilot=window.RealSignalIAShelf.tracksRoutes?.(ch.num)&&(!ch.audio||window.RealSignalIAShelf.fullRollout);
     var stalled=pilot?new Set():null;
+    var readyBackup=window.RealSignalIAShelf.readyBackup?.(ch.num);
+    var warmOwner=readyBackup?{}:null;
+    if(warmOwner)preloadNext._warmOwner=warmOwner;
     function stage(next){
       if(!next)return;
       iaWarmWanted[key]=Date.now()+120000;
       var onStall=stalled?function(){
+        var warmKey=iaMediaWarmKey(ch,next);
+        if(readyBackup)iaDeferWarmFile(warmKey);
         if(!powered||my!==token||curNum!==ch.num)return;
-        stalled.add(iaMediaWarmKey(ch,next));
+        stalled.add(warmKey);
         stagePilotReservations();
       }:null;
       stageIAMediaWarmer(ch,next,window.RealSignalIAShelf.rankedMedia?.(ch.num,next)||next.media,onStall);
+      watchBackup?.(iaMediaWarmers[iaMediaWarmKey(ch,next)]);
     }
 
     function stagePilotReservations(){
+      if(warmOwner&&preloadNext._warmOwner!==warmOwner)return;
       var candidates=new Map();
       iaPilotBuffered(ch,sl).concat(shelf.rows(key)).forEach(function(row){
         var warmKey=iaMediaWarmKey(ch,row);
-        if(candidates.size<2&&!stalled?.has(warmKey))candidates.set(warmKey,row);
+        if(candidates.size<2&&row.identifier!==openingId&&!stalled?.has(warmKey)&&(!readyBackup||!iaWarmDeferred(ch,row)))candidates.set(warmKey,row);
       });
       Object.keys(iaMediaWarmers).forEach(function(warmKey){
         if(iaMediaWarmers[warmKey].channel===key&&!candidates.has(warmKey))releaseIAMediaWarmer(warmKey,false);
@@ -9710,7 +9725,7 @@ async function preloadNext(ch,sl,my){
       var queued=shelf.peek(key);
       if(pilot)stagePilotReservations();else stage(queued);
       // Refill behind both ready programs so consecutive skips have a head start.
-      if(shelf.rows(key).length>=(Number(ch.num)===53?5:3))return;
+      if(shelf.rows(key).length>=(readyBackup||Number(ch.num)===53?5:3))return;
       await shelf.reserve(key,iaRepairBody(ch,sl));
       if(!powered||curNum!==ch.num)return;
       var next=shelf.peek(key);
@@ -9853,20 +9868,22 @@ function iaPilotBuffered(ch,sl){
 }
 function iaRepairSpare(ch,currentId){
   return window.RealSignalIAShelf.client().rows(iaQueueKey(ch)).find(function(item){
-    return item.identifier!==currentId&&item.media.type===(ch.audio?"audio":"video");
+    return item.identifier!==currentId&&item.media.type===(ch.audio?"audio":"video")&&(!window.RealSignalIAShelf.readyBackup?.(ch.num)||!iaWarmDeferred(ch,item));
   });
 }
 async function tuneIARepair(ch,sl,my){
   var shelf=window.RealSignalIAShelf.client(),key=iaQueueKey(ch),nextBuffered;
   var startDeadline=window.RealSignalIAShelf.fullRollout?Date.now()+8500:0;
+  var readyBackup=window.RealSignalIAShelf.readyBackup?.(ch.num);
+  function nextReservation(){return (readyBackup&&iaRepairSpare(ch,""))||shelf.peek(key);}
   try{
     for(var attempt=0;attempt<3;attempt++){
       if(my!==token||!powered||curNum!==ch.num)return;
       var buffered=nextBuffered||iaPilotBuffered(ch,sl)[0];nextBuffered=null;
-      var item=buffered||shelf.peek(key);
+      var item=buffered||nextReservation();
       if(!item){
         await shelf.reserve(key,iaRepairBody(ch,sl));if(my!==token||!powered||curNum!==ch.num)return;
-        buffered=iaPilotBuffered(ch,sl)[0];item=buffered||shelf.peek(key);
+        buffered=iaPilotBuffered(ch,sl)[0];item=buffered||nextReservation();
       }
       if(!item||!buffered&&startDeadline&&Date.now()>=startDeadline)break;
       var media={...(window.RealSignalIAShelf.rankedMedia?.(ch.num,item)||item.media),id:item.identifier,title:iaDisplayTitle(item,ch),year:item.year,subject:item.subject||item.subjects,meta:item};
@@ -10179,7 +10196,8 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl,archiveHandoff){retur
     clearTimeout(to);
     if(archiveHandoff?.startDeadline)timeout=Math.min(timeout,Math.max(0,archiveHandoff.startDeadline-Date.now()));
     to=setTimeout(function(){
-      const spare=boundedIaStart&&!sportsControl&&my===token&&iaRepairSpare(ch,it.id);
+      const spare=boundedIaStart&&!sportsControl&&my===token&&
+        (routeHealth?.readyBackup?.(ch.num)?iaPilotBuffered(ch,sl)[0]:iaRepairSpare(ch,it.id));
       const warm=spare&&iaMediaWarmers[iaMediaWarmKey(ch,spare)];
       const hasPicture=warm&&!warm.el.error&&warm.el.readyState>=2&&(isAudio||warm.el.videoWidth>0);
       const failedRoute=learnRoute&&my===token&&powered&&!document.hidden&&v.readyState<2?routeHealth.recordRoute(ch.num,it,v.src,null):"";
@@ -10214,7 +10232,7 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl,archiveHandoff){retur
         mirror=routeHealth.warmMirror?.(it,altQ[0],function(){if(v.readyState<2)moveToMirror();});
         if(mirror){if(nativeAudit)nativeAudit("archive-mirror-preload",{id:it.id});return;}
       }
-      if(!spare)return;
+      if(!spare||routeHealth?.readyBackup?.(ch.num))return;
       iaWarmWanted[iaQueueKey(ch)]=Date.now()+120000;
       const backups=sportsControl||fastUnlisted?routeHealth.client().rows(iaQueueKey(ch)).filter(function(row){
         return row.identifier!==it.id&&row.media.type===expectedType;
@@ -10267,7 +10285,7 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl,archiveHandoff){retur
         /* Start the next-item resolver shortly after the first real frame. It
            stays off the tune path, but gives a normal Skip enough lead time to
            use a verified handoff instead of reopening Archive search. */
-        preloadNext._t=setTimeout(function(){ schedulePreload(ch,sl,my); },recovery?0:900);
+        preloadNext._t=setTimeout(function(){ schedulePreload(ch,sl,my); },recovery||routeHealth?.readyBackup?.(ch.num)?0:900);
       }
       if(v.muted&&!muted){ needSound(true); setTimeout(function(){ attemptUnmute(v); },400); }
       if(isAudio){ audioScreen.classList.remove("hide"); audioTitle.textContent=it.title||ch.nm;
@@ -10365,6 +10383,9 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl,archiveHandoff){retur
     for(const warmer of Object.values(iaMediaWarmers)){
       if(warmer.channel===iaQueueKey(ch))watchBufferedProgram(warmer);
     }
+  }
+  if(!done&&archiveHandoff&&routeHealth?.readyBackup?.(ch.num)){
+    preloadNext(ch,sl,my,it.id,canUseBuffered?watchBufferedProgram:null);
   }
   if(!done)tryPlay(); // FIX: was v.play().catch(()=>{}) — a swallowed rejection left the video paused forever
 });}

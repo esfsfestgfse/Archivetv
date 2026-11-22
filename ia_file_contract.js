@@ -274,6 +274,9 @@ export function iaReviewedFileAllowed(item, channel) {
   if (!file) { try { file = decodeURIComponent(new URL(media.url || item.mediaUrl || item.url).pathname.split('/').pop()); } catch (_) {} }
   file = file.split('/').pop();
 
+  if (String(channel) === '108' && source === 'animal-kingdom-david-michod-2010-spa' &&
+      /\)\s+SPA(?:\.|$)/i.test(file || item.title || '')) return false;
+
   if (String(channel) === '575') {
     // Match reviewed Archive files, because a resolution claim in an upload
     // title proves neither the selected derivative's size nor its content.

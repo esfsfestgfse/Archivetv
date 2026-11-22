@@ -257,10 +257,10 @@ test('the hosted preview separates its reservations and failure reports from the
  const unchanged=await(await send('queue',base)).json();
  assert.equal(unchanged.items[0].identifier,normal.items[0].identifier);
 });
-test('VHS warmup can release slow reservations without watching or removing the files',async()=>{
+for (const [channel, pilot] of [['502', true], ['108', false]]) test(channel + ': warmup can release slow reservations without watching or removing the files',async()=>{
  const rows=['watchable-a','watchable-b','watchable-c','watchable-d'].map(name=>archiveCopy(name,'tape.mp4',name+' · VHS recording'));
  const ctx=rotationContext(), session=new SessionRotation(ctx,{});
- const select=async body=>(await call(session,{stationChannel:'502',archiveProgramIdentity:true,...body})).json();
+ const select=async body=>(await call(session,{stationChannel:channel,archiveProgramIdentity:pilot,...body})).json();
  const first=await select({mode:'reserve',items:rows,count:2});
  const [listed,slow]=first.items;
  const next=await select({mode:'reserve',warmDeferredIds:[slow.identifier],count:2});
@@ -339,5 +339,9 @@ test('film credits outrank Archive upload years and documentary extras stay off 
  assert.equal(archiveMovieReleaseYear({title:'01 East Side Kids',year:2015}),0);
  assert.equal(archiveMovieAllowed({title:"Orwell’s Nightmare (Several Screen Adaptations + BONUS) · Orwell - 2+2=5 (Full 2025 Documentary)",year:2026},'124'),false);
  assert.equal(archiveMovieAllowed({title:'Western Movie Marathon',year:2019},'102'),false);
+ assert.equal(archiveMovieAllowed({title:"Edgar Von Ghoul’s Midnight Chillers — Cause for Alarm",year:2026},'108'),false);
+ assert.equal(archiveMovieAllowed({title:'The Flesh and The Fury — X-Posing Twins of Evil',year:2012},'124'),false);
+ assert.equal(archiveMovieReleaseYear({title:'DEDI Satanic Rites Of Dracula',year:2025}),1973);
+ assert.ok(archiveMovieAllowed({title:'The Woman in Black 2: Angel of Death (2014)',subject:'Hammer Films'},'124'));
  assert.equal(archiveMovieAllowed({title:'Dracula Hammer Horror Film Anthology · #2 The Brides of Dracula (1960)',year:2021},'124'),true);
 });

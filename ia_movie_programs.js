@@ -58,6 +58,7 @@ export function archiveMovieReleaseYear(item = {}) {
     yearValue(filename.replace(RESOLUTION, '').match(trailing)?.[1]);
   const credited = yearValue(item.releaseYear) || embedded;
   if (credited || /\b(?:east side kids|bowery boys)\b/i.test(title)) return credited;
+  if (/\bsatanic rites of dracula\b/i.test(title)) return 1973;
   return yearValue(item.sourceDate) || yearValue(item.date) || yearValue(item.year);
 }
 
@@ -88,6 +89,8 @@ export function archiveMovieAllowed(item, channel) {
   if (id === '102' && /^the year \d{4}\W*$/i.test(title)) return false;
   if (id === '103' && /\bchikan densha\b|^少女惑星/i.test(title)) return false;
   if (id === '112' && /\bcolombian requiem\b/i.test(title)) return false;
+  if (id === '108' && /\b(?:midnight chillers|horror[ -]hosted|horror host)\b/i.test(label)) return false;
+  if (id === '124' && /\b(?:the flesh and the fury|x[ -]posing twins of evil)\b/i.test(label)) return false;
   if (id === '131' && /\b(?:fred and rose west|the kneale tapes)\b/i.test(title)) return false;
   if (id === '700' && /\b(?:tv recording|sing[ -]along songs|christmas concert|christmas parade)\b/i.test(title)) return false;
   if (id === '135' || id === '136') return year >= 1980 && !/\b(?:east side kids|bowery boys)\b/i.test(title);

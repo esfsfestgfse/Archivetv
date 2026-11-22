@@ -7,7 +7,7 @@
 
 import { SessionRotation, archiveIdentityPilot, familyId } from "./realsignal_api_rotation.js";
 import { normalizeIaFileRecord, qualifyIaFileRecord, iaMinimumFileRuntimeSeconds, iaGameShowEraAllowed, iaGameShowYear, iaReviewedCartoonSource, iaKnownVideoPolicyViolation, iaSportingLifeAllowed, iaCourtroomAllowed, iaCookingAllowed, iaHuntingAllowed, iaReviewedFileAllowed } from "./ia_file_contract.js";
-import { archiveMovieChannel, archiveMovieDiscovery, archiveMovieReleaseYear } from "./ia_movie_programs.js";
+import { archiveMovieChannel, archiveMovieDiscovery, archiveMovieReleaseYear, balanceArchiveMovieEras } from "./ia_movie_programs.js";
 import { EdgeRateLimiter } from "./realsignal_api_rate_limit.js";
 import { RokuSession } from "./realsignal_roku_session.js";
 import { CH } from "./channel_registry.js";
@@ -1885,7 +1885,8 @@ async function cachePreparedIaCatalog(env, cache, key, channel) {
     }
   }
   if (families.size < 6 || items.length < IA_PREPARED_START_MIN_ITEMS) return;
-  await cache.put(key, Response.json({ generatedAt: Date.now(), items: items.slice(0, IA_PREPARED_START_MAX_ITEMS) }, {
+  const snapshot = channel === '108' ? balanceArchiveMovieEras(items) : items;
+  await cache.put(key, Response.json({ generatedAt: Date.now(), items: snapshot.slice(0, IA_PREPARED_START_MAX_ITEMS) }, {
     headers: { "Cache-Control": "public, max-age=" + IA_PREPARED_START_MAX_AGE / 1000 },
   }));
 }
@@ -1894,7 +1895,8 @@ async function handlePreparedIaStart(request, env, ctx, id, body) {
   const cache = typeof caches !== "undefined" ? caches.default : null;
   if (!cache) return null;
   const channel = String(body.channel);
-  const key = new Request(new URL("/__realsignal/ia-prepared/v1/" + channel, request.url));
+  const cacheVersion = channel === '108' || channel === '124' ? 'v2' : 'v1';
+  const key = new Request(new URL("/__realsignal/ia-prepared/" + cacheVersion + '/' + channel, request.url));
   try {
     const cached = await cache.match(key);
     const snapshot = cached ? await cached.json() : null;
@@ -1945,8 +1947,9 @@ async function handleQueue(request, env, ctx, id) {
       return prepared;
     }
   }
+  const hasReadyBackup = String(body.channel) === '108' || (String(body.channel) === '502' && archiveIdentityPilot(body.channel, body.archiveProgramIdentity));
   const warmDeferredIds = body.iaRepair === true && body.sourceCatalog !== true && body.sessionRefill === true &&
-    String(body.channel) === '502' && archiveIdentityPilot(body.channel, body.archiveProgramIdentity) && Array.isArray(body.warmDeferredIds)
+    hasReadyBackup && Array.isArray(body.warmDeferredIds)
     ? [...new Set(body.warmDeferredIds.slice(0,32).filter(id => typeof id === 'string' && id.length > 0 && id.length <= 500 && !/[\r\n]/.test(id)))] : [];
   body = { ...body, warmDeferredIds };
   const requestedServerCatalog = body.serverCatalog === true;

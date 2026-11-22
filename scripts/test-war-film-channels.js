@@ -107,7 +107,8 @@ const { DatabaseSync } = require("node:sqlite");
       assert.equal(next.items.length, 5);
       assert.ok(!next.items.some(item => item.id === initial.items[0].id), "history must exclude the first film");
       if (profileKey === "ia-war-movies") {
-        assert.ok(initial.items.some(item => item.year >= 2000), "surface the verified modern Archive feature");
+        assert.ok(initial.items.filter(item => item.year >= 2000).length >= 2, "start with a mix of distinct modern Archive features");
+        assert.ok(initial.items.some(item => item.year >= 1980 && item.year < 2000), "keep the middle era in rotation");
         assert.ok(initial.items.some(item => item.year < 1939), "keep the early classics in rotation");
       }
       firstFilms.push([profile, initial.items[0]]);

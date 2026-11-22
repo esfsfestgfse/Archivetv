@@ -470,7 +470,7 @@ export class SessionRotation {
       return copyAware ? canonicalId(raw) : keyFor(canonicalId(raw));
     };
     const requestedDeferrals = body.rules?.warmDeferredIds || body.warmDeferredIds;
-    const deferred = new Set(pilot && channel === '502' && body.mode === 'reserve' && Array.isArray(requestedDeferrals)
+    const deferred = new Set((channel === '108' || pilot && channel === '502') && body.mode === 'reserve' && Array.isArray(requestedDeferrals)
       ? requestedDeferrals.slice(0,32).filter(id => typeof id === 'string' && id.length > 0 && id.length <= 500).map(copyKey)
       : []);
     const rejectionKey = copyAware ? copyKey : keyFor;

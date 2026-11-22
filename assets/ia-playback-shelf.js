@@ -201,6 +201,9 @@
       ['150', '502', '929'].includes(String(channel));
   }
   function readyBackup(channel) {
+    if (String(channel) === '108') {
+      return enabled && (wholeLineup || optIn === '1' || promoted.includes('108')) && query.get('castReceiver') !== '1';
+    }
     return String(channel) === '502' && identityPilot(channel);
   }
   function repeatInIdentityFallback(channel, id) {

@@ -1798,6 +1798,16 @@ function iaDirectRecovery(identifier, sourceIdentifier, fileName, title, subject
 /* Exact Archive derivatives reviewed for original release, editorial fit,
  * duration, geometry and transport. They still pass current verification. */
 const IA_REVIEWED_ERA_FEATURES = [
+  ["108","animal-kingdom-david-michod-2010-spa","Animal kingdom (David Michôd, 2010).ia.mp4","Animal Kingdom (2010)",2010,6513,720,304,"neo-noir film noir independent crime thriller film","eng"],
+  ["116","the.-mack.-1973","The.Mack.1973.DVDRip.DivX-Mkvking.com-Encoded.mp4","The Mack (1973)",1973,6584,640,356,"blaxploitation black exploitation feature film crime film","eng"],
+  ["116","black-belt-jones-1974-bluray","Black Belt Jones (1974).mp4","Black Belt Jones (1974)",1974,5115,854,480,"blaxploitation black exploitation feature film martial arts action film","eng"],
+  ["116","cleopatra-jones-1973-vhs-transfer","CLEOPATRA JONES 1973 VHS TRANSFER.mp4","Cleopatra Jones (1973)",1973,5371,640,480,"blaxploitation black exploitation feature film spy action film","eng"],
+  ["116","truck.-turner.-1974.1080p.-blu-ray.-h-264.-aac-rarbg","Truck.Turner.1974.1080p.BluRay.H264.AAC-RARBG.ia.mp4","Truck Turner (1974)",1974,5498,1920,1040,"blaxploitation black exploitation feature film crime action film","eng"],
+  ["116","ok-6_20261015","OK_6.ia.mp4","Cleopatra Jones and the Casino of Gold (1975)",1975,5773,852,356,"blaxploitation black exploitation feature film spy action film","eng"],
+  ["116","the-black-godfather-1974","The Black Godfather (1974).ia.mp4","The Black Godfather (1974)",1974,5662,640,480,"blaxploitation black exploitation feature film crime film","eng"],
+  ["116","dolemite.-1975","Dolemite.1975.mp4","Dolemite (1975)",1975,5390,720,388,"blaxploitation black exploitation feature film action comedy film","eng"],
+  ["116","the-human-tornado-1976","The Human Tornado 1976.mp4","The Human Tornado (1976)",1976,5778,854,480,"blaxploitation black exploitation feature film martial arts action comedy film","eng"],
+  ["124","The_Woman_in_Black_2_Angel_of_20191127_0100","The Woman in Black 2_ Angel of____20191127_0100.mp4","The Woman in Black: Angel of Death (2014)",2014,6598,853,480,"hammer horror hammer film productions british supernatural horror feature film","eng"],
   ["108 113","the-last-seduction-1994_202608","The Last Seduction (1994).ia.mp4","The Last Seduction (1994)",1994,6612,1024,576,"neo-noir film noir independent film crime thriller film cult film","eng"],
   ["108 113","red.-rock.-west.-1992","Red.Rock.West.(1992).mp4","Red Rock West (1993)",1993,5891,720,400,"neo-noir film noir independent film crime thriller film cult film","eng"],
   ["105","vhsaa-196","vhsaa-196.mp4","The Watermelon Woman (1996)",1996,5066,720,480,"black cinema african american cinema black-directed film black-led independent film","eng"],
@@ -6085,6 +6095,9 @@ function iaReviewedFileAllowed(item, channel) {
   let file = String(media.fileName || item.fileName || id.split('::')[1] || '');
   if (!file) { try { file = decodeURIComponent(new URL(media.url || item.mediaUrl || item.url).pathname.split('/').pop()); } catch (_) {} }
   file = file.split('/').pop();
+
+  if (String(channel) === '108' && source === 'animal-kingdom-david-michod-2010-spa' &&
+      /\)\s+SPA(?:\.|$)/i.test(file || item.title || '')) return false;
 
   if (String(channel) === '575') {
     // Match reviewed Archive files, because a resolution claim in an upload

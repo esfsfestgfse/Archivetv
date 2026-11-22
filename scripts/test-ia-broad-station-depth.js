@@ -9,6 +9,35 @@ function relay(options={}){
     ';globalThis.f={iaRepairCollectionSeeds,orderedIaEmergencySeeds,queueTitleFamily,stationGate:iaStationQualityGate,archiveEpisodeKey,iaEffectiveVideoMinRuntimeSeconds,iaRepairPublicCatalog,strictRecoveryQueue,themeScore,matchesDeny,applyIaFreshness,expandSeedArchiveContainers,queuePlayable,getIaQueue,scheduleIaExpansion,qualifyIaQueueResponse,consume:(...args)=>worker.queue(...args),setHarvest:fn=>{expandAndCacheIaQueue=fn;},setHydrate:fn=>{hydrateIaQueue=fn;}};',s);return s.f;
 }
 
+test('the reviewed Archive feature files survive specialist channel admission', async () => {
+  const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
+  const f=relay();
+  for(const [channel,titles] of [['108', ['Animal Kingdom (2010)']], ['116', ['The Mack (1973)', 'Black Belt Jones (1974)', 'Cleopatra Jones (1973)',
+    'Truck Turner (1974)', 'Cleopatra Jones and the Casino of Gold (1975)', 'The Black Godfather (1974)',
+    'Dolemite (1975)', 'The Human Tornado (1976)']], ['124', ['The Woman in Black: Angel of Death (2014)']]]) {
+    const seeds=f.orderedIaEmergencySeeds(channel,0);
+    for(const title of titles) {
+      const item=seeds.find(row=>row.title===title);
+      assert.ok(item?.identifier.includes('::'), title);
+      assert.ok(f.stationGate(channel,item), title);
+      const rules={channel,iaRepair:true,themeMinScore:0};
+      assert.equal(catalogFallbackAllowed(item,rules),false,'a seed still needs a current transport check');
+      const checked={...item,media:{...item.media,verification:'transport',verifiedAt:Date.now()}};
+      assert.ok(catalogFallbackAllowed(checked,rules),title);
+    }
+  }
+});
+
+test('the explicitly Spanish-labelled Animal Kingdom file stays out of Noir recovery', async () => {
+  const {iaReviewedFileAllowed}=await import('../ia_file_contract.js');
+  const source='animal-kingdom-david-michod-2010-spa';
+  const item={identifier:source+'::Animal kingdom (David Michôd, 2010) SPA.ia.mp4', sourceIdentifier:source,
+    title:'Animal Kingdom (2010)', language:'eng'};
+  assert.equal(iaReviewedFileAllowed(item,'108'),false);
+  assert.equal(relay().stationGate('108',item),false);
+  assert.equal(iaReviewedFileAllowed(item,'106'),true);
+});
+
 test('Sporting Life cannot promote civic meetings or concert uploads through outdoor subject tags',async()=>{
   const f=relay(),{catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
   const rejected=['Oceanside City Council Meeting - December 7 2016 PART 1','A Conversation with Secretary Sally Jewell','Green Day - The Easter Show 1992 - FULL PERFORMANCE',

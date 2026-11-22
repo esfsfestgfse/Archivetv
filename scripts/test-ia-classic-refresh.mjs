@@ -37,25 +37,27 @@ test('a shallow Classic TV catalog imports repairs promptly without blocking pla
   }finally{Date.now=originalNow;}
 });
 
-for (const channel of ['10', '53', '216', '903']) test(channel + ': a prepared start keeps the foreground off D1 and the relay and retains viewer reservations', async () => {
+for (const channel of ['10', '53', '108', '216', '903']) test(channel + ': a prepared start keeps the foreground off D1 and the relay and retains viewer reservations', async () => {
   const oldCaches = globalThis.caches;
   const cache = new Map(), objects = new Map(), rotationModes = [];
   let catalogReads = 0, relayReads = 0, phase = 'warm';
-  const sports = channel === '53', audio = channel === '903', documentary = channel === '216';
+  const noir = channel === '108', sports = channel === '53', audio = channel === '903', documentary = channel === '216';
   const families = sports ? ['NBA Finals', 'MLB World Series', 'NHL Stanley Cup Finals', 'NFL Super Bowl', 'FIFA World Cup', 'Rose Bowl', 'NCAA College Basketball Duke vs Auburn', 'Masters Tournament']
+    : noir ? Array.from({ length: 108 }, (_, i) => 'Noir Feature ' + (i+1))
     : documentary ? ['Civil Defense', 'Atomic Age', 'Cold War', 'Air Raid', 'Nuclear Test', 'Nuclear Shelter', 'Air Force', 'US Navy']
     : audio ? ['Louis Armstrong', 'Miles Davis', 'Ella Fitzgerald', 'Charles Mingus', 'Duke Ellington', 'Benny Goodman', 'Count Basie', 'Bill Evans']
     : ['Dragnet', 'Benson', 'Jack Benny', 'Get Smart', 'Bonanza', 'Green Acres', 'I Love Lucy', 'The Munsters'];
-  const programs = families.flatMap((family, series) => Array.from({ length: 4 }, (_, episode) => {
-    const source = 'series-' + series, file = 'episode-' + episode + (audio ? '.mp3' : '.mp4'), id = source + '::' + file;
+  const programs = families.flatMap((family, series) => Array.from({ length: noir ? 1 : 4 }, (_, episode) => {
+    const source = (noir && series >= 106 ? 'z-newer-' : 'series-') + series, file = 'episode-' + episode + (audio ? '.mp3' : '.mp4'), id = source + '::' + file;
     const url = 'https://archive.org/download/' + source + '/' + file;
-    const title = sports ? (1990 + episode) + ' ' + family + ' Full Broadcast' : family + ' · Episode ' + episode;
-    const runtime = sports ? 7200 : audio ? 300 : 1320, type = audio ? 'audio' : 'video';
+    const year = noir ? series >= 106 ? 2003 + series - 106 : 1942 : sports ? 1990 + episode : 1965;
+    const title = noir ? family + ' (' + year + ')' : sports ? (1990 + episode) + ' ' + family + ' Full Broadcast' : family + ' · Episode ' + episode;
+    const runtime = sports ? 7200 : noir ? 5400 : audio ? 300 : 1320, type = audio ? 'audio' : 'video';
     return {
       id, source_identifier: source, provider: 'Internet Archive', title,
-      media_type: type, media_url: url, aspect_ratio: audio ? 0 : 4/3, duration_seconds: runtime, year: sports ? String(1990 + episode) : '1965',
+      media_type: type, media_url: url, aspect_ratio: audio ? 0 : 4/3, duration_seconds: runtime, year: String(year),
       metadata_json: JSON.stringify({ seriesTitle: family, fileName: file, media: { type, url, runtime },
-        subject: sports ? 'sports full event broadcast' : audio ? 'jazz instrumental recording' : documentary ? 'cold war civil defense documentary' : 'classic television', runtimeSeconds: runtime, width: 640, height: 480, verification: 'transport', verifiedAt: Date.now() })
+        subject: sports ? 'sports full event broadcast' : audio ? 'jazz instrumental recording' : noir ? 'film noir crime thriller film' : documentary ? 'cold war civil defense documentary' : 'classic television', runtimeSeconds: runtime, width: 640, height: 480, verification: 'transport', verifiedAt: Date.now() })
     };
   }));
   globalThis.caches = { default: {
@@ -89,6 +91,10 @@ for (const channel of ['10', '53', '216', '903']) test(channel + ': a prepared s
     assert.equal(warm.status,200);
     await Promise.all(background.splice(0));
     assert.equal(cache.size,1,'background preparation persists one shared station snapshot');
+    if (noir) {
+      const snapshot = await [...cache.values()][0].clone().json();
+      assert.equal(snapshot.items.filter(item => Number(item.year) >= 2000).length, 2, 'older inventory must not crowd newer noir out of the cached catalog');
+    }
     const reads=[catalogReads,relayReads];
     phase='hit'; rotationModes.length=0;
     const opening=await tune('viewer');
@@ -97,6 +103,7 @@ for (const channel of ['10', '53', '216', '903']) test(channel + ': a prepared s
     const shelf=await opening.json();
     assert.equal(shelf.ready,3);
     assert.equal(new Set(shelf.items.map(i=>i.seriesTitle)).size,3);
+    if (noir) assert.ok(shelf.items.some(item => Number(item.year) >= 2000));
     assert.deepEqual(rotationModes,['reserve'],'the opening avoids a separate history peek');
     const picked=shelf.items[0].identifier;
     const commit=await worker.fetch(new Request('https://api.example/api/v3/ia/playback',{method:'POST',

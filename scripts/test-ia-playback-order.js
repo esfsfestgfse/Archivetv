@@ -831,26 +831,29 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file 
   assert.equal(await scope.playFile(watched, ch), true, 'the normal fallback keeps its current behavior');
 });
 
-test('VHS preview opens with three reservations and fills backup slots in the background', async () => {
+for (const [channel, query] of [['502', '?iaProgramIdentity=1'], ['108', '']]) test(channel + ': opens with three reservations and fills backup slots in the background', async () => {
   const requests = [];
-  const pilot = runtime('?iaProgramIdentity=1', '*');
+  const pilot = runtime(query, '*');
+  assert.equal(runtime('?castReceiver=1', '*').readyBackup(channel), false);
+  assert.equal(runtime('?iaRepair=0', '*').readyBackup(channel), false);
   const shelf = pilot.create({ queue: async body => {
     requests.push([body.count, body.sessionRefill]);
     return { items: [item('opening')] };
   } });
-  await shelf.reserve('502', {});
-  await shelf.reserve('502', {});
+  await shelf.reserve(channel, {});
+  await shelf.reserve(channel, {});
   assert.deepEqual(requests, [[3,false],[5,true]]);
 });
 
-for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file + ': VHS Next skips unresponsive warmups and plays the backup shown in the guide', async () => {
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
+for (const [num, query] of [[502, '?iaProgramIdentity=1'], [108, '']]) test(file + ' ' + num + ': Next skips unresponsive warmups and plays the backup shown in the guide', async () => {
   const reservations = ['slow-a','slow-b','early-backup','later-backup','last-backup'].map(item);
   const media = [], timers = new Map(), played = [];
-  const key = row => '502:' + row.identifier;
-  const api = { ...runtime('?iaProgramIdentity=1','*'), client: () => shelf };
+  const key = row => num + ':' + row.identifier;
+  const api = { ...runtime(query,'*'), client: () => shelf };
   const scope = {
     window: { RealSignalIAShelf: api, RealSignalGuideContract: require('../assets/guide-contract.js') },
-    powered: true, token: 1, curNum: 502, Date, curItem: null, curVideo: null, liveGuideState: {}, IA_READY_TARGET: 3,
+    powered: true, token: 1, curNum: num, Date, curItem: null, curVideo: null, liveGuideState: {}, IA_READY_TARGET: 3,
     iaRepairEnabled: () => true, iaCachedProgramAllowed: () => true, iaRepairBody: () => ({}),
     iaDisplayTitle: row => row.title, slotFor: () => ({}), nlog() {}, refreshGuideData() {},
     iaRepairEvent() {}, iaRetry() { assert.fail('a decoded backup is available'); },
@@ -874,8 +877,8 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file 
     const at = source.indexOf(start);
     vm.runInContext(source.slice(at, source.indexOf(end, at)), scope);
   }
-  const channel = { num: 502 };
-  scope.curItem = { id: "on-air", ch: 502, title: "On air" };
+  const channel = { num };
+  scope.curItem = { id: "on-air", ch: num, title: "On air" };
   await scope.preloadNext(channel, {}, 1);
   scope.token = 2;
   [...timers.values()].filter(timer => timer.ms === 2200).forEach(timer => timer.fn());
@@ -888,6 +891,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file 
   await scope.tuneIARepair(channel, {}, 2);
   assert.deepEqual(played, ['early-backup']);
 });
+}
 
 for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file + ': a decoded VHS backup stays available during a long program', () => {
   const channel = {num:502}, next = item('vhs-backup'), timers = [];

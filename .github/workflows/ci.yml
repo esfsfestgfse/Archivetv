@@ -25,6 +25,7 @@ on:
       - 'assets/ok-embed-runtime.js'
       - 'ia_canonical_station.mjs'
       - 'ia_file_contract.js'
+      - 'ia_movie_programs.js'
       - 'ia_durable_state.js'
       - 'assets/ia-playback-shelf.js'
       - 'ia_canonical_pilot_manifest.js'

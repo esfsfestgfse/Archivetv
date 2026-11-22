@@ -1,6 +1,7 @@
 /* Per-session rotation state for the Version 2 API. A session+channel is the
  * coordination atom; one viewer's Next action cannot consume another's. */
 import { normalizeIaFileRecord, qualifyIaFileRecord, iaKnownVideoPolicyViolation, iaSportingLifeAllowed, iaCourtroomAllowed, iaCookingAllowed, iaHuntingAllowed, iaReviewedFileAllowed } from './ia_file_contract.js';
+import { archiveFilmKey, archiveMovieChannel, balanceArchiveMovieEras } from './ia_movie_programs.js';
 import Sports from './assets/sports-programs.js';
 import { handleIaOwnedState, readIaChunkedState, writeIaChunkedState } from './ia_durable_state.js';
 
@@ -436,17 +437,19 @@ export class SessionRotation {
     const channel = String(body.rules?.channel || body.stationChannel || '');
     const classic = channel === '10' || channel === '12' || channel === '150';
     const pilot = archiveIdentityPilot(channel, body.archiveProgramIdentity || body.rules?.archiveProgramIdentity);
+    const movie = archiveMovieChannel(channel);
+    const copyAware = pilot || movie;
     const families = new Map();
-    const familyFor = pilot ? item => {
+    const familyFor = copyAware ? item => {
       const id = itemId(item);
-      if (!families.has(id)) families.set(id,archiveFamilyId(item,channel));
+      if (!families.has(id)) families.set(id,movie ? archiveFilmKey(item) || familyId(item) : archiveFamilyId(item,channel));
       return families.get(id);
     } : familyId;
     const incoming = cleanItems(body.items, MAX_RESERVATION_ITEMS);
     const identities = new Map();
-    if (classic || pilot) for (const item of [...current.catalog, ...incoming]) {
+    if (classic || copyAware) for (const item of [...current.catalog, ...incoming]) {
       const normalized = normalizeIaFileRecord(item);
-      const key = archiveProgramKey(normalized, channel);
+      const key = movie ? archiveFilmKey(normalized) || normalized.logicalId : archiveProgramKey(normalized, channel);
       identities.set(itemId(item), key);
       identities.set(normalized.logicalId, key);
       if (normalized.fileName) identities.set(normalized.sourceIdentifier + '::' + normalized.fileName, key);
@@ -460,21 +463,21 @@ export class SessionRotation {
       return record.fileName ? record.sourceIdentifier + '::' + record.fileName : itemId(item);
     };
     const fileIds = rows => new Map([...current.catalog, ...rows].map(item => [itemId(item),anExactFile(item)]));
-    let canonicalIds = pilot ? fileIds(incoming) : null;
+    let canonicalIds = copyAware ? fileIds(incoming) : null;
     const canonicalId = id => canonicalIds.get(id) || id;
     const copyKey = item => {
       const raw = typeof item === 'string' ? item : itemId(item);
-      return pilot ? canonicalId(raw) : keyFor(canonicalId(raw));
+      return copyAware ? canonicalId(raw) : keyFor(canonicalId(raw));
     };
     const requestedDeferrals = body.rules?.warmDeferredIds || body.warmDeferredIds;
     const deferred = new Set(pilot && channel === '502' && body.mode === 'reserve' && Array.isArray(requestedDeferrals)
       ? requestedDeferrals.slice(0,32).filter(id => typeof id === 'string' && id.length > 0 && id.length <= 500).map(copyKey)
       : []);
-    const rejectionKey = pilot ? copyKey : keyFor;
+    const rejectionKey = copyAware ? copyKey : keyFor;
     const rejected = new Set((body.rejectedIds || []).map(rejectionKey));
     const qualified = item => !rejected.has(rejectionKey(item)) && (!body.rules || qualifyIaFileRecord(item, body.rules).accepted);
-    const catalog = reservationCatalog(current.catalog.filter(qualified), incoming.filter(qualified), current.seen, keyFor, pilot);
-    if (!pilot) canonicalIds = fileIds(catalog);
+    const catalog = reservationCatalog(current.catalog.filter(qualified), incoming.filter(qualified), current.seen, keyFor, copyAware);
+    if (!copyAware) canonicalIds = fileIds(catalog);
     const byId = new Map(catalog.map(item => [itemId(item),item]));
     const seen = new Set(current.seen.map(canonicalId));
     const seenEpisodes = new Set((current.seenPrograms || []).concat([...seen].map(keyFor)));
@@ -485,18 +488,18 @@ export class SessionRotation {
     const hasSeen = id => seenEpisodes.has(keyFor(canonicalId(id))) || sportsEnabled && sportsById.has(id) && sportsSeen.has(Sports.key(sportsById.get(id),sportsChannel));
     const cooldowns = Object.fromEntries(Object.entries(current.cooldowns || {}).filter(([, until]) => Number(until) > now).map(([id, until]) => [copyKey(id), until]));
     // An old pilot state can still contain one unexpired program cooldown.
-    const available = pilot
+    const available = copyAware
       ? item => !Object.hasOwn(cooldowns, copyKey(item)) && !Object.hasOwn(cooldowns, keyFor(item))
       : item => !cooldowns[keyFor(item)];
-    const findCopy = pilot
+    const findCopy = copyAware
       ? id => byId.get(id) || catalog.find(item => copyKey(item) === copyKey(id))
       : id => catalog.find(item => keyFor(item) === keyFor(id));
     const reservedRows = (current.reserved || []).map(findCopy).filter(item => {
       const id = itemId(item);
-      return item && (pilot ? available(item) && !deferred.has(copyKey(item)) : !cooldowns[keyFor(canonicalId(id))])
+      return item && (copyAware ? available(item) && !deferred.has(copyKey(item)) : !cooldowns[keyFor(canonicalId(id))])
         && keyFor(canonicalId(id)) !== keyFor(canonicalId(current.playing)) && !hasSeen(id);
     });
-    let reserved = pilot ? [...firstCopyPerProgram(reservedRows,keyFor).values()].map(itemId)
+    let reserved = copyAware ? [...firstCopyPerProgram(reservedRows,keyFor).values()].map(itemId)
       : [...new Set(reservedRows.map(itemId))];
     const requestedId = String(body.id || "").trim().slice(0, 500);
     const id = itemId(findCopy(requestedId)) || requestedId;
@@ -523,7 +526,7 @@ export class SessionRotation {
       } else {
         cooldowns[copyKey(id)] = now + 5 * 60_000;
         if (current.playing === id) current.playing = "";
-        if (pilot && previousSlot >= 0 && !hasSeen(id)) {
+        if (copyAware && previousSlot >= 0 && !hasSeen(id)) {
           const backup = catalog.find(item => keyFor(item) === keyFor(id) && available(item));
           if (backup) reserved.splice(previousSlot,0,itemId(backup));
         }
@@ -533,7 +536,7 @@ export class SessionRotation {
     const recent = new Set((Array.isArray(body.recentIds) ? body.recentIds : []).map(id => keyFor(canonicalId(id))));
     const playable = catalog.filter(item => keyFor(item) !== keyFor(canonicalId(current.playing)) && available(item));
     const preferred = new Map(reserved.map(id => [keyFor(id),id]));
-    const eligible = pilot ? [...firstCopyPerProgram(playable.filter(item => !deferred.has(copyKey(item))),keyFor,preferred).values()] : playable;
+    const eligible = copyAware ? [...firstCopyPerProgram(playable.filter(item => !deferred.has(copyKey(item))),keyFor,preferred).values()] : playable;
     let fresh = eligible.filter(item => !hasSeen(itemId(item)));
     /* Exact-episode freshness is necessary but not sufficient for television.
        A 500-item catalog can still feel repetitive when the next shelf chooses
@@ -549,7 +552,7 @@ export class SessionRotation {
     const selected = reserved.map(id => byId.get(id)).filter(Boolean);
     let relaxed = false;
     if (body.mode === "reserve") {
-      const offset = current.cursor || Number(body.rotation) || 0;
+      const offset = current.cursor || Number(body.rotation) || (movie ? Number(body.openingSeed) || 0 : 0);
       const unseenFamilies = fresh.filter(item => !seenFamilies.has(familyFor(item)));
       const repeatFamilies = fresh.filter(item => seenFamilies.has(familyFor(item)));
       let pools = [
@@ -576,7 +579,11 @@ export class SessionRotation {
         };
         for (const pool of pools) pool.sort((a,b) => eraPriority(a) - eraPriority(b));
       }
-      if (!selected.length && !seen.size && Number.isSafeInteger(body.openingSeed) && body.openingSeed >= 0) {
+      if (movie) {
+        const movieHistory = [...seen].map(id => catalogByEpisode.get(keyFor(id))).filter(Boolean);
+        pools = pools.map(pool => balanceArchiveMovieEras(pool, movieHistory));
+      }
+      if (!movie && !selected.length && !seen.size && Number.isSafeInteger(body.openingSeed) && body.openingSeed >= 0) {
         const families = new Map();
         for (const item of pools.find(pool => pool.length) || []) {
           const family = familyFor(item);
@@ -599,18 +606,18 @@ export class SessionRotation {
       reserved = selected.map(itemId);
     }
     const next = { version: 3, catalog, seen: [...seen].slice(-MAX_RESERVATION_ITEMS), reserved,
-      ...(classic || pilot ? {seenPrograms:[...seenEpisodes].filter(key => /^(?:classic|archive):/.test(key)).slice(-MAX_SEEN)} : {}),
+      ...(classic || copyAware ? {seenPrograms:[...seenEpisodes].filter(key => /^(?:classic|archive|film):/.test(key)).slice(-MAX_SEEN)} : {}),
       cooldowns, ...(sportsEnabled ? {sportsChannel:String(sportsChannel),sportsSeen:[...sportsSeen].slice(-MAX_SEEN)} : {}), playing: current.playing || "", cursor: current.cursor + (committed ? 1 : 0), cycleGeneration, updatedAt: now };
     if (body.mode !== "peek") {
       const write = storage => writeIaChunkedState(storage, 'ia-reservation', next);
       await this.ctx.storage.transaction(write);
     }
-    const programs = pilot ? [...catalogByEpisode.values()] : catalog;
+    const programs = copyAware ? [...catalogByEpisode.values()] : catalog;
     const unseen = programs.filter(item => !hasSeen(itemId(item))).length;
-    const priorDepth = pilot ? firstCopyPerProgram(current.catalog,keyFor).size : current.catalog.length;
+    const priorDepth = copyAware ? firstCopyPerProgram(current.catalog,keyFor).size : current.catalog.length;
     return Response.json({ items: selected.slice(0, count), catalog, cursor: next.cursor, cycleReset, cycleGeneration,
       seen: seen.size, seenIds: next.seen, cooldownIds: Object.keys(cooldowns), reservationIds: reserved, reserved: reserved.length, playing: next.playing, catalogSize: programs.length,
-      ...(pilot ? { fileCatalogSize: catalog.length } : {}),
+      ...(copyAware ? { fileCatalogSize: catalog.length } : {}),
       catalogAdded: Math.max(0, programs.length - priorDepth), unseen,
       diversityRelaxed: relaxed, committed, selectionRepeatIds: [],
       exhaustion: { catalogSize: programs.length, seenInCatalog: programs.length - unseen,

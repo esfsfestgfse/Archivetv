@@ -1795,6 +1795,35 @@ function iaDirectRecovery(identifier, sourceIdentifier, fileName, title, subject
   return { identifier, sourceIdentifier, fileName, title, subject, year, recoveryVerified: true, runtime: Number(runtime) > 0 ? Number(runtime) : undefined, width: Number(width) > 0 ? Number(width) : undefined, height: Number(height) > 0 ? Number(height) : undefined, media };
 }
 
+/* Exact Archive derivatives reviewed for original release, editorial fit,
+ * duration, geometry and transport. They still pass current verification. */
+const IA_REVIEWED_ERA_FEATURES = [
+  ["105","vhsaa-196","vhsaa-196.mp4","The Watermelon Woman (1996)",1996,5066,720,480,"black cinema african american cinema black-directed film black-led independent film","eng"],
+  ["105","eves-bayou-1997-1080p-90s-movies-1","Eves Bayou (1997) (1080p)🌻 90's Movies (1).mp4","Eve’s Bayou (1997)",1997,6504,1920,1040,"black cinema african american cinema african american film black-directed film","eng"],
+  ["105","crooklyn-1994","Crooklyn - [1994].mp4","Crooklyn (1994)",1994,6833,1280,688,"black cinema african american cinema spike lee black-directed film","eng"],
+  ["114","ong-bak-720-hd-2003","Ong Bak [720]_HD_(2003).mp4","Ong-Bak: Muay Thai Warrior (2003)",2003,6314,1692,720,"martial arts film kung fu film asian action martial arts","tha"],
+  ["115","Gojira_x_Mekagojira_2002","ゴジラ×メカゴジラ.ia.mp4","Godzilla Against Mechagodzilla (2002)",2002,5292,1280,544,"godzilla kaiju film japanese monster movie toho kaiju","jpn"],
+  ["115","Godzilla-Final-Wars-Japanese-English-Hybrid","Godzilla.Final.Wars.2004.Japanese.1080P.Bluray.H264.Ac3.Dd5.1-1.ia.mp4","Godzilla: Final Wars (2004)",2004,7516,1920,800,"godzilla kaiju film japanese monster movie toho kaiju","jpn"],
+  ["106 119","13-assassins-2010","13 Assassins (2010).mp4","13 Assassins (2010)",2010,8512,1146,480,"jidaigeki samurai chanbara samurai film world cinema japanese cinema foreign film","jpn"],
+  ["106 119","the-twilight-samurai-2002","The Twilight Samurai (2002).mp4","The Twilight Samurai (2002)",2002,7742,886,480,"jidaigeki samurai chanbara samurai film world cinema japanese cinema foreign film","jpn"],
+  ["106 119","the-hidden-blade-2004","The Hidden Blade (2004).ia.mp4","The Hidden Blade (2004)",2004,7925,865,480,"jidaigeki samurai chanbara samurai film world cinema japanese cinema foreign film","jpn"],
+  ["106 120","amores-perros-2000_202510","Amores Perros [2000].mp4","Amores Perros (2000)",2000,9249,848,480,"mexican cinema cine mexicano latin american film foreign film world cinema","spa"],
+  ["106 120","el-mariachi-1992-rated-r-17","El Mariachi 1992 Rated R 17.mp4","El Mariachi (1992)",1992,4896,640,480,"mexican cinema cine mexicano latin american film foreign film world cinema","spa"],
+  ["104 117 135", "Sita_Sings_the_Blues", "SSTB_2009_02_1920x1080.mp4", "Sita Sings the Blues (2008)", 2008, 4910, 640, 360, "independent feature film festival film animated feature musical film music film", "eng"],
+  ["104 117 135", "sedermasochism", "Seder-Masochism final 05-18-18_720p.mp4", "Seder-Masochism (2018)", 2018, 4668, 1280, 720, "independent feature film festival film animated feature musical film music film", "eng"],
+  ["100 101 111 117 131 132 135 701", "Decay2012-TheLhcZombieFilmfullFilm", "Decay_2012_720p.mp4", "Decay (2012)", 2012, 4567, 1280, 640, "horror film science fiction film independent feature film zombie film cult horror british horror low budget horror", "eng"],
+  ["106", "VisionOntv-NastyOldPeopleFeatureFilm625-3", "VisionOntv-NastyOldPeopleFeatureFilm625_512kb.mp4", "Nasty Old People (2009)", 2009, 5065, 427, 240, "foreign film world cinema international film independent feature film", "swe"],
+  ["102 135", "vhs-riders-of-the-purple-sage", "VHS Riders of the Purple Sage.mp4", "Riders of the Purple Sage (1996)", 1996, 7198, 1440, 1080, "western film western movie western feature feature film", "eng"],
+  ["102 135", "blueberry_2004_202606", "Blueberry.2004.1080p.BluRay.DTS.mp4", "Blueberry (2004)", 2004, 7422, 1118, 480, "western film western movie feature film revisionist western", "eng"],
+  ["106", "Bacurau-2019", "VID_20250824_183602_725.ia.mp4", "Bacurau (2019)", 2019, 7866, 1280, 534, "world cinema international film latin american cinema foreign film neo-western", "por"],
+  ["103 135 700", "a.-frosty.-affair.-2015-christmas-rom-com", "-- .A.Frosty.Affair. (2015 Christmas RomCom).mp4", "A Frosty Affair (2015)", 2015, 5770, 1280, 720, "christmas movie christmas film holiday feature romantic comedy film comedy film", "eng"],
+  ["112 135 700", "three_days_2001___570e92822539a", "three_days_2001___570e92822539a.mp4", "Three Days (2001)", 2001, 5161, 476, 360, "christmas movie christmas film family film holiday feature feature film", "eng"],
+].map(([channels, source, file, title, year, runtime, width, height, subject, language]) => ({
+  channels: channels.split(" "),
+  item: { ...iaDirectRecovery(source + "::" + file, source, file, title, subject, year, "video", runtime, width, height),
+    language, genreVerified: true }
+}));
+
 const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
   /* v179 targeted first-frame recovery. These are already-observed IA files
      for the four lanes that remained empty after relay/cache repair. Keeping
@@ -9263,7 +9292,9 @@ function orderedIaEmergencySeeds(channel, rotation) {
   for (let i = 0; i < Math.max(0,...vaultBanks.map(bank => bank.length)); i++) for (const bank of vaultBanks) if (bank[i]) vaultFiles.push(bank[i]);
   const ownedFiles = ["77","78","79"].includes(String(channel)) ? IA_VERIFIED_FILE_DEPTH_RAILS[String(channel)] || [] : [];
   const ownedParents = new Set(ownedFiles.map(item => item.sourceIdentifier)), ownedIds = new Set(ownedFiles.map(item => item.identifier));
-  const rawSeeds = ownedFiles.concat(vaultFiles).concat(IA_HOLIDAY_CONTAINER_SEEDS[String(channel)] || [])
+  const rawSeeds = ownedFiles.concat(vaultFiles)
+    .concat(IA_REVIEWED_ERA_FEATURES.filter(film => film.channels.includes(String(channel))).map(film => film.item))
+    .concat(IA_HOLIDAY_CONTAINER_SEEDS[String(channel)] || [])
     .concat(["10", "12", "20", "22", "52", "55", "56", "57", "58", "59", "60", "61", "62", "63", "64", "65", "66", "71", "72", "80", "81", "83", "118", "128", "150", "200", "201", "204", "212", "510"].includes(String(channel)) ? iaRepairCollectionSeeds(channel).filter(item => item.media) : [])
     .concat(["76","77","78","79"].includes(String(channel)) ? [] : IA_EMERGENCY_SEEDS[String(channel)] || [])
     .concat(IA_LONG_TAIL_EXPANSIONS[String(channel)] || [])
@@ -11542,6 +11573,7 @@ async function getIaQueue(request, url, env, ctx) {
     return json({ error: "queue payload must be JSON" }, 400);
   }
   const channel = String(body && body.channel || "").trim();
+  const movieEraMix = body?.iaRepair === true && body.archiveMovieEraMix === true;
   if (body && body.iaRepair === true) {
     const originalContext = ctx;
     ctx = { iaRepair: true, isIaBackground: Boolean(originalContext && originalContext.isIaBackground), waitUntil: promise => originalContext ? originalContext.waitUntil(promise) : promise };
@@ -11902,7 +11934,19 @@ async function getIaQueue(request, url, env, ctx) {
       !matchesDeny(item, denyTerms) &&
       iaRuntimeAllowed(item, minRuntimeSeconds));
     if (verifiedFileRail.length) {
-      const verifiedWindow = strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds);
+      let verifiedWindow = strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds);
+      if (movieEraMix && channel === "119") {
+        const limit = iaCatalogCandidateBudget(themeMinScore, count);
+        const previous = await sharedQueueGet(env, lastGoodKey);
+        const harvested = (previous?.candidateItems || []).filter(item => iaVerificationCurrent(item));
+        verifiedWindow = mergeIaQueuePayload(verifiedWindow, { items: harvested, candidateItems: harvested }, limit);
+        scheduleIaExpansion(
+          { ...verifiedWindow, lastGoodKey }, iaBackgroundReserveQueries(channel, queries, true),
+          iaBackgroundFallbackQueries(channel, iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes), true),
+          channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity,
+          count, limit, url.origin, cacheKey, sharedKey, env, ctx, rotation, true
+        );
+      }
       const verifiedShelf = applyIaFreshness({
         ...verifiedWindow,
         fileDepthRail: true,

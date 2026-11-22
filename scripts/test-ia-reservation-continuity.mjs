@@ -275,3 +275,40 @@ test('VHS warmup can release slow reservations without watching or removing the 
  const again=await select({mode:'reserve',count:4});
  assert.ok(again.items.some(x=>x.identifier===slow.identifier),'a subsequent request can use the deferred file');
 });
+
+test('Archive film rotation mixes release eras and skips duplicate transfers of a watched feature',async()=>{
+ const classic=archiveCopy('classic-first','Old West (1954).mp4','Old West (1954)',{year:1954});
+ const more=[1956,1959,1964].map(year=>archiveCopy('classic-'+year,'Film '+year+'.mp4','Classic Feature '+year,{year}));
+ const film=archiveCopy('festival-2021-release','The Long Trail (2021).mp4','The Long Trail (2021)',{year:2021});
+ const copy=archiveCopy('independent-hd-transfer','The.Long.Trail.2021.1080p.mp4','The Long Trail (2021) 1080p Blu-ray',{year:2025});
+ const mid=archiveCopy('desert-film-1992','Desert Shadows (1992).mp4','Desert Shadows (1992)',{year:1992});
+ const r=new SessionRotation(rotationContext(),{}), select=async body=>(await call(r,{stationChannel:'102',...body})).json();
+ const opened=await select({mode:'reserve',items:[classic,...more,film,copy,mid],count:3});
+ assert.equal(opened.items[0].identifier,film.identifier);
+ assert.ok(opened.items.some(row=>row.identifier===classic.identifier));
+ assert.ok(opened.items.some(row=>row.identifier===mid.identifier));
+ assert.equal(opened.catalogSize,6);
+ await select({mode:'commit',event:'started',id:film.identifier});
+ await select({mode:'commit',event:'completed',id:film.identifier});
+ const refill=await select({mode:'reserve',count:5});
+ assert.ok(!refill.items.some(row=>row.identifier===copy.identifier));
+ assert.equal(refill.cycleReset,false);
+});
+
+test('Archive movie admission uses the film year and rejects watchalongs from stored or discovered rows', async () => {
+ const {qualifyIaFileRecord}=await import('../ia_file_contract.js');
+ const {archiveMovieDiscovery}=await import('../ia_movie_programs.js');
+ const now=Date.now();
+ const file = (title, year) => ({title,year,identifier:'verified-feature::feature.mp4',
+   media:{url:'https://archive.org/download/verified-feature/feature.mp4',type:'video',runtime:5100,width:1280,height:720,verification:'transport',verifiedAt:now}});
+ const rules={channel:'135',iaRepair:true,mediaTypes:['movies'],queries:['mediatype:movies AND collection:feature_films'],themeTerms:['feature film']};
+ assert.equal(qualifyIaFileRecord(file('Real Archive Movie (2021)',2021),rules,now).accepted,true);
+ assert.equal(qualifyIaFileRecord(file('Old Picture (1953) 2025 Remaster',2025),rules,now).accepted,false);
+ assert.equal(qualifyIaFileRecord(file('Movie Night w PREZOH (2024)',2024),rules,now).accepted,false);
+ const expanded=archiveMovieDiscovery({...rules,channel:'102',themeTerms:['western']});
+ assert.ok(expanded.queries.some(query=>/year:\[2020 TO \d{4}\].*neo-western/.test(query)));
+ assert.ok(expanded.queries.some(query=>/year:\[1980 TO 1999\]/.test(query)));
+ assert.equal(expanded.queries[0],rules.queries[0]);
+ const silent={...rules,channel:'107'};
+ assert.equal(archiveMovieDiscovery(silent),silent,'period identity is preserved');
+});

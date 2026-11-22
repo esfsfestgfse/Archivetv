@@ -6,6 +6,7 @@ on:
     paths:
       - 'realsignal_api_v2_worker.js'
       - 'ia_file_contract.js'
+      - 'ia_movie_programs.js'
       - 'realsignal_roku_session.js'
       - 'realsignal_api_rotation.js'
       - 'assets/sports-programs.js'

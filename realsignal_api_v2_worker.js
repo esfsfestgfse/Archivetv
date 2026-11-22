@@ -7,6 +7,7 @@
 
 import { SessionRotation, archiveIdentityPilot, familyId } from "./realsignal_api_rotation.js";
 import { normalizeIaFileRecord, qualifyIaFileRecord, iaMinimumFileRuntimeSeconds, iaGameShowEraAllowed, iaGameShowYear, iaReviewedCartoonSource, iaKnownVideoPolicyViolation, iaSportingLifeAllowed, iaCourtroomAllowed, iaCookingAllowed, iaHuntingAllowed, iaReviewedFileAllowed } from "./ia_file_contract.js";
+import { archiveMovieChannel, archiveMovieDiscovery, archiveMovieReleaseYear } from "./ia_movie_programs.js";
 import { EdgeRateLimiter } from "./realsignal_api_rate_limit.js";
 import { RokuSession } from "./realsignal_roku_session.js";
 import { CH } from "./channel_registry.js";
@@ -1934,9 +1935,15 @@ async function handleQueue(request, env, ctx, id) {
   const preparedStart = body.preparedStart === true && body.iaRepair === true && body.sourceCatalog !== true &&
     new URL(request.url).pathname.startsWith(V3_PREFIX) && IA_PREPARED_START_CHANNELS.has(String(body.channel)) &&
     Array.isArray(body.mediaTypes) && body.mediaTypes.length === 1 && body.mediaTypes[0] === IA_PREPARED_START_CHANNELS.get(String(body.channel));
+  body = archiveMovieDiscovery(body);
   if (preparedStart && body.sessionRefill !== true) {
     const prepared = await handlePreparedIaStart(request, env, ctx, id, body);
-    if (prepared) return prepared;
+    if (prepared) {
+      if (archiveMovieChannel(body.channel) && shouldRefreshShallowCatalog("film-era-" + body.channel, 300_000)) {
+        ctx.waitUntil(refreshShallowCatalog(env, request, body, id, 0));
+      }
+      return prepared;
+    }
   }
   const warmDeferredIds = body.iaRepair === true && body.sourceCatalog !== true && body.sessionRefill === true &&
     String(body.channel) === '502' && archiveIdentityPilot(body.channel, body.archiveProgramIdentity) && Array.isArray(body.warmDeferredIds)
@@ -2080,7 +2087,7 @@ async function handleQueue(request, env, ctx, id) {
        in older catalogs and collapses duplicate collection/file records. */
     if (body.iaRepair === true) {
       const raw = [...(payload.items || []), ...(payload.candidateItems || [])];
-      body.iaRejectedIds = Array.from(new Set(raw.filter(item => ['failed-media', 'portrait-media', 'short-runtime', 'policy-contamination', 'non-english-edition'].includes(qualifyIaFileRecord(item, body).reason)).map(queueItemKey)));
+      body.iaRejectedIds = Array.from(new Set(raw.filter(item => ['failed-media', 'portrait-media', 'short-runtime', 'policy-contamination', 'non-english-edition', 'off-genre-film-format-or-era'].includes(qualifyIaFileRecord(item, body).reason)).map(queueItemKey)));
     }
     const upstreamItems = uniqueQueueItems(Array.isArray(payload && payload.items) ? payload.items : [], body, catalogLimit);
     const upstreamCandidates = uniqueQueueItems(
@@ -2118,7 +2125,9 @@ async function handleQueue(request, env, ctx, id) {
        allowed to deepen the catalog in the background, but replacing this
        shelf synchronously makes a moving D1 union slide the rotation cursor
        back onto the same opening programs. */
-    if (!relayOwnsRotatedShelf && (upstreamItems.length < count || needsCatalogDepthRepair || needsFreshnessRefill)) {
+    const filmsNeedCoverage = body.archiveMovieEraMix === true &&
+      (upstreamPlayableCandidateDepth < 24 || !upstreamCandidates.some(item => archiveMovieReleaseYear(item) >= 2000));
+    if (filmsNeedCoverage || !relayOwnsRotatedShelf && (upstreamItems.length < count || needsCatalogDepthRepair || needsFreshnessRefill)) {
       try {
         const fallback = await catalogFallback(env, body, Math.max(catalogLimit, count));
         const fallbackItems = fallback && Array.isArray(fallback.candidateItems) && fallback.candidateItems.length ? fallback.candidateItems : (fallback ? fallback.items : []);
@@ -2159,7 +2168,9 @@ async function handleQueue(request, env, ctx, id) {
     ? payload.candidateItems
     : (Array.isArray(payload && payload.items) ? payload.items : []);
   const responseCandidateDepth = responseCandidateItems.filter(queueItemPlayable).length;
-  if (responseCandidateDepth < IA_MIN_ROLLING_CATALOG_DEPTH && shouldRefreshShallowCatalog(body.channel)) {
+  const needsFilmHarvest = body.archiveMovieEraMix === true && (responseCandidateDepth < 32 ||
+    !responseCandidateItems.some(item => archiveMovieReleaseYear(item) >= 2000));
+  if ((needsFilmHarvest || responseCandidateDepth < IA_MIN_ROLLING_CATALOG_DEPTH) && shouldRefreshShallowCatalog(body.channel)) {
     /* Non-fast lanes get the same non-blocking catalog repair. The API still
        returns the current playable shelf immediately; this only makes the
        next request deeper and fresher. */

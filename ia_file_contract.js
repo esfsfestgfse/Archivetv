@@ -1,5 +1,7 @@
 /* File qualification is distinct from discovery and from decoded-frame
    telemetry. Transport verification never claims device decode success. */
+import { archiveMovieAllowed } from './ia_movie_programs.js';
+
 const SHORT_FORM = new Set(['13', '236', '501', '509']);
 // Complete original cartoons, not arbitrary short uploads. The relay has the
 // same reviewed collection identities; admission parity is covered by tests.
@@ -841,6 +843,7 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   if (channel === '150' && item.sourceIdentifier === 'fat-albert-72' && /\((?:alternate version|attention study|1984 version|banned and uncensored version)\)/i.test(text)) return reject('duplicate-edition');
   if (!INTERNATIONAL.has(channel) && /\b(?:dansk tale|dublado|dublagem|deutsche fassung|deutschsprachig|(?:french|german|spanish|italian|portuguese|russian|danish) dub(?:bed)?|dubbed in (?:french|german|spanish|italian|portuguese|russian|danish))\b/i.test(text)) return reject('non-english-edition');
   if (!iaGameShowEraAllowed(item, channel)) return reject('wrong-era');
+  if (!archiveMovieAllowed(item, channel)) return reject('off-genre-film-format-or-era');
   const floor = iaMinimumFileRuntimeSeconds(rules);
   if (!item.runtimeSeconds) return reject('unknown-runtime', true);
   if (channel === '150' && item.runtimeSeconds < 900 && !completeCartoon) return reject('unreviewed-cartoon-short');

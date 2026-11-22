@@ -248,3 +248,162 @@ test('disconnecting Cast cannot leave a legacy guide competing with or blocking 
   h.connect(true); h.context.openGuide(); h.connect(false); h.context.closeGuide();
   assert.equal(h.legacy.classList.contains('show'), false, 'close can still dismiss a legacy guide left by Cast');
 });
+
+if (process.env.ATV_GUIDE_BROWSER_TEST === '1') {
+  test('offline Guide and Settings browser regressions', async t => {
+    const { chromium } = require('playwright');
+    const browser = await chromium.launch({
+      executablePath: process.env.CHROME_PATH || undefined,
+      args: ['--disable-background-networking'],
+    });
+    t.after(() => browser.close());
+
+    for (const [build, viewport] of [
+      ['desktop', { width: 1440, height: 900 }],
+      ['mobile', { width: 320, height: 640 }],
+    ]) {
+      async function check(name, run) {
+        await t.test(build + ': ' + name, async subtest => {
+          const context = await browser.newContext({ viewport, hasTouch: build === 'mobile', serviceWorkers: 'block' });
+          subtest.after(() => context.close());
+          const origin = 'https://realsignal.test';
+          await context.route('**/*', route => {
+            const url = new URL(route.request().url());
+            if (url.origin !== origin) return route.abort();
+            return route.fulfill({ path: path.resolve(root, '.' + url.pathname) });
+          });
+          await context.addInitScript(() => {
+            localStorage.setItem('atv:splashSeen1', 'true');
+            localStorage.setItem('atv:favs', '["Sports Center"]');
+          });
+          const page = await context.newPage();
+          page.setDefaultTimeout(3000);
+          await page.goto(origin + '/the_dial_' + build + '.html');
+          await run(page);
+        });
+      }
+      async function openSettings(page) {
+        await page.locator('#rsV6Menu').click();
+        await page.getByRole('button', { name: 'Settings', exact: true }).press('Enter');
+        return page.getByRole('dialog', { name: 'Settings', exact: true });
+      }
+
+      await check('standby favorite saves and removes across reopen without provider requests', async page => {
+        const guide = page.locator('#rsV6Guide');
+        const close = page.locator('#rsV6GuideClose');
+        const star = page.locator('#rsV6GuideFav-2');
+        const state = () => page.evaluate(() => ({ powered, curNum, favorites: store.get('favs', []) }));
+        await guide.click();
+        const { curNum } = await state();
+        const title = await page.evaluate(() => byNum(2).nm);
+        const requests = [];
+        page.on('request', request => {
+          const url = new URL(request.url());
+          // The independent Cast SDK startup can retry while the Guide is open.
+          if (url.origin !== 'https://www.gstatic.com' || url.pathname !== '/cv/js/sender/v1/cast_sender.js') {
+            requests.push(request.url());
+          }
+        });
+        assert.equal(await star.getAttribute('aria-pressed'), 'false');
+        await star.click();
+        assert.equal(await star.getAttribute('aria-pressed'), 'true', 'standby save updates the star');
+        assert.deepEqual(await state(), { powered: false, curNum, favorites: ['Sports Center', title] });
+        await close.click();
+        await guide.click();
+        assert.equal(await star.getAttribute('aria-pressed'), 'true');
+        await star.click();
+        await close.click();
+        await guide.click();
+        assert.equal(await star.getAttribute('aria-pressed'), 'false');
+        assert.deepEqual(await state(), { powered: false, curNum, favorites: ['Sports Center'] });
+        assert.deepEqual(requests, []);
+      });
+
+      await check('Settings wraps Tab and restores focus through Picture', async page => {
+        const settings = await openSettings(page);
+        const close = settings.getByRole('button', { name: 'Close settings' });
+        const advanced = settings.getByText('Advanced', { exact: true });
+        const focused = locator => locator.evaluate(el => el === document.activeElement);
+        assert.equal(await focused(close), true);
+        await close.press('Shift+Tab');
+        assert.equal(await focused(advanced), true, 'collapsed groups are skipped');
+        await advanced.press('Enter');
+        const reset = settings.locator('#setReset');
+        await reset.press('Tab');
+        assert.equal(await focused(close), true, 'Tab wraps from the last Advanced control');
+        await close.press('Shift+Tab');
+        assert.equal(await focused(reset), true);
+        const pictureLink = settings.locator('#setPicLink');
+        for (const dismiss of ['Escape', 'Close']) {
+          await pictureLink.press('Enter');
+          const picture = page.getByRole('dialog', { name: 'Picture controls' });
+          const closePicture = picture.getByRole('button', { name: 'Close', exact: true });
+          assert.equal(await settings.isVisible(), false);
+          assert.equal(await focused(closePicture), true);
+          await closePicture.press('Shift+Tab');
+          assert.equal(await focused(picture.locator('#picReset')), true);
+          if (dismiss === 'Escape') await page.keyboard.press('Escape');
+          else await closePicture.click();
+          assert.equal(await picture.isVisible(), false);
+          assert.equal(await focused(pictureLink), true);
+        }
+        await settings.locator('#castBridgeUrlInput').press('Escape');
+        assert.equal(await settings.isVisible(), false);
+        assert.equal(await focused(page.locator('#rsV6Menu')), true);
+      });
+
+      await check('preference controls expose their names, states and three Night dim values', async page => {
+        const settings = await openSettings(page);
+        for (const [name, key] of [['Commercials', 'ads'], ['Station bumpers', 'bumpers']]) {
+          const control = settings.getByRole('switch', { name, exact: true });
+          assert.equal(await settings.getByRole('switch', { name, checked: true }).count(), 1, name + ' starts checked');
+          await control.click();
+          assert.equal(await settings.getByRole('switch', { name, checked: false }).count(), 1);
+          assert.equal(await page.evaluate(key => store.get(key), key), false);
+        }
+        for (const [index, mode] of ['Auto', 'On', 'Off', 'Auto'].entries()) {
+          const control = settings.getByRole('button', { name: 'Night dim: ' + mode, exact: true });
+          assert.equal(await control.count(), 1, 'Night dim announces ' + mode);
+          if (index < 3) await control.click();
+        }
+      });
+
+      if (build === 'mobile') {
+        await check('Settings touch targets stay at least 44 by 44 CSS pixels without overlap', async page => {
+          const settings = await openSettings(page);
+          await settings.getByText('Weather location', { exact: true }).click();
+          await settings.getByText('Advanced', { exact: true }).click();
+          const targets = await settings.locator('button, input:not([hidden]), summary').evaluateAll(elements =>
+            elements.map(el => {
+              const rect = el.getBoundingClientRect();
+              const clip = el.closest('.settings-body')?.getBoundingClientRect();
+              const top = Math.max(rect.top, clip?.top ?? 0);
+              const bottom = Math.min(rect.bottom, clip?.bottom ?? innerHeight);
+              const hit = bottom > top && el.contains(document.elementFromPoint(
+                (rect.left + rect.right) / 2, (top + bottom) / 2));
+              return { name: el.id || el.textContent, width: rect.width, height: rect.height,
+                left: rect.left, right: rect.right, top, bottom, hit };
+            }));
+          for (const [index, target] of targets.entries()) {
+            // Translated boxes can round a 44px side down by a fraction of a layout pixel.
+            assert.ok(target.width >= 43.99 && target.height >= 43.99, target.name + ': ' + target.width + ' × ' + target.height);
+            assert.ok(target.left >= 0 && target.right <= viewport.width, target.name + ' fits in the viewport');
+            if (target.bottom <= target.top) continue;
+            assert.ok(target.hit, target.name + ' is reachable in its visible area');
+            for (const other of targets.slice(index + 1)) {
+              if (other.bottom <= other.top) continue;
+              assert.ok(target.right <= other.left || other.right <= target.left ||
+                target.bottom <= other.top || other.bottom <= target.top, target.name + ' overlaps ' + other.name);
+            }
+          }
+          const night = settings.locator('#setNight');
+          const initialWidth = (await night.boundingBox()).width;
+          await night.click();
+          assert.equal((await night.boundingBox()).width, initialWidth);
+          await night.click();
+          assert.equal((await night.boundingBox()).width, initialWidth);
+        });
+      }
+    }
+  });
+}

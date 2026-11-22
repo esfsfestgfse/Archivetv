@@ -1208,8 +1208,8 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
 .settings-group[open]>summary{border-bottom:1px solid rgba(103,255,134,.16);background:rgba(103,255,134,.06)}
 .settings-group[open]>summary::after{content:"−"}
 .settings-group-body{padding:2px 0 5px}
-#settingsOv .settings-row button{min-height:40px}
-#settingsOv .pop-x{font:inherit;font-size:11px;background:transparent;color:inherit;min-height:36px}
+#settingsOv :is(button,input,summary),#picPop .pop-x{min-width:44px;min-height:44px}
+#settingsOv .pop-x,#picPop .pop-x{font:inherit;font-size:11px;background:transparent;color:inherit}
 #settingsOv :focus-visible{outline:2px solid var(--phos);outline-offset:2px}
 .settings-group-body .settings-label{padding-top:8px}
 
@@ -1951,9 +1951,9 @@ window.addEventListener("unhandledrejection",function(e){
 <div class="pop" id="settingsOv" role="dialog" aria-label="Settings">
   <div class="pop-h">Settings <button type="button" class="pop-x" data-close="settingsOv" aria-label="Close settings">Close</button></div>
   <div class="settings-body">
-    <div class="settings-row"><span>Commercials</span><button type="button" class="rbtn xs" id="setAds">On</button></div>
-    <div class="settings-row"><span>Station bumpers</span><button type="button" class="rbtn xs" id="setBumpers">On</button></div>
-    <div class="settings-row"><span>Night dim</span><button type="button" class="rbtn xs" id="setNight">Auto</button></div>
+    <div class="settings-row"><span id="setAdsLabel">Commercials</span><button type="button" class="rbtn xs" id="setAds" role="switch" aria-labelledby="setAdsLabel" aria-checked="true">On</button></div>
+    <div class="settings-row"><span id="setBumpersLabel">Station bumpers</span><button type="button" class="rbtn xs" id="setBumpers" role="switch" aria-labelledby="setBumpersLabel" aria-checked="true">On</button></div>
+    <div class="settings-row"><span>Night dim</span><button type="button" class="rbtn xs" id="setNight" aria-label="Night dim: Auto">Auto</button></div>
     <div class="settings-row"><span>Clock format</span><button type="button" class="rbtn xs" id="setClock">12H</button></div>
     <div class="settings-row"><span>Picture controls</span><button type="button" class="rbtn xs" id="setPicLink">Open</button></div>
     <details class="settings-group"><summary>Weather location</summary><div class="settings-group-body">
@@ -1997,7 +1997,7 @@ window.addEventListener("unhandledrejection",function(e){
   <div class="hist-list" id="diagList"></div>
 </div>
 <div class="pop" id="picPop" role="dialog" aria-label="Picture controls">
-  <div class="pop-h">PICTURE <span class="pop-x" data-close="picPop" role="button" tabindex="0" aria-label="Close">✕</span></div>
+  <div class="pop-h">PICTURE <button type="button" class="pop-x" id="picClose" aria-label="Close">✕</button></div>
   <label class="pic-row"><span>Brightness</span><input type="range" id="picBright" min="50" max="150" value="100"></label>
   <label class="pic-row"><span>Contrast</span><input type="range" id="picContrast" min="50" max="150" value="105"></label>
   <label class="pic-row"><span>Color</span><input type="range" id="picColor" min="0" max="200" value="110"></label>
@@ -10450,9 +10450,13 @@ function pressDigit(d){if(!powered)return;sfxClick();entryBuf+=d;entry.style.dis
   clearTimeout(entryTimer); if(entryBuf.length>=3||!channelEntryCanContinue(entryBuf))commitEntry(); else entryTimer=setTimeout(commitEntry,1500);}
 function commitEntry(){clearTimeout(entryTimer);const n=parseInt(entryBuf,10);entryBuf="";entry.style.display="none";
   if(byNum(n)){lastNum=curNum;tuneNum(n);}else{entry.style.display="block";entry.textContent="--";setTimeout(()=>entry.style.display="none",700);}}
-function toggleFav(targetNum){if(!powered)return;const n=Number.isFinite(Number(targetNum))?Number(targetNum):curNum;const ch=byNum(n);if(!ch)return;
+function toggleFav(targetNum){
+  if(!powered&&!Number.isFinite(targetNum))return;
+  const n=Number.isFinite(Number(targetNum))?Number(targetNum):curNum;const ch=byNum(n);if(!ch)return;
   if(isFav(n))favs=favs.filter(x=>x!==ch.nm);else favs.push(ch.nm);
-  store.set("favs",favs);renderRail();bug.textContent=(isFav(n)?"★ ":"")+"CH "+n;}
+  store.set("favs",favs);
+  if(powered){renderRail();bug.textContent=(isFav(n)?"★ ":"")+"CH "+n;}
+}
 
 function liveLabel(){const ch=byNum(curNum);return ch&&ch.audio?"ON AIR ♪":"ON AIR";}
 function showVolOsd(){volOsd.classList.add("show");volOsdBar.style.width=(muted?0:Math.round(vol*100))+"%";
@@ -10632,7 +10636,6 @@ function applyPicture(){if(screenArea)screenArea.style.filter="brightness("+pic.
 const PIC_MAP=[["picBright","b"],["picContrast","c"],["picColor","s"],["picTint","t"]];
 function wirePicture(){PIC_MAP.forEach(function(p){const el=$(p[0]);if(el){el.value=pic[p[1]];el.addEventListener("input",function(){pic[p[1]]=+el.value;applyPicture();store.set("pic",pic);});}});}
 function resetPicture(){pic={b:100,c:105,s:110,t:8};store.set("pic",pic);applyPicture();PIC_MAP.forEach(function(p){const el=$(p[0]);if(el)el.value=pic[p[1]];});}
-function togglePic(){if(picPop)picPop.classList.toggle("show");}
 
 /* recently-watched histArr */
 function pushHistory(ch,title){if(!title)return;const top=histArr[0];if(top&&top.n===ch.num&&top.t===title)return;
@@ -10698,7 +10701,7 @@ document.addEventListener("visibilitychange",function(){if(document.visibilitySt
         var f=el.querySelector(".pop-x,[tabindex],button,input"); if(f&&f.focus)try{f.focus();}catch(e){} }
       else if(was&&!is&&lastFocus){ try{lastFocus.focus();}catch(e){} lastFocus=null; }
     });});
-    document.querySelectorAll(".pop").forEach(function(pp){ obs.observe(pp,{attributes:true,attributeFilter:["class"],attributeOldValue:true}); });
+    document.querySelectorAll(".pop:not(#settingsOv, #picPop)").forEach(function(pp){ obs.observe(pp,{attributes:true,attributeFilter:["class"],attributeOldValue:true}); });
   }catch(e){}
 })();
 
@@ -11000,11 +11003,14 @@ wire("diagTest",testConn);
 /* ---------- Settings screen: consolidates toggles that used to be scattered across menus ---------- */
 function renderSettings(){
   $("setTVDead").textContent=tvHideDead()?"Hidden":"Shown";
-  var n=$("setNight"); if(n)n.textContent=nightMode[0].toUpperCase()+nightMode.slice(1);
-  var a=$("setAds"); if(a) a.textContent=adsOn?"On":"Off";
+  var n=$("setNight"); if(n){
+    n.textContent=nightMode[0].toUpperCase()+nightMode.slice(1);
+    n.setAttribute("aria-label","Night dim: "+n.textContent);
+  }
+  var a=$("setAds"); if(a){a.textContent=adsOn?"On":"Off";a.setAttribute("aria-checked",adsOn);}
   var c=$("setClock"); if(c) c.textContent=clk24?"24H":"12H";
 
-  var bb=$("setBumpers"); if(bb) bb.textContent=bumperOn?"On":"Off";
+  var bb=$("setBumpers"); if(bb){bb.textContent=bumperOn?"On":"Off";bb.setAttribute("aria-checked",bumperOn);}
 
   var castId=$("castReceiverIdInput"); if(castId&&document.activeElement!==castId)castId.value=(typeof window.__rsCastReceiverId==="function"?window.__rsCastReceiverId():"");
   var castBridge=$("castBridgeUrlInput"); if(castBridge&&document.activeElement!==castBridge)castBridge.value=store.get("castBridgeUrl","http://192.168.1.67:8788")||"";
@@ -11021,15 +11027,42 @@ function closeSettings(){
   settingsOpener=null;
   return true;
 }
-function toggleSettings(){
-  if(closeSettings())return;
+function showSettings(focus){
   var dialog=$("settingsOv");
-  settingsOpener=document.activeElement;
   renderSettings();
   dialog.classList.add("show");
-  dialog.querySelector("button").focus({preventScroll:true});
+  (focus||dialog.querySelector("button")).focus({preventScroll:true});
 }
-
+function toggleSettings(){
+  if(closeSettings())return;
+  settingsOpener=document.activeElement;
+  showSettings();
+}
+function closeSettingsPicture(){
+  picPop.classList.remove("show");
+  showSettings($("setPicLink"));
+}
+function settingsKey(event){
+  var pictureOpen=picPop?.classList.contains("show");
+  var dialog=pictureOpen?picPop:$("settingsOv");
+  if(!dialog?.classList.contains("show"))return;
+  if(event.key==="Escape"){
+    event.preventDefault();
+    event.stopPropagation();
+    if(pictureOpen)closeSettingsPicture();else closeSettings();
+  }else if(event.key==="Tab"){
+    var controls=Array.from(dialog.querySelectorAll("button:not(:disabled),input:not(:disabled),summary")).filter(function(el){
+      var collapsed=el.closest("details:not([open])");
+      return (!collapsed||el===collapsed.firstElementChild)&&el.getClientRects().length;
+    });
+    var first=controls[0],last=controls[controls.length-1],active=document.activeElement;
+    if(!controls.includes(active)||(event.shiftKey?active===first:active===last)){
+      event.preventDefault();
+      (event.shiftKey?last:first)?.focus();
+    }
+  }
+}
+document.addEventListener("keydown",settingsKey,true);
 
 wire("setNight",function(){ cycleNight(); renderSettings(); });
 /* audit-fix Ship A 2026-08-09: #setCRT removed from Settings — CRT now lives as #picCRT slider
@@ -11055,7 +11088,12 @@ wire("setTVDead",function(){store.set("tvHideDead",!tvHideDead());renderSettings
 wire("btnCastReceiverSave",function(){var input=$("castReceiverIdInput"),id=String(input&&input.value||"").trim();if(!id){quickBanner("ENTER A CAST RECEIVER ID");return;}store.set("castReceiverId",id);if(typeof window.__rsCastInit==="function")window.__rsCastInit(true);renderSettings();quickBanner("CHROMECAST RECEIVER SAVED");});
 wire("btnCastBridgeSave",function(){var input=$("castBridgeUrlInput"),raw=String(input&&input.value||"").trim().replace(/\/$/,"");if(raw&&!/^https?:\/\//i.test(raw)){quickBanner("BRIDGE URL MUST START HTTP:// OR HTTPS://");return;}store.set("castBridgeUrl",raw);renderSettings();quickBanner(raw?"CAST BRIDGE SAVED":"CAST BRIDGE DISABLED");});
 
-wire("setPicLink",function(){ toggleSettings(); togglePic(); });
+wire("setPicLink",function(){
+  $("settingsOv").classList.remove("show");
+  picPop.classList.add("show");
+  $("picClose").focus({preventScroll:true});
+});
+wire("picClose",closeSettingsPicture);
 wire("setDiagLink",function(){ toggleSettings(); toggleDiag(); });
 
 /* ---------- Night Dim (ported from mobile — desktop never got this) ---------- */

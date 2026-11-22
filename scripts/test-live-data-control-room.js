@@ -46,20 +46,20 @@ async function testShipMap(page, label, mobile) {
 }
 
 async function installSportsFixtures(page) {
+  const xmlTime = ms => new Date(ms).toISOString().slice(0, 19).replace(/\D/g, "") + " +0000";
+  const start = xmlTime(Date.now() - 60000), stop = xmlTime(Date.now() + 1800000);
+  const programmes = [["fixture-live", "Live Championship"], ["fixture-scheduled", "Scheduled Match"]].map(([id, title]) => '<programme channel="' + id + '" start="' +
+      start + '" stop="' + stop + '"><title>' + title + '</title></programme>').join("");
+  await page.route("**/playlists/tubi_epg.xml", route => route.fulfill({
+    contentType: "application/xml", headers: { "Access-Control-Allow-Origin": "*" },
+    body: "<tv>" + programmes + "</tv>"
+  }));
   await page.evaluate(() => {
     window.fetchSportsIPTV = async () => [
       { name: "Verified Live Arena", url: "https://example.invalid/live.m3u8", tvgId: "fixture-live", src: "Fixture", cat: "Sports", verified: true },
       { name: "Scheduled Unverified Feed", url: "https://example.invalid/scheduled.m3u8", tvgId: "fixture-scheduled", src: "Fixture", cat: "Sports" },
       { name: "Healthy Sports Archive", url: "https://example.invalid/healthy.m3u8", tvgId: "fixture-healthy", src: "Fixture", cat: "Sports", verified: true }
     ];
-    window.fetchEPG = async () => (window.epgNow = {
-      "fixture-live": { title: "Live Championship", start: Date.now() - 60000, stop: Date.now() + 1800000 },
-      "fixture-scheduled": { title: "Scheduled Match", start: Date.now() - 60000, stop: Date.now() + 1800000 }
-    });
-    window.epgFor = (channel) => {
-      const row = window.epgNow && window.epgNow[channel && channel.tvgId];
-      return row ? { title: row.title, left: Math.max(0, Math.round((row.stop - Date.now()) / 60000)), start: row.start } : null;
-    };
     window.fetchSportsData = async () => ({ events: [
       { name: "Active Match", shortName: "Active Match", date: new Date().toISOString(), status: { type: { state: "in", name: "STATUS_IN_PROGRESS", shortDetail: "2nd Half" } }, competitions: [{ competitors: [] }] },
       { name: "Postponed Match", shortName: "Postponed Match", date: new Date().toISOString(), status: { type: { state: "pre", name: "STATUS_POSTPONED", shortDetail: "Postponed" } }, competitions: [{ competitors: [] }] },
@@ -75,10 +75,12 @@ async function testSports(page, label) {
   await page.waitForSelector("#sportsSubPicker", { timeout: 15000 });
   await page.locator('[data-sv="livetv"]').click();
   await page.waitForFunction(() => document.querySelectorAll(".sports-live-card").length === 3);
+  await page.waitForSelector(".sports-live-card.onair");
   if (await page.locator(".sports-live-card.onair").count() !== 1) fail(label + ": Live TV did not isolate one trusted on-air feed");
   if (!/Live Championship/.test(await page.locator(".sports-live-card.onair").textContent())) fail(label + ": live programme metadata disappeared after the EPG rerender");
   await page.locator('[data-sports-live-mode="live"]').click();
   await page.waitForFunction(() => document.querySelectorAll(".sports-live-card").length === 1);
+  if (!/Partial guide coverage/.test(await page.locator("#sportsLiveList").textContent())) fail(label + ": missing warning for partial guide coverage");
   if (!/Verified Live Arena/.test(await page.locator(".sports-live-card").textContent())) fail(label + ": Live Now admitted an unverified or unscheduled feed");
   await page.locator('[data-sports-live-mode="healthy"]').click();
   await page.waitForFunction(() => document.querySelectorAll(".sports-live-card").length === 3);

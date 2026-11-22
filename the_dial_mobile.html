@@ -7461,7 +7461,7 @@ function withTO(p,ms){
   return Promise.race([p,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error("to")),ms);})])
     .finally(()=>clearTimeout(timer));
 }
-function fetchJSON(url){return withTO(fetch(url,{mode:"cors"}).then(r=>{if(!r.ok)throw new Error("http "+r.status);return r.json();}),15000);}
+function fetchJSON(url,signal){return withTO(fetch(url,{mode:"cors",signal:signal}).then(r=>{if(!r.ok)throw new Error("http "+r.status);return r.json();}),15000);}
 /* FIX (root-caused after repeated reports): this app runs as a downloaded file:// page, not a hosted
    site. Some servers' CORS policies don't cooperate with a file:// (null-origin) request even when
    they work fine for every normal hosted origin — which explains why most sources here (weather.gov,
@@ -7478,12 +7478,13 @@ var CORS_RELAYS=[ /* 1.5.2 (live-diagnosed): corsproxy.io now 403s any null-orig
   function(u){return "https://thingproxy.freeboard.io/fetch/"+u;},
   function(u){return "https://corsproxy.io/?url="+encodeURIComponent(u);}
 ];
-function fetchJSONviaProxy(url){
+function fetchJSONviaProxy(url,signal){
   var i=0;
   function tryNext(){
+    if(signal&&signal.aborted) return Promise.reject(signal.reason);
     if(i>=CORS_RELAYS.length) return Promise.reject(new Error("all CORS relays failed"));
     var ru=CORS_RELAYS[i++](url);
-    return withTO(fetch(ru).then(function(r){ if(!r.ok) throw new Error("proxy http "+r.status); return r.json(); }),15000)
+    return withTO(fetch(ru,signal?{signal:signal}:undefined).then(function(r){ if(!r.ok) throw new Error("proxy http "+r.status); return r.json(); }),15000)
       .catch(function(e){ nlog("relay",false,(e&&e.message)||e); return tryNext(); });
   }
   return tryNext();
@@ -7505,7 +7506,7 @@ function sportsCacheBase(){
      every live score request. */
   return "";
 }
-async function fetchSportsData(url,tag){
+async function fetchSportsData(url,tag,signal){
   /* Optional caching + stale-on-error resilience layer for ESPN/TheSportsDB, same shape as the
      stream proxy. Unset by default -- store.get returns "" until configured in SETTINGS, so this
      falls straight through to the existing direct->CORS-relay chain and nothing changes for
@@ -7513,16 +7514,17 @@ async function fetchSportsData(url,tag){
      (unconfigured KV, cold start, network) falls back to the same proven path as before. */
   var base=sportsCacheBase();
   if(base){
-    try{ return await fetchJSON(base+"/?url="+encodeURIComponent(url)); }
+    try{ return await fetchJSON(base+"/?url="+encodeURIComponent(url),signal); }
     catch(e){ nlog(tag||"sportscache",false,"cache proxy failed ("+((e&&e.message)||e)+"), falling back"); }
   }
-  return fetchJSONResilient(url,tag);
+  return fetchJSONResilient(url,tag,signal);
 }
-async function fetchJSONResilient(url,tag){
-  try{ return await fetchJSON(url); }
+async function fetchJSONResilient(url,tag,signal){
+  try{ return await fetchJSON(url,signal); }
   catch(e1){
+    if(signal&&signal.aborted) throw e1;
     nlog(tag||"cors",false,"direct fetch failed ("+((e1&&e1.message)||e1)+"), trying CORS relay\u2026");
-    try{ return await fetchJSONviaProxy(url); }
+    try{ return await fetchJSONviaProxy(url,signal); }
     catch(e2){ nlog(tag||"cors",false,"CORS relay also failed: "+((e2&&e2.message)||e2)); throw e2; }
   }
 }
@@ -12039,6 +12041,9 @@ function ensureRadioCSS(){ if($("radioCSS"))return; var st=document.createElemen
      ±1 stations medium, ±2 stations smaller, ±3 smallest at the edges. */
   st.textContent=
     "#radioPane{position:absolute;inset:0;overflow:hidden;background:#2a1608}"+
+    /* The compact TV remote floats over the picture. Leave its controls and safe area clear. */
+    ".rs-v6-watch.rs-guide-preview #radioPane{bottom:calc(58px + max(10px,env(safe-area-inset-bottom)))}"+
+    "@media(max-width:790px){.rs-v6-watch.rs-guide-preview #radioPane{bottom:calc(90px + max(10px,env(safe-area-inset-bottom)))}}"+
     ".wr-cabinet{position:absolute;inset:0;padding:14px;box-sizing:border-box;"+
       "background:"+
         "repeating-linear-gradient(93deg,rgba(255,255,255,.02) 0 1px,transparent 1px 5px),"+
@@ -12223,8 +12228,8 @@ async function tuneLiveRadio(ch,sl,my){
       '<div class="wr-presets" id="wrPresets"></div>'+
       '<div class="wr-knob right" id="wrTune"><span class="wr-knob-tick"></span></div>'+
       '<span class="wr-knob-lbl right">TUNING</span>'+
-      '<div class="wr-nav"><button type="button" id="wrPrev" aria-label="Previous station">◀ SEEK</button><button type="button" id="wrScan" aria-label="Scan for next healthy station">SCAN</button><button type="button" id="wrMem" aria-label="Save current station to a preset">MEM</button><button type="button" id="wrGuideOpen" aria-label="Open station guide">LIST</button><button type="button" id="wrNext" aria-label="Next station">SEEK ▶</button></div>'+
-      '<div class="wr-guide" id="wrGuide"><div class="wr-guide-head"><span>STATION LOG · LIVE SOURCES</span><button type="button" id="wrGuideClose" aria-label="Close station guide">×</button></div><div class="wr-guide-list" id="wrGuideList"></div></div>'+
+      '<div class="wr-nav"><button type="button" id="wrPrev" aria-label="Previous station">◀ SEEK</button><button type="button" id="wrScan" aria-label="Scan for next healthy station">SCAN</button><button type="button" id="wrMem" aria-label="Save current station to a preset">MEM</button><button type="button" id="wrGuideOpen" aria-controls="wrGuide" aria-expanded="false" aria-label="Open radio station list">LIST</button><button type="button" id="wrNext" aria-label="Next station">SEEK ▶</button></div>'+
+      '<div class="wr-guide" id="wrGuide"><div class="wr-guide-head"><span>STATION LOG · LIVE SOURCES</span><button type="button" id="wrGuideClose" aria-label="Close radio station list">×</button></div><div class="wr-guide-list" id="wrGuideList"></div></div>'+
       '<audio id="raEl"></audio>'+
     '</div></div>';
 
@@ -12236,7 +12241,8 @@ async function tuneLiveRadio(ch,sl,my){
     var ab=(homeLoc&&homeLoc.state)||(li&&li.state)||""; stateName=STATE_NAMES[ab]||""; }catch(e){}
 
   function renderPresets(){var el=$("wrPresets");if(!el)return;el.innerHTML=presets.map(function(s,i){return '<button type="button" class="wr-preset '+(s?"":"empty")+'" data-preset="'+i+'" aria-label="'+(s?"Tune preset "+(i+1)+" "+esch(s.name):"Empty preset "+(i+1))+'">P'+(i+1)+(s?" · "+esch(String(s.name).replace(/\s+/g," ").slice(0,14)):" · EMPTY")+'</button>';}).join("");el.querySelectorAll("[data-preset]").forEach(function(b){b.addEventListener("click",function(){var s=presets[+b.dataset.preset];if(!s)return;var id=radioStationId(s),idx=rbCurrent.findIndex(function(x){return radioStationId(x)===id;});if(idx<0){rbCurrent.unshift(s);idx=0;}tuneTo(idx,true);});});}
-  function renderGuide(){var el=$("wrGuideList");if(!el)return;el.innerHTML=rbCurrent.slice(0,80).map(function(s,i){return '<button type="button" data-guide-index="'+i+'"><strong>'+esch(String(s.name||"Station").replace(/\s+/g," ").slice(0,48))+'</strong><small>'+esch([s.src||"radio-browser",s.country||"",String(s.codec||"").toUpperCase(),s.bitrate?(s.bitrate+"k"):""].filter(Boolean).join(" · "))+'</small></button>';}).join("")||'<div style="grid-column:1/-1;color:#a7b494;padding:16px;text-align:center">No station list yet. Choose a band.</div>';el.querySelectorAll("[data-guide-index]").forEach(function(b){b.addEventListener("click",function(){var idx=+b.dataset.guideIndex;var g=$("wrGuide");if(g)g.classList.remove("show");tuneTo(idx,true);});});}
+  function closeStationList(){ $("wrGuide").classList.remove("show"); $("wrGuideOpen").setAttribute("aria-expanded","false"); }
+  function renderStationList(){var el=$("wrGuideList");if(!el)return;el.innerHTML=rbCurrent.slice(0,80).map(function(s,i){return '<button type="button" data-guide-index="'+i+'"><strong>'+esch(String(s.name||"Station").replace(/\s+/g," ").slice(0,48))+'</strong><small>'+esch([s.src||"radio-browser",s.country||"",String(s.codec||"").toUpperCase(),s.bitrate?(s.bitrate+"k"):""].filter(Boolean).join(" · "))+'</small></button>';}).join("")||'<div style="grid-column:1/-1;color:#a7b494;padding:16px;text-align:center">No station list yet. Choose a band.</div>';el.querySelectorAll("[data-guide-index]").forEach(function(b){b.addEventListener("click",function(){var idx=+b.dataset.guideIndex;closeStationList();tuneTo(idx,true);});});}
   function savePreset(){var s=rbCurrent[curIdx];if(!s){quickBanner("NO STATION TO STORE");return;}var slot=presets.findIndex(function(x){return !x;});if(slot<0)slot=0;presets[slot]=radioPresetRecord(s);radioSavePresets(presets);renderPresets();quickBanner("MEMORY P"+(slot+1)+" · "+String(s.name||"STATION").slice(0,28));}
   function scanStations(){if(!rbCurrent.length)return;scanning=true;var tries=0;function step(){if(my!==token||!powered||!scanning)return;if(tries++>=20){scanning=false;clearTimeout(scanTimer);quickBanner("SCAN COMPLETE · NO MORE HEALTHY STATIONS");return;}tuneTo((curIdx+1)%rbCurrent.length,true);clearTimeout(scanTimer);scanTimer=setTimeout(function(){var au=$("raEl");if(au&&au.readyState>=2&&!au.paused){scanning=false;return;}step();},1400);}step();}
   function play(i){ var s=rbCurrent[i]; if(!s)return;
@@ -12252,7 +12258,7 @@ async function tuneLiveRadio(ch,sl,my){
     var now=$("wrNow"); if(now)now.innerHTML='<b>'+esch((s.name||"Unknown").replace(/\s+/g," ").trim())+'</b>'+
       '<small>'+esch([s.src||"radio",s.state,s.country,String(s.codec||"").toUpperCase()+(s.bitrate?(" "+s.bitrate+"k"):"")].filter(Boolean).join(" \u00b7 ").slice(0,80))+'</small>';
     function failed(){ if(my!==token||attempt!==au.__radioAttempt)return; failureStreak++; radioMarkFailure(s);
-      var deadIdx=rbCurrent.findIndex(function(x){return radioStationId(x)===radioStationId(s);}); if(deadIdx>=0){rbCurrent.splice(deadIdx,1);if(deadIdx<curIdx)curIdx--;if(curIdx>=rbCurrent.length)curIdx=0;renderStrip();var dg=$("wrGuide");if(dg&&dg.classList.contains("show"))renderGuide();}
+      var deadIdx=rbCurrent.findIndex(function(x){return radioStationId(x)===radioStationId(s);}); if(deadIdx>=0){rbCurrent.splice(deadIdx,1);if(deadIdx<curIdx)curIdx--;if(curIdx>=rbCurrent.length)curIdx=0;renderStrip();var dg=$("wrGuide");if(dg&&dg.classList.contains("show"))renderStationList();}
       if(scanning){return;}
       if(failureStreak<=3&&rbCurrent.length>1){ var n=$("wrNow"); if(n)n.innerHTML='<b>'+esch(s.name||"")+'</b><small>signal weak \u00b7 seeking next station</small>'; setTimeout(function(){if(my===token)tuneTo((i+1)%rbCurrent.length,true);},180); }
       else { var n2=$("wrNow"); if(n2)n2.innerHTML='<b>'+esch(s.name||"")+'</b><small>station unavailable \u00b7 press SEEK to continue</small>'; }
@@ -12371,8 +12377,8 @@ async function tuneLiveRadio(ch,sl,my){
   $("wrNext")&&$("wrNext").addEventListener("click",function(){tuneTo(curIdx+1,true);});
   $("wrMem")&&$("wrMem").addEventListener("click",savePreset);
   $("wrScan")&&$("wrScan").addEventListener("click",function(){scanStations();});
-  $("wrGuideOpen")&&$("wrGuideOpen").addEventListener("click",function(){renderGuide();var g=$("wrGuide");if(g)g.classList.add("show");});
-  $("wrGuideClose")&&$("wrGuideClose").addEventListener("click",function(){var g=$("wrGuide");if(g)g.classList.remove("show");});
+  $("wrGuideOpen")&&$("wrGuideOpen").addEventListener("click",function(){renderStationList();var g=$("wrGuide");if(g){g.classList.add("show");this.setAttribute("aria-expanded","true");}});
+  $("wrGuideClose")&&$("wrGuideClose").addEventListener("click",closeStationList);
   var startIdx=stateName?0:1; var se=bandsEl&&bandsEl.querySelector('[data-c="'+startIdx+'"]'); if(se)se.classList.add("sel");
   loadCat(RB_CATS[startIdx]);
 }
@@ -12727,32 +12733,48 @@ function fetchIPTV(){var now=Date.now();if(iptvCache&&iptvCache.length){if(now-i
    a channel entry in the guide). The file is ~3MB, so it is fetched lazily on first use, scanned
    with a regex rather than DOMParser, and only the programme airing RIGHT NOW per channel is
    kept -- the other ~11k entries are discarded immediately so nothing large stays resident. */
-var epgNow=null, epgFetching=null, epgAt=0;
+var epgNow=null, epgFetching=null, epgAt=0, epgCoverage=null;
 function epgParseTime(t){
   var m=/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})\s*([+-]\d{4})?/.exec(String(t||""));
   if(!m) return NaN;
   var iso=m[1]+"-"+m[2]+"-"+m[3]+"T"+m[4]+":"+m[5]+":"+m[6]+(m[7]?(m[7].slice(0,3)+":"+m[7].slice(3)):"Z");
   return Date.parse(iso);
 }
-async function fetchEPG(){
-  if(epgNow && Date.now()-epgAt < 20*60*1000) return epgNow;   /* refresh every 20 min */
+async function fetchEPG(requireCoverage){
+  var now=Date.now();
+  if(epgNow && now-epgAt < 20*60*1000 && (!requireCoverage || (epgCoverage&&now<Math.min(epgCoverage.stop,epgCoverage.change)))) return epgNow;   /* refresh every 20 min */
   if(epgFetching) return epgFetching;
   epgFetching=(async function(){
     try{
-      var txt=await withTO(fetch("https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/tubi_epg.xml",{cache:"no-store"}).then(function(r){return r.text();}),20000);
+      var txt=await withTO(fetch("https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/tubi_epg.xml",{cache:"no-store"}).then(function(r){
+        if(!r.ok)throw new Error("guide HTTP "+r.status);
+        return r.text();
+      }),20000);
       var now=Date.now(), map={}, kept=0;
-      var re=/<programme channel="([^"]+)" start="([^"]+)" stop="([^"]+)"[^>]*>([\s\S]{0,300}?)<\/programme>/g, mm;
+      /* Keep each channel's coverage and next programme boundary alongside the now-only map. */
+      var coverage={stop:0,change:Infinity,channels:Object.create(null)};
+      var re=/<programme\b([^>]*)>([\s\S]*?)<\/programme>/g, mm;
       while((mm=re.exec(txt))){
-        var st=epgParseTime(mm[2]), sp=epgParseTime(mm[3]);
-        if(!(now>=st&&now<sp)) continue;                        /* only what's on right now */
-        var tm=/<title[^>]*>([^<]*)<\/title>/.exec(mm[4]);
-        if(!tm) continue;
-        map[mm[1]]={title:tm[1],start:st,stop:sp}; kept++;
+        var attrs=mm[1], id=/\bchannel="([^"]+)"/.exec(attrs),
+          start=/\bstart="([^"]+)"/.exec(attrs), stop=/\bstop="([^"]+)"/.exec(attrs);
+        if(!id||!start||!stop)continue;
+        var st=epgParseTime(start[1]), sp=epgParseTime(stop[1]);
+        if(!(st<sp))continue;
+        var channel=id[1], span=coverage.channels[channel]||(coverage.channels[channel]={start:Infinity,stop:0,change:Infinity});
+        span.start=Math.min(span.start,st); span.stop=Math.max(span.stop,sp);
+        coverage.stop=Math.max(coverage.stop,sp);
+        if(sp<=now)continue;
+        span.change=Math.min(span.change,st>now?st:sp); coverage.change=Math.min(coverage.change,span.change);
+        if(st>now)continue;
+        var tm=/<title[^>]*>([^<]*)<\/title>/.exec(mm[2]);
+        if(!tm)continue;
+        map[channel]={title:tm[1],start:st,stop:sp}; kept++;
       }
-      epgNow=map; epgAt=Date.now();
+      if(!coverage.stop)throw new Error("guide contains no dated programmes");
+      epgNow=map; epgAt=Date.now(); epgCoverage=coverage;
       nlog("epg",true,kept+" channels with a programme on now");
       return map;
-    }catch(e){ nlog("epg",false,(e&&e.message)||e); epgNow=epgNow||{}; epgAt=Date.now(); return epgNow; }
+    }catch(e){ nlog("epg",false,(e&&e.message)||e); epgCoverage=null; epgNow=epgNow||{}; epgAt=Date.now(); return epgNow; }
     finally{ epgFetching=null; }
   })();
   return epgFetching;
@@ -13855,7 +13877,16 @@ async function tuneSports(ch,sl,my){
     '</div>';
   var pickerEl=$("sportsPicker"), subPickerEl=$("sportsSubPicker"), bodyEl=$("sportsBody"), sportsRefreshEl=$("sportsRefreshBtn");
   var curSport=SPORTS_LIST[0]; var curEvents=[];
+  var SPORTS_COVERAGE_TIMEOUT=10000, sportsRequest=0, todayAbort, sportsGuideTimer;
   clearInterval(sportsTimer);
+
+  function beginSportsRequest(){
+    if(todayAbort)todayAbort.abort();
+    clearTimeout(sportsGuideTimer);
+    return ++sportsRequest;
+  }
+  function sportsRequestCurrent(request,view){ return my===token&&request===sportsRequest&&sportsSubView===view; }
+  function sportsNotice(message){ return '<div class="pop-empty" role="status" style="grid-column:1/-1">'+message+'</div>'; }
 
   function renderSubPicker(){
     var views=[["today","ON TODAY"],["scores","SCORES"],["standings","STANDINGS"],["news","NEWS"],["injuries","INJURIES"],["highlights","HIGHLIGHTS"],["livetv","LIVE TV"]];
@@ -13863,7 +13894,7 @@ async function tuneSports(ch,sl,my){
       return '<button class="catchip" data-sv="'+v[0]+'" style="border-color:#8fff5c;color:#8fff5c'+(sportsSubView===v[0]?';background:rgba(143,255,92,.18)':'')+'">'+v[1]+'</button>';
     }).join("");
     subPickerEl.querySelectorAll("[data-sv]").forEach(function(el){
-      el.addEventListener("click",function(){ window.__sportsTouch=Date.now(); if(sportsSubView==="livetv")stopTVPlayback(); sportsSubView=el.dataset.sv; renderSubPicker(); renderBody(); });
+      el.addEventListener("click",function(){ window.__sportsTouch=Date.now(); beginSportsRequest(); if(sportsSubView==="livetv")stopTVPlayback(); sportsSubView=el.dataset.sv; renderSubPicker(); renderBody(); });
     });
   }
   function renderBody(){
@@ -13884,8 +13915,7 @@ async function tuneSports(ch,sl,my){
      already uses) and merges the results. Individual sports contribute their events too, so
      golf rounds and race sessions appear alongside team games. */
   var onTodayOffset=0;   /* -1 yesterday, 0 today, +1 tomorrow */
-  function espnDateParam(off){
-    var d=new Date(Date.now()+off*86400000);
+  function espnDateParam(d){
     return d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
   }
   function todaySportKey(label){ return String(label||"sport").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"sport"; }
@@ -13946,31 +13976,49 @@ async function tuneSports(ch,sl,my){
       (rows.length?'<div class="sports-today-grid">'+rows.map(todayCard).join("")+'</div>':'<div class="sports-today-empty">No '+title.toLowerCase()+' across the connected scoreboards.</div>')+'</section>';
   }
   async function renderOnToday(){
-    var my2=token;
+    var request=beginSportsRequest(), controller=todayAbort=new AbortController();
     var dayLabel=onTodayOffset===0?"TODAY":onTodayOffset<0?"YESTERDAY":"TOMORROW";
-    var dObj=new Date(Date.now()+onTodayOffset*86400000);
+    var dObj=new Date(); dObj.setDate(dObj.getDate()+onTodayOffset);
     var nav='<div style="display:flex;gap:5px;margin-bottom:7px">'+
       ["-1|\u2039 YESTERDAY","0|TODAY","1|TOMORROW \u203a"].map(function(x){
         var parts=x.split("|"), off=+parts[0];
         return '<button class="catchip" data-day="'+off+'" style="flex:1;border-color:#8fff5c;color:#8fff5c'+
           (onTodayOffset===off?';background:rgba(143,255,92,.18)':'')+'">'+parts[1]+'</button>';
       }).join("")+'</div>';
-    bodyEl.innerHTML=nav+'<div class="pop-empty">Loading '+dayLabel.toLowerCase()+'\u2019s schedule across all sports\u2026</div>';
+    bodyEl.innerHTML=nav+sportsNotice("Loading "+dayLabel.toLowerCase()+"\u2019s schedule across all sports\u2026");
     wireDayNav();
 
-    var espnSports=SPORTS_LIST.filter(function(sp){ return !!sp.espn; });
-    var dateQ=espnDateParam(onTodayOffset);
-    var results=await Promise.all(espnSports.map(function(sp){
-      return fetchSportsData("https://site.api.espn.com/apis/site/v2/sports/"+sp.espn+"/scoreboard?dates="+dateQ,"today")
-        .then(function(d){ return {sp:sp,d:d}; })
-        .catch(function(){ return {sp:sp,d:null}; });
-    }));
-    if(my2!==token||sportsSubView!=="today")return;
+    var espnSports=SPORTS_LIST.filter(function(sp){return !!sp.espn;});
+    var dateQ=espnDateParam(dObj), results=[], stale=0, failed=0, timedOut=false;
+    var dateStart=Date.UTC(dObj.getFullYear(),dObj.getMonth(),dObj.getDate());
+    /* ESPN leagues cross midnight in UTC. Exclude clearly wrong dates while allowing
+       late games and sessions around the requested calendar day. */
+    var halfDay=12*60*60*1000;
+    var pending=espnSports.map(async function(sp,i){
+      try{
+        var data=await fetchSportsData("https://site.api.espn.com/apis/site/v2/sports/"+sp.espn+"/scoreboard?dates="+dateQ,"today",controller.signal);
+        if(controller.signal.aborted)return;
+        if(!data||!Array.isArray(data.events)){ failed++; return; }
+        var providerDay=/^\d{4}-\d{2}-\d{2}/.exec(data.day&&data.day.date||"");
+        var events=data.events.filter(function(ev){
+          if(!ev||typeof ev!=="object")return false;
+          var ts=Date.parse(ev.date);
+          return !Number.isFinite(ts)||(ts>=dateStart-halfDay&&ts<dateStart+3*halfDay);
+        });
+        if((providerDay&&providerDay[0].replace(/-/g,"")!==dateQ)||(data.events.length&&!events.length)){
+          stale++; return;
+        }
+        results[i]={sp:sp,events:events};
+      }catch(e){ if(!controller.signal.aborted)failed++; }
+    });
+    try{ await withTO(Promise.all(pending),SPORTS_COVERAGE_TIMEOUT); }
+    catch(e){ timedOut=true; }
+    finally{ controller.abort(); if(todayAbort===controller)todayAbort=null; }
+    if(!sportsRequestCurrent(request,"today"))return;
 
     var rows=[];
     results.forEach(function(r){
-      var evs=(r.d&&r.d.events)||[];
-      evs.forEach(function(ev){
+      r.events.forEach(function(ev){
         /* same multi-competition flattening the SCORES tab uses, so F1 sessions and fight-card
            bouts each get their own row rather than only the first one showing */
         var comps=(ev.competitions&&ev.competitions.length)?ev.competitions:[];
@@ -14014,7 +14062,6 @@ async function tuneSports(ch,sl,my){
       return (a.ts||0)-(b.ts||0);
     });
 
-    if(my2!==token||sportsSubView!=="today")return;
     var liveRows=rows.filter(function(r){return r.state==="in";});
     var soonRows=rows.filter(function(r){return r.state==="pre"&&(!r.ts||r.ts>=Date.now()-30*60*1000);});
     var finalRows=rows.filter(function(r){return r.state==="post";});
@@ -14024,13 +14071,21 @@ async function tuneSports(ch,sl,my){
     var soonShown=balancedTodayRows(soonRows,24,2);
     var finalShown=balancedTodayRows(finalRows,12,1);
     var sportCount={}; rows.forEach(function(r){sportCount[todaySportFamily(r.sport)]=1;});
+    var partial=!!(timedOut||stale||failed);
+    var reason=[timedOut&&"Some scoreboards timed out.",stale&&"Some scoreboards are out of date.",failed&&"Some scoreboards could not be loaded."].filter(Boolean).join(" ");
+    if(partial&&!liveShown.length&&!soonShown.length&&!finalShown.length){
+      bodyEl.innerHTML=nav+sportsNotice("Schedule unavailable. "+reason);
+      wireDayNav(); return;
+    }
+    var warning=partial?sportsNotice("Partial schedule. "+reason):"";
     var head='<div class="sports-today-head"><div><span class="sports-today-eyebrow">'+dayLabel+'</span><h2>'+dObj.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"})+'</h2><p>Verified scoreboard events · refreshed with the live sports feed</p></div><div class="sports-today-stats"><span><b>'+liveRows.length+'</b> LIVE</span><span><b>'+soonRows.length+'</b> SOON</span><span><b>'+Object.keys(sportCount).length+'</b> SPORTS</span></div></div>';
     if(!rows.length){
       bodyEl.innerHTML=nav+head+'<div class="sports-today-empty standalone">Nothing scheduled '+dayLabel.toLowerCase()+' across the sports we cover.</div>';
       wireDayNav(); return;
     }
-    bodyEl.innerHTML=nav+head+todaySection("LIVE NOW",liveShown.length+" of "+liveRows.length+" events",liveShown,"live")+
-      todaySection("STARTING SOON",soonShown.length+" of "+soonRows.length+" events",soonShown,"soon")+
+    bodyEl.innerHTML=nav+head+warning+
+      (!partial||liveShown.length?todaySection("LIVE NOW",liveShown.length+" of "+liveRows.length+" events",liveShown,"live"):"")+
+      (!partial||soonShown.length?todaySection("STARTING SOON",soonShown.length+" of "+soonRows.length+" events",soonShown,"soon"):"")+
       (finalShown.length?todaySection("RECENT RESULTS",finalShown.length+" selected results",finalShown,"final"):"");
     wireDayNav();
     bodyEl.querySelectorAll("[data-sport-key]").forEach(function(btn){ btn.addEventListener("click",function(){
@@ -14047,12 +14102,13 @@ async function tuneSports(ch,sl,my){
     });
   }
   async function renderSportsTV(){
+    var request=beginSportsRequest();
     stopTVPlayback();
     bodyEl.innerHTML='<div class="pop-empty">Loading live sports channels\u2026</div>';
     try{
       ensureTVCSS();
       var all=await fetchSportsIPTV();
-      if(my!==token||sportsSubView!=="livetv")return;
+      if(!sportsRequestCurrent(request,"livetv"))return;
       /* QA FIX: this used to cap at 120 channels, which silently truncated the list partway
          through the alphabet -- it looked like the channel list "stopped at S". No cap now;
          sorted A-Z so it's actually browsable. */
@@ -14082,21 +14138,46 @@ async function tuneSports(ch,sl,my){
         '<div class="sports-live-head"><b>LIVE SPORTS FEEDS</b><span class="sports-live-meta">'+chans.length+' ENGLISH CHANNELS'+(culledS.hidden?(' \u00b7 '+culledS.hidden+' DEAD HIDDEN'):'')+'</span></div>'+
         '<div class="sports-live-tools"><input id="sportsLiveSearch" class="sports-live-search" aria-label="Search live sports channels" placeholder="SEARCH LIVE SPORTS\u2026"><div class="sports-live-modes" role="group" aria-label="Sports feed filter"><button type="button" class="sports-live-mode active" data-sports-live-mode="healthy">HEALTHY FEEDS</button><button type="button" class="sports-live-mode" data-sports-live-mode="live">LIVE NOW</button></div><span id="sportsLiveCount" class="sports-live-count"></span></div>'+
         '<div id="sportsLiveList" class="sports-live-grid"></div></section>';
-      var sportsListEl=$("sportsLiveList"), sportsSearch=$("sportsLiveSearch"), sportsCount=$("sportsLiveCount"),sportsLiveMode="healthy",sportsEpgById={};
-      function trustedSportsLive(c){return !!(sportsEpgById[String(c.tvgId||"")]&&(c.checked||c.verified)&&Number(c._strikes||0)===0);}
+      var sportsListEl=$("sportsLiveList"), sportsSearch=$("sportsLiveSearch"), sportsCount=$("sportsLiveCount"),sportsLiveMode="healthy";
+      var guide=null, programmes={}, guideLoading=true, guideError="";
+      function trustedSportsFeed(c){ return !!((c.checked||c.verified)&&Number(c._strikes||0)===0); }
+      function sportsProgramme(c){
+        var row=guide&&c.tvgId&&programmes[c.tvgId], now=Date.now();
+        return row&&row.start<=now&&now<row.stop?row:null;
+      }
+      function trustedSportsLive(c){ return trustedSportsFeed(c)&&!!sportsProgramme(c); }
       function renderSportsCards(query){
-        var q=String(query||"").toLowerCase().trim();
-        var modeRows=sportsLiveMode==="live"?chans.filter(trustedSportsLive):chans;
-        var visible=q?modeRows.filter(function(c){ return (String(c.name||"")+" "+String(c.cat||"")+" "+String(c.src||"")).toLowerCase().indexOf(q)>-1; }):modeRows;
-        if(sportsCount) sportsCount.textContent=visible.length+" / "+modeRows.length+(sportsLiveMode==="live"?" LIVE":" HEALTHY");
         if(!sportsListEl)return;
-        sportsListEl.innerHTML=visible.length?visible.map(function(c){ var i=chans.indexOf(c),epg=sportsEpgById[String(c.tvgId||"")],isLive=trustedSportsLive(c),program=epg?((isLive?"LIVE NOW":"SCHEDULED")+" \u00b7 "+epg.title+(epg.left?(" \u00b7 "+epg.left+" min left"):"")):"";
+        var q=String(query||"").toLowerCase().trim(), live=sportsLiveMode==="live", notice="", incomplete=false;
+        var modeRows=live?chans.filter(trustedSportsLive):chans;
+        var visible=q?modeRows.filter(function(c){ return (String(c.name||"")+" "+String(c.cat||"")+" "+String(c.src||"")).toLowerCase().indexOf(q)>-1; }):modeRows;
+        if(live){
+          if(guideLoading)notice="Loading live sports guide\u2026";
+          else if(!guide)notice="Live Now unavailable. "+guideError;
+          else{
+            var now=Date.now(), eligible=chans.filter(trustedSportsFeed);
+            var spans=eligible.map(function(c){return guide.channels[c.tvgId];});
+            var covered=spans.filter(function(span){return span&&span.start<=now&&now<Math.min(span.stop,span.change);}).length;
+            if(!covered){
+              var expired=guide.stop<=now||spans.some(function(span){return span&&Math.min(span.stop,span.change)<=now;});
+              notice=expired?"Live Now unavailable. Guide coverage has expired.":"Live Now unavailable. No current sports guide coverage.";
+            }else if(covered<eligible.length){
+              incomplete=true; notice="Partial guide coverage. Some healthy feeds have no current schedule.";
+            }
+          }
+          if(notice&&!incomplete){ if(sportsCount)sportsCount.textContent=""; sportsListEl.innerHTML=sportsNotice(notice); return; }
+        }
+        if(sportsCount)sportsCount.textContent=visible.length+" / "+modeRows.length+(live?" LIVE":" HEALTHY");
+        sportsListEl.innerHTML=(notice?sportsNotice(notice):"")+(visible.length?visible.map(function(c){
+          var i=chans.indexOf(c), epg=sportsProgramme(c), isLive=trustedSportsLive(c);
+          var left=epg?Math.max(0,Math.round((epg.stop-Date.now())/60000)):0;
+          var program=epg?((isLive?"LIVE NOW":"SCHEDULED")+" \u00b7 "+epg.title+(left?(" \u00b7 "+left+" min left"):"")):"";
           return '<button type="button" class="sports-live-card sports-feed-card'+(isLive?' onair':'')+'" data-ci="'+i+'" data-epg="'+esch(c.tvgId||"")+'">'+
             '<div class="sports-feed-top"><span class="sports-feed-state '+(isLive?"ready":((c.checked||c.verified)?"ready":"candidate"))+'">'+(isLive?"LIVE NOW":c.checked?"CHECKED":c.verified?"VERIFIED":"CATALOG")+'</span>'+
             '<span class="sports-live-source">'+esch(String(c.src||c.cat||"").slice(0,24))+'</span></div>'+
             '<div class="sports-feed-name">'+esch(String(c.name).slice(0,60))+'</div>'+
             '<div class="sports-feed-program sports-epg"'+(program?'':' style="display:none"')+'>'+esch(program)+'</div></button>';
-        }).join(""):'<div class="pop-empty">'+(sportsLiveMode==="live"?'No verified live programming is airing right now. Healthy scheduled feeds remain available.':'No sports feeds match that search.')+'</div>';
+        }).join(""):incomplete?"":sportsNotice(live?(q&&modeRows.length?"No live sports feeds match that search.":"No verified live programming is airing right now. Healthy feeds remain available."):"No sports feeds match that search."));
         wireSportsCards();
       }
       function wireSportsCards(){ if(!sportsListEl)return;
@@ -14110,32 +14191,43 @@ async function tuneSports(ch,sl,my){
         if(my!==token||sportsSubView!=="livetv"||$("sportsLiveList")!==sportsListEl)return;
         var refreshed=cullDead(sortByHealthThenName(sportsTVChannels(items)));
         chans=refreshed.list;
-        chans.forEach(function(c){var id=String(c.tvgId||""),program=id?epgFor(c):null;if(program)sportsEpgById[id]=program;});
         renderSportsCards(sportsSearch?sportsSearch.value:"");
       }
       window.__tvRefreshSources=updateSportsCatalog;
       renderSportsCards("");
       if(sportsSearch){ sportsSearch.addEventListener("input",function(){ renderSportsCards(sportsSearch.value); }); sportsSearch.addEventListener("keydown",function(e){ e.stopPropagation(); }); }
       bodyEl.querySelectorAll("[data-sports-live-mode]").forEach(function(btn){btn.addEventListener("click",function(){sportsLiveMode=btn.dataset.sportsLiveMode||"healthy";bodyEl.querySelectorAll("[data-sports-live-mode]").forEach(function(x){x.classList.toggle("active",x===btn);});renderSportsCards(sportsSearch?sportsSearch.value:"");});});
-      fetchEPG().then(function(){ if(my!==token||sportsSubView!=="livetv")return;
-        chans.forEach(function(c){var id=String(c.tvgId||"");if(!id)return;var e=epgFor({tvgId:id});if(e)sportsEpgById[id]=e;});
+      try{
+        programmes=await withTO(fetchEPG(true),SPORTS_COVERAGE_TIMEOUT);
+        guide=epgCoverage;
+        if(!guide)guideError="Could not load the schedule.";
+      }catch(e){ guideError="The guide request timed out."; }
+      if(!sportsRequestCurrent(request,"livetv"))return;
+      guideLoading=false;
+      if(guide){
         /* EPG is the reliable live-now signal. Re-sort after it arrives so the directory
            opens on actual ON AIR feeds instead of alphabetic catalog entries. */
         chans.sort(function(a,b){
-          var ae=trustedSportsLive(a),be=trustedSportsLive(b);
-          if(ae!==be)return be?1:-1;
-          if(ae&&be){
-            var at=Number(sportsEpgById[String(a.tvgId||"")].start||0),bt=Number(sportsEpgById[String(b.tvgId||"")].start||0);
-            if(at!==bt)return bt-at;
-          }
+          var ae=trustedSportsFeed(a)&&sportsProgramme(a),be=trustedSportsFeed(b)&&sportsProgramme(b);
+          if(!!ae!==!!be)return be?1:-1;
+          if(ae&&be&&ae.start!==be.start)return be.start-ae.start;
           if((a._strikes||0)!==(b._strikes||0))return (a._strikes||0)-(b._strikes||0);
           if((a._trust||0)!==(b._trust||0))return (b._trust||0)-(a._trust||0);
           return String(a.name||"").toLowerCase().localeCompare(String(b.name||"").toLowerCase());
         });
-        renderSportsCards(sportsSearch?sportsSearch.value:"");
-      });
+        function redrawAtGuideChange(){
+          var now=Date.now(), change=Infinity;
+          chans.forEach(function(c){var span=guide.channels[c.tvgId]; if(span&&span.change>now)change=Math.min(change,span.change);});
+          if(change<Infinity)sportsGuideTimer=setTimeout(function(){
+            if(!sportsRequestCurrent(request,"livetv"))return;
+            renderSportsCards(sportsSearch?sportsSearch.value:""); redrawAtGuideChange();
+          },change-now);
+        }
+        redrawAtGuideChange();
+      }
+      renderSportsCards(sportsSearch?sportsSearch.value:"");
       nlog("sportstv",true,chans.length+" sports channels");
-    }catch(e){ nlog("sportstv",false,(e&&e.message)||e);
+    }catch(e){ if(!sportsRequestCurrent(request,"livetv"))return; nlog("sportstv",false,(e&&e.message)||e);
       bodyEl.innerHTML='<div class="pop-empty">Live sports channels unavailable \u2014 check DIAG.</div>'; }
   }
   async function renderNews(){
@@ -14709,7 +14801,7 @@ async function tuneSports(ch,sl,my){
         nlog("sports",true,sp.label+" "+curEvents.length+" events (TheSportsDB)");
       }
     }catch(e){ nlog("sports",false,sp.label+": "+((e&&e.message)||e)); }
-    renderBody();
+    if(sportsSubView!=="today"&&sportsSubView!=="livetv")renderBody();
     updateSportsTicker(sp);
   }
   function updateSportsTicker(sp){
@@ -14771,7 +14863,8 @@ async function tuneSports(ch,sl,my){
     Promise.resolve(task).finally(function(){if(my===token){sportsRefreshEl.disabled=false;sportsRefreshEl.classList.remove("busy");sportsRefreshEl.textContent="REFRESH";}});
   });
   renderSubPicker();
-  loadSport(SPORTS_LIST[0]);
+  if(sportsSubView==="today"||sportsSubView==="livetv")renderBody();
+  else loadSport(SPORTS_LIST[0]);
   var lastSportsFetch=Date.now();
   sportsTimer=rtInterval(function(){
     if(my!==token||!powered)return;

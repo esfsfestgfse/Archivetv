@@ -2,11 +2,25 @@
 (function(){
   'use strict';
   if(new URLSearchParams(location.search).get('playbackAudit')!=='1')return;
-  const report={version:1,measurement:'video compositor callback with visibility check',tunes:[],controls:[]};
+  const report={version:2,measurement:'native compositor callbacks; firstFrameMs requires an unobscured player',tunes:[],controls:[]};
+  const tuneOverlayIds=['ov','buffOv','fxStatic'];
   const output=document.createElement('script');output.type='application/json';output.id='rs-playback-audit';document.body.appendChild(output);
   const seen=new Set(),watches=new Set(),owners=new WeakMap();let active=null;
   function publish(){output.textContent=JSON.stringify(report);}
-  function visible(v){const r=v.getBoundingClientRect(),s=getComputedStyle(v);if(!v.isConnected||r.width<2||r.height<2||s.display==='none'||s.visibility==='hidden'||Number(s.opacity)<.5)return false;const hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return hit===v||v.contains(hit);}
+  function tuneOverlayVisible(id){
+    const el=document.getElementById(id);if(!el)return false;
+    const style=getComputedStyle(el);
+    return style.display!=='none'&&style.visibility!=='hidden'&&style.visibility!=='collapse'&&Number(style.opacity)>0;
+  }
+  function visible(v){
+    if(document.hidden||!v.isConnected)return false;
+    const r=v.getBoundingClientRect(),s=getComputedStyle(v);
+    if(r.width<2||r.height<2||s.display==='none'||s.visibility==='hidden'||Number(s.opacity)<.5)return false;
+    // The retro static layer has pointer-events:none and never appears in hit-testing.
+    if(tuneOverlayIds.some(tuneOverlayVisible))return false;
+    const hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);
+    return hit===v||v.contains(hit);
+  }
   window.__rsPlaybackAudit={
     begin(channel){
       if(active&&active.firstFrameMs==null)active.superseded=true;
@@ -40,9 +54,15 @@
       if(v.requestVideoFrameCallback){const frame=()=>{
         if(active!==tune||!v.isConnected||owners.get(v)!==watch){watch.stop();return;}
         lastFrame=performance.now();stalled=false;
-        if(tune.firstFrameMs==null&&visible(v)&&v.videoWidth>0){
-          tune.firstFrameMs=Math.round(performance.now()-tune.started);tune.id=attempt.id;
-          tune.repeated=seen.has(attempt.id);seen.add(attempt.id);publish();
+        if(v.videoWidth>0){
+          const elapsed=Math.round(lastFrame-tune.started);
+          const firstCallback=attempt.firstCompositorFrameMs==null;
+          if(firstCallback)attempt.firstCompositorFrameMs=elapsed;
+          if(tune.firstFrameMs==null&&visible(v)){
+            tune.firstFrameMs=elapsed;tune.id=attempt.id;
+            tune.repeated=seen.has(attempt.id);seen.add(attempt.id);
+            publish();
+          }else if(firstCallback)publish();
         }
         frameId=v.requestVideoFrameCallback(frame);
       };frameId=v.requestVideoFrameCallback(frame);}else attempt.frameMeasurementUnavailable=true;

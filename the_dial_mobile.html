@@ -9624,6 +9624,7 @@ async function tuneNum(n,requestedProgramId){
      content channel wrote — contaminating every subsequent soak sample with stale metadata. */
   if(sl.source){ lastMeta=null; if(ch.cat==="LDATA")startLiveDataBed(ch,sl); }
   if(my!==token||!powered)return;
+  window.RealSignalWatchingShell?.scheduleRefresh?.();
   if(sl.source==="v2preview"){ if(my!==token)return; return tuneV2Preview(ch,sl,my,requestedProgramId); }
   if(sl.source==="weather"){ if(my!==token)return; return tuneWeather(ch,sl,my); }
   if(sl.source==="onthisday"){ if(my!==token)return; return tuneOnThisDay(ch,my); }
@@ -10319,6 +10320,7 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl,archiveHandoff){retur
     if(ok&&recovery&&!recovery.start()){av.rollback();return res(false);}
     if(ok){
       if(my!==token){av.rollback();return res(true);} // superseded; keep the newer tune's picture intact
+      if(!isAudio&&nativeAudit)nativeAudit("native-ready",{id:it.id});
       av.commit();
       if(outgoing&&outgoing!==v){try{outgoing.pause();outgoing.removeAttribute("src");outgoing.load();}catch(e){}try{outgoing.remove();}catch(e){}}
       v.style.position="";v.style.inset="";v.style.zIndex="";v.style.pointerEvents="";
@@ -10443,6 +10445,7 @@ function showNow(ch,sl,title,extra){
   if(ch.source){ lower.classList.add("fade"); if(clockBug)clockBug.style.display="none"; } /* 1.5.1: data channels carry their own chrome */
   else { if(clockBug)clockBug.style.display=""; lower.classList.remove("fade"); clearTimeout(showNow._t); showNow._t=setTimeout(()=>lower.classList.add("fade"),6500); }
   if(!sl.isAd)pushHistory(ch,title); applyAspect(); /* CYCLE-1 FIX: ads out of Recently Watched */
+  window.RealSignalWatchingShell?.scheduleRefresh?.();
 }
 /* QA PASS (mobile testing): surface WHY sources are failing right on the NO SIGNAL screen instead
    of burying it in MENU -> DIAGNOSTICS. Looks at the most recent failed network attempts and, if

@@ -6,7 +6,7 @@ const vm = require('node:vm');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 function harness(search = '?v6=1') {
-  const ids = new Map(), timers = new Map(), intervals = [], calls = [];
+  const ids = new Map(), timers = new Map(), intervals = [], calls = [], frames = [];
   let clock = 0, connected = false;
   class Node {
     constructor(tag) {
@@ -50,6 +50,7 @@ function harness(search = '?v6=1') {
     __rsCastIsConnected: () => connected,
     setTimeout: (fn, delay) => { const id = ++clock; timers.set(id, { fn, delay }); return id; }, clearTimeout: id => timers.delete(id),
     setInterval: fn => { intervals.push(fn); return intervals.length; },
+    requestAnimationFrame: fn => { frames.push(fn); return frames.length; },
     fetch: () => { throw Error('presentation must not fetch'); },
     addEventListener(k, fn) { body.addEventListener(k, fn); },
   };
@@ -63,6 +64,7 @@ function harness(search = '?v6=1') {
   vm.runInContext(fs.readFileSync(shell, 'utf8'), context);
   return { context, ids, body, document, screen, video, guide, legacy, snapshot, calls, timers, intervals,
     connect(value) { connected = value; },
+    paint() { frames.splice(0).forEach(fn => fn()); },
     idle() { const entries = [...timers]; timers.clear(); entries.forEach(([, t]) => t.fn()); }
   };
 }
@@ -142,6 +144,49 @@ test('connecting Cast exits the canary and disables its commands; disconnect can
   assert.ok(h.document.documentElement.classList.contains('rs-v6-watch'));
 });
 for (const file of ['the_dial_mobile.html', 'the_dial_desktop.html']) {
+  test(file + ": tune and program commits update the dock before the next paint", async () => {
+    const h = harness(), source = fs.readFileSync(path.join(root, file), "utf8");
+    const stations = new Map([150, 151, 152].map(num => [num, { num, nm: "Station " + num, source: "v2preview" }]));
+    const node = () => h.document.createElement("div");
+    const noop = () => {};
+    let snapshots = 0;
+    Object.assign(h.context, {
+      powered: true, justPowered: false, token: 0, adQueue: 0, retryTimer: null,
+      curVideo: null, curItem: { ch: 150, title: "Previous program" },
+      byNum: n => stations.get(n), canonicalTuneNum: n => n, canonicalChannelLabel: ch => ch.nm,
+      store: { set: noop }, renderRail: noop, slotFor: ch => ({ source: ch.source, show: ch.nm }),
+      chNum: node(), nowName: node(), nowMeta: node(), lProg: node(), lTitle: node(), lMeta: node(),
+      bug: node(), lower: node(), volHint: node(), showBanner: noop, isFav: () => false,
+      setSig: noop, sfxStatic: noop, CATNAME: {}, showOv: noop, rollDialTo: noop, flashIdent: noop,
+      screenArea: h.screen, v2CanPrepareYouTube: () => false, V2_PREVIEW_PROFILES: {},
+      clearScreen() { h.context.curItem = null; }, tuneV2Preview: noop,
+      clockBug: null, pushHistory: noop, applyAspect: noop,
+      guidePlaybackSnapshot(ch) {
+        snapshots++;
+        const current = h.context.curItem?.ch === ch.num ? h.context.curItem : null;
+        return { channel: { number: ch.num, name: ch.nm }, current, state: current ? "playing" : "pending" };
+      },
+    });
+    for (const name of ["async function tuneNum(", "function showNow("]) {
+      const start = source.indexOf(name);
+      assert.ok(start >= 0);
+      const end = /\r?\n\}/.exec(source.slice(start));
+      vm.runInContext(source.slice(start, start + end.index + end[0].length), h.context);
+    }
+    await h.context.tuneNum(151);
+    await h.context.tuneNum(152);
+    h.paint();
+    assert.equal(h.ids.get("rsV6Channel").textContent, "152");
+    assert.equal(h.ids.get("rsV6Title").textContent, "Station 152");
+    assert.equal(h.ids.get("rsV6Status").textContent, "PENDING · Station 152");
+    assert.equal(snapshots, 1, "rapid tunes share one snapshot of the latest state");
+    h.context.curItem = { ch: 152, title: "New program" };
+    h.context.showNow(stations.get(152), { show: "Station 152" }, "New program", "");
+    h.paint();
+    assert.equal(h.ids.get("rsV6Title").textContent, "New program");
+    assert.equal(h.ids.get("rsV6Status").textContent, "PLAYING · Station 152");
+    assert.equal(snapshots, 2);
+  });
   test(`${file}: native Enter activation survives the real channel-entry key handler`, () => {
     const h = harness(), source = fs.readFileSync(path.join(root, file), 'utf8');
     const start = source.indexOf('document.addEventListener("keydown",e=>{');

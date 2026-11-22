@@ -4,7 +4,7 @@
   if (!api || !api.available) return;
   var preview = new URLSearchParams(location.search).get('guidePreview') !== '0';
   var root = document.documentElement, dock, idleTimer, state, guideWasOpen = false, guideWasV6 = false;
-  var refs = {};
+  var refs = {}, refreshPending = false;
   function element(tag, id, text, parent) {
     var el = document.createElement(tag);
     if (id) { el.id = id; refs[id] = el; }
@@ -109,7 +109,15 @@
     guideWasV6 = !!(window.RealSignalGuide && window.RealSignalGuide.isOpen());
     if (entering || keepAwake()) wake();
   }
-  window.RealSignalWatchingShell = { refresh: refresh };
+  function scheduleRefresh() {
+    if (refreshPending || !api.enabled) return;
+    refreshPending = true;
+    requestAnimationFrame(function () {
+      refreshPending = false;
+      refresh();
+    });
+  }
+  window.RealSignalWatchingShell = { refresh: refresh, scheduleRefresh: scheduleRefresh };
   refresh();
   wake();
   setInterval(refresh, 1000);

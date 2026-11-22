@@ -9,6 +9,41 @@ function relay(options={}){
     ';globalThis.f={iaRepairCollectionSeeds,orderedIaEmergencySeeds,queueTitleFamily,stationGate:iaStationQualityGate,archiveEpisodeKey,iaEffectiveVideoMinRuntimeSeconds,iaRepairPublicCatalog,strictRecoveryQueue,themeScore,matchesDeny,applyIaFreshness,expandSeedArchiveContainers,queuePlayable,getIaQueue,scheduleIaExpansion,qualifyIaQueueResponse,consume:(...args)=>worker.queue(...args),setHarvest:fn=>{expandAndCacheIaQueue=fn;},setHydrate:fn=>{hydrateIaQueue=fn;}};',s);return s.f;
 }
 
+const noirNonFeatures = [
+  ['midnight-shock-theater-s-1-e-7-the-strange-love-of-martha-ivers::Midnight Shock Theater S1-E7 - The Strange Love of Martha Ivers.ia.mp4',
+    'Midnight Shock Theater S1-E07 - The Strange Love Of Martha Ivers'],
+  ['11th-hour', 'Eleventh Hour (2006) Complete'],
+  ['11th-hour::Eleventh Hour S1 E-4 - Kryptos.mp4', 'Eleventh Hour (2006) Complete · Eleventh Hour S1 E-4 - Kryptos'],
+  ['archive-crime-show::Series S01E02.mp4', 'A Case of Murder'],
+  ['archive-mystery-show::Season 2 - Episode 17.mp4', 'The Long Night'],
+  ['he-who-gets-slapped-1924-lon-chaney-scored-with-new-ai-music::He Who Gets Slapped (1924, Lon Chaney).mp4',
+    'He Who Gets Slapped (1924, Lon Chaney) scored with new AI music'],
+];
+
+const noirFilms = [
+  ['the-strange-love-of-martha-ivers::The Strange Love of Martha Ivers.mp4', 'The Strange Love of Martha Ivers (1946)'],
+  ['11.14.2003::11.14.2003.mp4', '11:14 (2003)'],
+  ['red.-rock.-west.-1992::Red.Rock.West.(1992).mp4', 'Red Rock West (1993)'],
+];
+
+test('Noir filters hosted shows, episodes and explicitly AI-scored editions from relay and stored catalogs', async () => {
+  const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
+  const {qualifyIaFileRecord}=await import('../ia_file_contract.js');
+  const gate=relay().stationGate;
+  for(const [rows,expected] of [[noirNonFeatures,false],[noirFilms,true]]) {
+    for(const [identifier,title] of rows) {
+      const [archiveId,fileName='feature.mp4']=identifier.split('::');
+      const item={identifier,title,subject:'film noir mystery crime thriller feature film',
+        media:{type:'video',url:'https://archive.org/download/'+archiveId+'/'+encodeURIComponent(fileName),
+          runtime:5400,width:720,height:480,verification:'transport',verifiedAt:Date.now()}};
+      const rules={channel:'108',iaRepair:true,themeMinScore:0};
+      assert.equal(gate('108',item),expected,title+' on relay');
+      assert.equal(catalogFallbackAllowed(item,rules),expected,title+' in persisted catalog');
+      assert.equal(qualifyIaFileRecord(item,rules).accepted,expected,title+' in prepared playback');
+    }
+  }
+});
+
 test('the reviewed Archive feature files survive specialist channel admission', async () => {
   const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
   const f=relay();
@@ -240,6 +275,13 @@ for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': 
     [212,'the_blue_planet::the_blue_planet_09_deep_trouble.mp4']]){
     const item={identifier:id,id,title:'Old queued program',type:'video'};
     assert.equal(s.f.queue(item,{channel,program:{}}),false);assert.equal(s.f.cached({num:channel},item),false);
+  }
+  for(const [rows,expected] of [[noirNonFeatures,false],[noirFilms,true]]) {
+    for(const [id,title] of rows) {
+      const item={identifier:id,id,title,type:'video'};
+      assert.equal(s.f.queue(item,{channel:108,program:{}}),expected,title+' in direct queue');
+      assert.equal(s.f.cached({num:108},item),expected,title+' from cache');
+    }
   }
 });
 

@@ -6100,8 +6100,12 @@ function iaReviewedFileAllowed(item, channel) {
   const title = String(item.title || '');
   if (station === '108') {
     if (source === 'animal-kingdom-david-michod-2010-spa' && /\)\s+SPA(?:\.|$)/i.test(file || title)) return false;
-    if (/^(?:ccp-red-house|edgar-von-ghoul[-_]|homv-)/i.test(source) ||
-        /\b(?:classic cinema plus|midnight chillers|house of master vyle)\b/i.test(title)) return false;
+    const programLabel = [source, title, file].join(' ').replace(/[._-]+/g, ' ');
+    if (source === '11th-hour' || /^(?:ccp-red-house|edgar-von-ghoul[-_]|homv-)/i.test(source) ||
+        /\b(?:classic cinema plus|midnight chillers|midnight shock theat(?:er|re)|house of master vyle)\b/i.test(programLabel)) return false;
+    // A long TV episode still carries an episode marker even when tagged as noir.
+    if (/\b(?:s\s*\d{1,2}\s*e(?:p)?\s*\d{1,3}|season\s*\d{1,2}\s*episode\s*\d{1,3})\b/i.test(programLabel)) return false;
+    if (/\b(?:scored with (?:new )?ai music|ai generated (?:score|soundtrack|music))\b/i.test(programLabel)) return false;
     if (/\bcharles[\W_]+laughton[\W_]+directs[\W_]+the[\W_]+night[\W_]+of[\W_]+the[\W_]+hunter\b/i.test([source, title, file].join(' '))) return false;
   }
   if (station === '124' && (/^(?:hammer-frankenstein-film-music|alejandro-jodorowsky-el-ladron-del-arcoiris|homv-)/i.test(source) ||

@@ -27,8 +27,12 @@ const TOPICS = {
   '701': ['halloween film', 'horror film', 'horror movie', 'supernatural horror', 'haunted house film']
 };
 const PERIOD_OR_FORMAT_CHANNELS = new Set(['104','107','109','116','133','134','575']);
+const PERIODS = { '107': [1895,1929,/\bsilent (?:film|movie|cinema|comedy|drama|western)\b/i],
+  '109': [1930,1960,/\b(?:film serial|movie serial|chapter play|cliffhanger serial)\b/i],
+  '116': [1970,1985,/\b(?:blaxploitation|black exploitation)\b/i] };
+const BLACK_FILM = /\b(?:black (?:cinema|independent film|directed|led|exploitation)|african[ -]american (?:cinema|film)|race films?|oscar micheaux|spike lee|kasi lemmons|cheryl dunye|julie dash|john singleton|charles burnett|blaxploitation)\b/i;
 const FILM_YEAR = '(?:18[89]\\d|19\\d{2}|20\\d{2})';
-const YEAR_TAG = new RegExp('[([](' + FILM_YEAR + ')[)\\]]');
+const YEAR_TAG = new RegExp('[([]\\s*(' + FILM_YEAR + ')\\s*[),\\]]');
 const EXACT_YEAR = new RegExp('^(' + FILM_YEAR + ')(?:-\\d{2}(?:-\\d{2})?)?$');
 const RESOLUTION = /\s+(?:480p|720p|1080p|2160p|4k|uhd|h[ .]?26[45]|x26[45]|blu-?ray|webrip|web-dl|dvd[ -]rip|vhs[ -]rip|restored|remastered|colori[sz]ed|full movie|full film)\b.*$/i;
 
@@ -63,13 +67,22 @@ export function archiveFilmKey(item) {
 }
 
 export function archiveMovieAllowed(item, channel) {
-  if (!archiveMovieChannel(channel)) return true;
+  const id = String(channel);
+  if (!archiveMovieChannel(id)) return true;
   const title = String(item.title || '');
   const label = [title, item.fileName || item.media?.fileName].filter(Boolean).join(' ');
-  if (/\b(?:watch[ -]?along|reaction videos?|movie night (?:w(?:ith)?|livestream)|twitch stream|streamers? in a horror movie|pirates smp|video essay|featurette|dvd menu|deleted scenes|behind the scenes|fan[ -]?(?:made|film)|podcast|trailer compilation)\b/i.test(label)) return false;
-  if (String(channel) === '135' || String(channel) === '136') {
-    return archiveMovieReleaseYear(item) >= 1980 && !/\b(?:east side kids|bowery boys)\b/i.test(title);
-  }
+  if (/\b(?:watch[ -]?along|reaction videos?|movie night (?:w(?:ith)?|livestream)|twitch(?: stream)?|streamers? in a horror movie|pirates smp|video essay|featurette|dvd menu|deleted scenes|behind the scenes|fan[ -]?(?:made|film)|podcast|trailer compilation|analysis collection|horror filmography|festival.*\b(?:open|live|satellite) feed|tokusatsu block|fight (?:scenes?|compilation)\b.{0,36}\bcomp(?:ilation)?)\b/i.test(label)) return false;
+  const subject = String(item.subject || item.subjects || '');
+  const year = archiveMovieReleaseYear(item);
+  const period = PERIODS[id];
+  if (period && (year ? year < period[0] || year > period[1] : !period[2].test(title + ' ' + subject))) return false;
+  if (id === '105' && !BLACK_FILM.test([title, subject, item.creator].filter(Boolean).join(' '))) return false;
+  if (id === '102' && /^the year \d{4}\W*$/i.test(title)) return false;
+  if (id === '103' && /\bchikan densha\b|^少女惑星/i.test(title)) return false;
+  if (id === '112' && /\bcolombian requiem\b/i.test(title)) return false;
+  if (id === '131' && /\b(?:fred and rose west|the kneale tapes)\b/i.test(title)) return false;
+  if (id === '700' && /\b(?:tv recording|sing[ -]along songs|christmas concert|christmas parade)\b/i.test(title)) return false;
+  if (id === '135' || id === '136') return year >= 1980 && !/\b(?:east side kids|bowery boys)\b/i.test(title);
   return true;
 }
 

@@ -312,3 +312,23 @@ test('Archive movie admission uses the film year and rejects watchalongs from st
  const silent={...rules,channel:'107'};
  assert.equal(archiveMovieDiscovery(silent),silent,'period identity is preserved');
 });
+
+test('movie rotation rejects off-genre broadcasts and modern videos cached in period stations',async()=>{
+ const {archiveMovieAllowed}=await import('../ia_movie_programs.js');
+ const bad=[
+  ['107','09/11/2001 Analysis Collection · 9 11 Exposed 2nd Edition 2015 Full Documentary Film',2020],
+  ['107','Disney Sing-Along Songs: Very Merry Christmas Songs (1988) US VHS Variants',1988],
+  ['109','How Shayy Handled Fame the Wrong Way',2025],
+  ['105','[16+] Final Girl Friday: The Horror Filmography Of Director Jordan Peele! Special Guests',2025],
+  ['105','A Bucket of Blood (1959) · Classic Black Comedy Horror',1959],
+  ['106','12th Silk Road International Film Festival China Open FEED 1080i',2025],
+  ['115','Nihon Retro Revival (21 Hour Tokusatsu Block)',2025],
+  ['700','The Clash Christmas Special: Pasko Para sa Lahat | TV RECORDING',2020],
+  ['701','09/11/2001 Analysis Collection · 911 Anatomy of a Great Deception 2014',2014]
+ ];
+ for(const [channel,title,year] of bad)assert.equal(archiveMovieAllowed({title,year},channel),false,title);
+ assert.ok(archiveMovieAllowed({year:1921,title:'The Phantom Carriage (1921)'},'107'));
+ assert.ok(archiveMovieAllowed({year:1940,title:'Winners of the West — Chapter 1'},'109'));
+ assert.ok(archiveMovieAllowed({year:1996,title:'The Watermelon Woman (1996)',subject:'Black Cinema'},'105'));
+ assert.ok(archiveMovieAllowed({year:2015,title:'A Frosty Affair (2015)'},'700'));
+});

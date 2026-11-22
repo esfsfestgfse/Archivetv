@@ -56,7 +56,7 @@ function fixture() {
     return window.RealSignalIAShelf.client();
   }
 
-  return { browser, journal, calls, acks, watched, storage, pending, get releaseState() { return releaseState; },
+  return { browser, journal, calls, acks, watched, storage, pending, select, get releaseState() { return releaseState; },
     restartRotation: () => { rotation = new SessionRotation(storage, {}); },
   };
 }
@@ -81,7 +81,7 @@ test('an obsolete failed release drains before the next valid start and refill',
   assert.deepEqual(f.journal(), []);
 });
 
-test('a committed start with a lost reply drains after browser and rotation restart without a second history write', async () => {
+test('a lost reply can be replayed after restart without a second history write in the same cycle', async () => {
   const f = fixture();
   const first = f.browser(async send => {
     assert.equal((await send()).status, 202);
@@ -126,13 +126,42 @@ test('an injected 503 retains the saved start and blocks refill until the same s
   assert.deepEqual(f.journal(), []);
 });
 
-test('an unknown start is rejected and remains in the journal after restart', async () => {
+test('a fresh unknown start is rejected and retained in the journal', async () => {
   const f = fixture(), first = f.browser();
   await first.reserve(channel, {});
   await assert.rejects(first.event(channel, obsolete, 'started'), { status: 400 });
-  await assert.rejects(f.browser().reserve(channel, {}), { status: 400 });
-  assert.deepEqual(f.calls, ['reserve', ...Array(4).fill('started:' + obsolete.identifier)]);
+  assert.deepEqual(f.acks.map(ack => ack.status), [400, 400]);
   assert.deepEqual(f.journal().map(row => row.id), [obsolete.identifier]);
   assert.deepEqual(f.storage.snapshot().seen, []);
   assert.deepEqual(f.watched, []);
+});
+
+test('a restored start evicted from the catalog drains before the next saved start and refill', async () => {
+  const f = fixture();
+  await f.select({ mode: 'reserve', items: [obsolete] });
+  const first = f.browser(async () => Response.json({ error: 'unavailable' }, { status: 503 }));
+  const opening = await first.reserve(channel, {});
+  const ids = rows => Array.from(rows, row => row.identifier);
+  assert.ok(ids(opening).includes(obsolete.identifier));
+  assert.ok(ids(opening).includes(valid.identifier));
+  await Promise.all([
+    assert.rejects(first.event(channel, obsolete, 'started'), { status: 503 }),
+    assert.rejects(first.event(channel, valid, 'started'), { status: 503 }),
+  ]);
+  assert.deepEqual(f.journal().map(row => row.id), [obsolete.identifier, valid.identifier]);
+
+  await f.select({ mode: 'reserve', rejectedIds: [obsolete.identifier] });
+  assert.ok(!ids(f.storage.snapshot().catalog).includes(obsolete.identifier));
+  f.restartRotation();
+  const reopened = f.browser();
+  await reopened.reserve(channel, {});
+  const refill = await reopened.reserve(channel, {});
+  await Promise.all(f.pending);
+  const staleStart = 'started:' + obsolete.identifier;
+  assert.deepEqual(f.calls, ['reserve', staleStart, staleStart, staleStart, 'started:' + valid.identifier, 'reserve', 'refill']);
+  assert.deepEqual(f.acks.map(ack => ack.status), [503, 503, 400, 202]);
+  assert.deepEqual(f.storage.snapshot().seen, [valid.identifier]);
+  assert.deepEqual(f.watched, [valid.identifier]);
+  assert.deepEqual(ids(refill), [next.identifier]);
+  assert.deepEqual(f.journal(), []);
 });

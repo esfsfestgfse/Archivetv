@@ -5,7 +5,7 @@
     var channels = Object.create(null);
     function state(key) {
       if (!channels[key]) {
-        var outbox = (options.journal?.load(key) || []).map(function (packet) { return { packet: packet, revision: 0 }; });
+        var outbox = (options.journal?.load(key) || []).map(function (packet) { return { packet: packet, revision: 0, restored: true }; });
         channels[key] = { items: [], removed: Object.create(null), outbox: outbox, flushing: null, inflight: null, playing: '', revision: 0, generation: 0 };
       }
       return channels[key];
@@ -18,7 +18,12 @@
         while (value.outbox.length) {
           var entry = value.outbox[0], packet = entry.packet, acknowledgement;
           try { acknowledgement = await options.report(packet); }
-          catch (_) { acknowledgement = await options.report(packet); }
+          catch (error) {
+            // An evicted saved start can no longer be committed. Retire its replay so newer starts can drain.
+            if (!(entry.restored && packet.event === 'started' && error?.status === 400)) {
+              acknowledgement = await options.report(packet);
+            }
+          }
           if (packet.event === 'started') options.journal?.remove(packet.channel, packet);
           var generation = acknowledgement && acknowledgement.cycleGeneration;
           if (Number.isSafeInteger(generation) && generation >= 0) {

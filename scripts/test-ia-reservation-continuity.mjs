@@ -332,3 +332,12 @@ test('movie rotation rejects off-genre broadcasts and modern videos cached in pe
  assert.ok(archiveMovieAllowed({year:1996,title:'The Watermelon Woman (1996)',subject:'Black Cinema'},'105'));
  assert.ok(archiveMovieAllowed({year:2015,title:'A Frosty Affair (2015)'},'700'));
 });
+
+test('film credits outrank Archive upload years and documentary extras stay off genre-film stations',async()=>{
+ const {archiveMovieReleaseYear,archiveMovieAllowed}=await import('../ia_movie_programs.js');
+ assert.equal(archiveMovieReleaseYear({title:'Cover Up 1949',year:2026}),1949);
+ assert.equal(archiveMovieReleaseYear({title:'01 East Side Kids',year:2015}),0);
+ assert.equal(archiveMovieAllowed({title:"Orwell’s Nightmare (Several Screen Adaptations + BONUS) · Orwell - 2+2=5 (Full 2025 Documentary)",year:2026},'124'),false);
+ assert.equal(archiveMovieAllowed({title:'Western Movie Marathon',year:2019},'102'),false);
+ assert.equal(archiveMovieAllowed({title:'Dracula Hammer Horror Film Anthology · #2 The Brides of Dracula (1960)',year:2021},'124'),true);
+});

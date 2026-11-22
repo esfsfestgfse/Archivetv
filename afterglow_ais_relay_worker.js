@@ -1798,6 +1798,8 @@ function iaDirectRecovery(identifier, sourceIdentifier, fileName, title, subject
 /* Exact Archive derivatives reviewed for original release, editorial fit,
  * duration, geometry and transport. They still pass current verification. */
 const IA_REVIEWED_ERA_FEATURES = [
+  ["108 113","the-last-seduction-1994_202608","The Last Seduction (1994).ia.mp4","The Last Seduction (1994)",1994,6612,1024,576,"neo-noir film noir independent film crime thriller film cult film","eng"],
+  ["108 113","red.-rock.-west.-1992","Red.Rock.West.(1992).mp4","Red Rock West (1993)",1993,5891,720,400,"neo-noir film noir independent film crime thriller film cult film","eng"],
   ["105","vhsaa-196","vhsaa-196.mp4","The Watermelon Woman (1996)",1996,5066,720,480,"black cinema african american cinema black-directed film black-led independent film","eng"],
   ["105","eves-bayou-1997-1080p-90s-movies-1","Eves Bayou (1997) (1080p)🌻 90's Movies (1).mp4","Eve’s Bayou (1997)",1997,6504,1920,1040,"black cinema african american cinema african american film black-directed film","eng"],
   ["105","crooklyn-1994","Crooklyn - [1994].mp4","Crooklyn (1994)",1994,6833,1280,688,"black cinema african american cinema spike lee black-directed film","eng"],

@@ -27,6 +27,7 @@ const TOPICS = {
   '701': ['halloween film', 'horror film', 'horror movie', 'supernatural horror', 'haunted house film']
 };
 const PERIOD_OR_FORMAT_CHANNELS = new Set(['104','107','109','116','133','134','575']);
+const FICTION_CHANNELS = new Set(['100','101','102','103','108','110','111','112','114','115','116','119','124','125','131','132','135','136','700','701']);
 const PERIODS = { '107': [1895,1929,/\bsilent (?:film|movie|cinema|comedy|drama|western)\b/i],
   '109': [1930,1960,/\b(?:film serial|movie serial|chapter play|cliffhanger serial)\b/i],
   '116': [1970,1985,/\b(?:blaxploitation|black exploitation)\b/i] };
@@ -50,9 +51,14 @@ export function archiveMovieReleaseYear(item = {}) {
   const title = String(item.title || '');
   const file = String(item.fileName || item.media?.fileName || '').split('/').pop();
   const filename = file.replace(/\.[a-z0-9]+$/i, '').replace(/[_\.]+/g, ' ');
+  const trailing = new RegExp('\\s(' + FILM_YEAR + ')$');
+  const prefix = new RegExp('^(' + FILM_YEAR + ')\\s+[-–—]\\s+');
   const embedded = yearValue(title.match(YEAR_TAG)?.[1]) || yearValue(filename.match(YEAR_TAG)?.[1]) ||
-    yearValue(filename.replace(RESOLUTION, '').match(new RegExp('\\s(' + FILM_YEAR + ')$'))?.[1]);
-  return yearValue(item.releaseYear) || embedded || yearValue(item.sourceDate) || yearValue(item.date) || yearValue(item.year);
+    yearValue(title.replace(RESOLUTION, '').match(trailing)?.[1]) || yearValue(title.match(prefix)?.[1]) ||
+    yearValue(filename.replace(RESOLUTION, '').match(trailing)?.[1]);
+  const credited = yearValue(item.releaseYear) || embedded;
+  if (credited || /\b(?:east side kids|bowery boys)\b/i.test(title)) return credited;
+  return yearValue(item.sourceDate) || yearValue(item.date) || yearValue(item.year);
 }
 
 export function archiveFilmKey(item) {
@@ -74,6 +80,8 @@ export function archiveMovieAllowed(item, channel) {
   if (/\b(?:watch[ -]?along|reaction videos?|movie night (?:w(?:ith)?|livestream)|twitch(?: stream)?|streamers? in a horror movie|pirates smp|video essay|featurette|dvd menu|deleted scenes|behind the scenes|fan[ -]?(?:made|film)|podcast|trailer compilation|analysis collection|horror filmography|festival.*\b(?:open|live|satellite) feed|tokusatsu block|fight (?:scenes?|compilation)\b.{0,36}\bcomp(?:ilation)?)\b/i.test(label)) return false;
   const subject = String(item.subject || item.subjects || '');
   const year = archiveMovieReleaseYear(item);
+  const segment = title.split(/\s+[·—]\s+/).at(-1);
+  if (FICTION_CHANNELS.has(id) && /\b(?:documentary|movie marathon|film marathon|film history special|movie scenes compilation)\b/i.test(segment)) return false;
   const period = PERIODS[id];
   if (period && (year ? year < period[0] || year > period[1] : !period[2].test(title + ' ' + subject))) return false;
   if (id === '105' && !BLACK_FILM.test([title, subject, item.creator].filter(Boolean).join(' '))) return false;

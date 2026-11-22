@@ -888,3 +888,25 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file 
   await scope.tuneIARepair(channel, {}, 2);
   assert.deepEqual(played, ['early-backup']);
 });
+
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file + ': a decoded VHS backup stays available during a long program', () => {
+  const channel = {num:502}, next = item('vhs-backup'), timers = [];
+  const el = Object.assign(new EventTarget(), {readyState:2,videoWidth:640,videoHeight:480,duration:1800,
+    pause(){},load(){},removeAttribute(){delete this.src;}});
+  const scope = {
+    window:{RealSignalIAShelf:runtime('?iaProgramIdentity=1','*')},
+    Date,curNum:502,powered:true,document:{createElement:()=>el},iaRepairEnabled:()=>true,nlog(){},
+    setTimeout(fn,ms){timers.push({fn,ms});return timers.length;},clearTimeout(){}
+  };
+  vm.createContext(scope);
+  const source=fs.readFileSync(path.join(root,file),'utf8');
+  vm.runInContext(source.slice(source.indexOf('var iaMediaWarmers='),source.indexOf('function warmIAQueueHead(')),scope);
+  scope.iaWarmWanted[502]=Date.now()+120000;
+  scope.stageIAMediaWarmer(channel,next,next.media,()=>{});
+  el.dispatchEvent(new Event('loadeddata'));
+  timers.find(timer=>timer.ms===90000).fn();
+  assert.equal(scope.iaMediaWarmers['502:vhs-backup']?.el,el);
+  scope.releaseIAReadyBackups(502);
+  assert.equal(el.src,undefined);
+  assert.equal(scope.iaMediaWarmers['502:vhs-backup'],undefined);
+});

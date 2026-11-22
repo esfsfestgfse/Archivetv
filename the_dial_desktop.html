@@ -9,13 +9,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 7.4.8</title>
+<title>REALSIGNAL · Retro Cable 7.4.9</title>
 <meta name="realsignal-ia-repair-channels" content="*">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=7.2.19"></script>
-<script src="assets/ia-playback-shelf.js?v=7.4.8"></script>
+<script src="assets/ia-playback-shelf.js?v=7.4.9"></script>
 <script src="assets/sports-programs.js?v=7.0.0"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
 <script src="assets/youtube-embed-runtime.js?v=7.2.1"></script>
@@ -1702,7 +1702,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="7.4.8-desktop-retro-cable";
+window.__ATV_BUILD="7.4.9-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7603,6 +7603,13 @@ function iaQueueRotationFor(ch){var key=iaQueueKey(ch);if(!Object.prototype.hasO
 function iaAdvanceQueueRotation(ch){var key=iaQueueKey(ch);iaQueueRotation[key]=(iaQueueRotationFor(ch)+1)%4096;store.set("iaQueueRotation",iaQueueRotation);}
 function iaMediaWarmKey(ch,item){return iaQueueKey(ch)+":"+String(item&&item.identifier||item&&item.id||"");}
 function releaseIAMediaWarmer(key,keepElement){var w=iaMediaWarmers[key];if(!w)return null;delete iaMediaWarmers[key];if(iaMediaWarmByChannel[w.channel]===key)delete iaMediaWarmByChannel[w.channel];clearTimeout(w.timer);clearTimeout(w.stallTimer);var i=iaMediaWarmerOrder.indexOf(key);if(i>=0)iaMediaWarmerOrder.splice(i,1);if(!keepElement){try{w.el.pause();w.el.removeAttribute("src");w.el.load();}catch(e){}}return w.el;}
+function releaseIAReadyBackups(channel){
+  var key=String(channel);
+  iaWarmWanted[key]=0;
+  Object.keys(iaMediaWarmers).forEach(function(id){
+    if(iaMediaWarmers[id].channel===key)releaseIAMediaWarmer(id,false);
+  });
+}
 function takeIAMediaWarmer(ch,item){return releaseIAMediaWarmer(iaMediaWarmKey(ch,item),true);}
 function stageIAMediaWarmer(ch,item,pl,onStall){
   var ck=iaQueueKey(ch);
@@ -7610,10 +7617,11 @@ function stageIAMediaWarmer(ch,item,pl,onStall){
   var key=iaMediaWarmKey(ch,item),prior=iaMediaWarmByChannel[ck];
   if(!key)return;
   var pilot=window.RealSignalIAShelf?.tracksRoutes?.(ch.num)&&(!ch.audio||window.RealSignalIAShelf.fullRollout)&&iaRepairEnabled(ch);
+  var keepBackup=window.RealSignalIAShelf?.readyBackup?.(ch.num);
   function watchStall(warmer){
     if(!pilot||(!warmer.onStall&&ck!=="53")||warmer.readyOrder||warmer.stallTimer!=null)return;
     function releaseStalled(){
-      if(iaMediaWarmers[key]!==warmer||warmer.readyOrder)return;
+      if(iaMediaWarmers[key]!==warmer||warmer.readyOrder&&!(keepBackup&&warmer.el.error))return;
       releaseIAMediaWarmer(key,false);
       window.__rsPlaybackAudit?.source?.(ch.num)?.("archive-preload-stalled",{id:item.identifier});
       warmer.onStall?.();
@@ -7636,12 +7644,17 @@ function stageIAMediaWarmer(ch,item,pl,onStall){
   try{
     var el=document.createElement(pl.type==="audio"?"audio":"video");
     el.preload="auto";el.muted=true;el.playsInline=true;
-    var warmer={el:el,channel:ck,onStall:onStall,timer:setTimeout(function(){releaseIAMediaWarmer(key,false);},90000)};
+    var warmer={el:el,channel:ck,onStall:onStall,timer:setTimeout(function(){
+      var active=keepBackup&&powered&&curNum===ch.num&&iaRepairEnabled(ch);
+      if(active&&warmer.readyOrder&&el.readyState>=2&&!el.error)return;
+      releaseIAMediaWarmer(key,false);
+      if(active)warmer.onStall?.();
+    },90000)};
     iaMediaWarmers[key]=warmer;iaMediaWarmerOrder.push(key);iaMediaWarmByChannel[ck]=key;
     if(pilot){
       el.addEventListener("loadeddata",function(){
         if(iaMediaWarmers[key]!==warmer||el.readyState<2||!ch.audio&&!(el.videoWidth>0))return;
-        if(window.RealSignalIAShelf.readyBackup?.(ch.num)&&(!(el.videoWidth>el.videoHeight)||!(Number.isFinite(el.duration)&&el.duration>0)))return;
+        if(keepBackup&&(!(el.videoWidth>el.videoHeight)||!(Number.isFinite(el.duration)&&el.duration>0)))return;
         warmer.readyOrder=++iaReadyOrder;
         clearTimeout(warmer.stallTimer);
         try{window.RealSignalGuide?.refresh();}catch(e){}
@@ -9514,6 +9527,7 @@ async function tuneNum(n,requestedProgramId){
   if(window.__rsPlaybackAudit)window.__rsPlaybackAudit.begin(canonicalNum);
   const changedChannel=(curNum!==canonicalNum)||justPowered; justPowered=false; // NEW: station bumper only on a real channel change
   if(changedChannel)adQueue=0; /* a break belongs to one station; never leak it across a channel change */
+  if(curNum!==canonicalNum&&window.RealSignalIAShelf?.readyBackup?.(curNum))releaseIAReadyBackups(curNum);
   curNum=canonicalNum; store.set("last",canonicalNum); store.set("lastRequested",requestedNum); store.set("lastName",canonicalChannelLabel(ch)); if(typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected()&&typeof window.__rsCastCommand==="function")window.__rsCastCommand("TUNE",{channel:canonicalNum}); if(typeof window.__rsCastSync==="function")window.__rsCastSync(); const my=++token; clearTimeout(retryTimer);
   renderRail(); chNum.textContent=String(canonicalNum);
   const sl=slotFor(ch,0);
@@ -9873,6 +9887,7 @@ async function tuneIARepair(ch,sl,my){
   if(window.RealSignalIAShelf.fallbackForChannel?.(key)){
     nlog("ia-playback-fallback",true,"CH "+key);
     window.__rsPlaybackAudit?.source?.(ch.num)?.("archive-legacy-fallback");
+    if(readyBackup)releaseIAReadyBackups(ch.num);
     return tuneIA(ch,sl,my);
   }
   iaRetry(ch,my);
@@ -10392,7 +10407,8 @@ function powerOn(){powered=true;document.body.classList.add("atv-powered");justP
   var pLed=$("rPowLed"); if(pLed) pLed.classList.add("on"); /* PWR LED green when powered on */
   var mBtn=$("rMute"); if(mBtn) mBtn.classList.remove("mute-on"); /* mute cleared on power-on */
 }
-function powerOff(){powered=false;if(typeof window.__rsCastSync==="function")window.__rsCastSync();document.body.classList.remove("atv-powered");++token;stopClock();clearTimeout(retryTimer);releaseWake();tube.classList.add("off");
+function powerOff(){powered=false;
+  if(window.RealSignalIAShelf?.readyBackup?.(curNum))releaseIAReadyBackups(curNum);if(typeof window.__rsCastSync==="function")window.__rsCastSync();document.body.classList.remove("atv-powered");++token;stopClock();clearTimeout(retryTimer);releaseWake();tube.classList.add("off");
   setTimeout(()=>{clearScreen();showOv("REALSIGNAL","PRESS POWER","Grab the remote and hit the red button.");tube.classList.remove("off");},470);
   bug.classList.add("hide");lower.classList.add("fade");volHint.classList.remove("show");
   var pLed=$("rPowLed"); if(pLed) pLed.classList.remove("on"); /* PWR LED off */

@@ -16,13 +16,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · Retro Cable 7.4.13</title>
+<title>REALSIGNAL · Retro Cable 7.4.14</title>
 <meta name="realsignal-ia-repair-channels" content="*">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=7.2.19"></script>
-<script src="assets/ia-playback-shelf.js?v=7.4.13"></script>
+<script src="assets/ia-playback-shelf.js?v=7.4.14"></script>
 <script src="assets/sports-programs.js?v=7.0.0"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
 <script src="assets/youtube-embed-runtime.js?v=7.2.19"></script>
@@ -1741,7 +1741,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="7.4.13-mobile-retro-cable";
+window.__ATV_BUILD="7.4.14-mobile-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7968,8 +7968,15 @@ function iaReviewedFileAllowed(item, channel) {
   if (!file) { try { file = decodeURIComponent(new URL(media.url || item.mediaUrl || item.url).pathname.split('/').pop()); } catch (_) {} }
   file = file.split('/').pop();
 
-  if (String(channel) === '108' && source === 'animal-kingdom-david-michod-2010-spa' &&
-      /\)\s+SPA(?:\.|$)/i.test(file || item.title || '')) return false;
+  const station = String(channel);
+  const title = String(item.title || '');
+  if (station === '108') {
+    if (source === 'animal-kingdom-david-michod-2010-spa' && /\)\s+SPA(?:\.|$)/i.test(file || title)) return false;
+    if (/^(?:ccp-red-house|edgar-von-ghoul[-_]|homv-)/i.test(source) ||
+        /\b(?:classic cinema plus|midnight chillers|house of master vyle)\b/i.test(title)) return false;
+  }
+  if (station === '124' && (/^(?:hammer-frankenstein-film-music|alejandro-jodorowsky-el-ladron-del-arcoiris|homv-)/i.test(source) ||
+      /\b(?:hammer frankenstein film music|the rainbow thief|the flesh and the fury|x[ -]posing twins of evil|house of master vyle|orwell.s nightmare)\b/i.test(title))) return false;
 
   if (String(channel) === '575') {
     // Match reviewed Archive files, because a resolution claim in an upload

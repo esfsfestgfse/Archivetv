@@ -59,6 +59,8 @@ export function archiveMovieReleaseYear(item = {}) {
   const credited = yearValue(item.releaseYear) || embedded;
   if (credited || /\b(?:east side kids|bowery boys)\b/i.test(title)) return credited;
   if (/\bsatanic rites of dracula\b/i.test(title)) return 1973;
+  if (/\bx[ -]+the unknown\b/i.test(title)) return 1956;
+  if (/^1957\s*hamtas$/i.test(title)) return 1957;
   return yearValue(item.sourceDate) || yearValue(item.date) || yearValue(item.year);
 }
 

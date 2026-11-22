@@ -565,7 +565,9 @@ function uniqueQueueItems(items, body, limit = body && body.iaRepair === true &&
     const key = keepCopies ? queueItemKey(item) : queueItemIdentity(item);
     if (!key || seen.has(key) || !catalogFallbackAllowed(item, body)) continue;
     seen.add(key);
-    out.push(["12", "22"].includes(String(body && body.channel)) ? { ...item, year: iaGameShowYear(item) } : item);
+    const station = String(body?.channel);
+    const filmYear = station === "108" || station === "124" ? archiveMovieReleaseYear(item) : 0;
+    out.push(["12", "22"].includes(station) ? { ...item, year: iaGameShowYear(item) } : filmYear ? { ...item, year: filmYear } : item);
     if (out.length >= limit) break;
   }
   /* Collection expansion produces a parent index plus direct child files.
@@ -1895,7 +1897,7 @@ async function handlePreparedIaStart(request, env, ctx, id, body) {
   const cache = typeof caches !== "undefined" ? caches.default : null;
   if (!cache) return null;
   const channel = String(body.channel);
-  const cacheVersion = channel === '108' || channel === '124' ? 'v2' : 'v1';
+  const cacheVersion = channel === '108' || channel === '124' ? 'v3' : 'v1';
   const key = new Request(new URL("/__realsignal/ia-prepared/" + cacheVersion + '/' + channel, request.url));
   try {
     const cached = await cache.match(key);

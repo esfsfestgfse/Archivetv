@@ -55,7 +55,7 @@ for (const channel of ['10', '53', '108', '216', '903']) test(channel + ': a pre
     const runtime = sports ? 7200 : noir ? 5400 : audio ? 300 : 1320, type = audio ? 'audio' : 'video';
     return {
       id, source_identifier: source, provider: 'Internet Archive', title,
-      media_type: type, media_url: url, aspect_ratio: audio ? 0 : 4/3, duration_seconds: runtime, year: String(year),
+      media_type: type, media_url: url, aspect_ratio: audio ? 0 : 4/3, duration_seconds: runtime, year: String(noir && year < 2000 ? 2026 : year),
       metadata_json: JSON.stringify({ seriesTitle: family, fileName: file, media: { type, url, runtime },
         subject: sports ? 'sports full event broadcast' : audio ? 'jazz instrumental recording' : noir ? 'film noir crime thriller film' : documentary ? 'cold war civil defense documentary' : 'classic television', runtimeSeconds: runtime, width: 640, height: 480, verification: 'transport', verifiedAt: Date.now() })
     };
@@ -103,7 +103,11 @@ for (const channel of ['10', '53', '108', '216', '903']) test(channel + ': a pre
     const shelf=await opening.json();
     assert.equal(shelf.ready,3);
     assert.equal(new Set(shelf.items.map(i=>i.seriesTitle)).size,3);
-    if (noir) assert.ok(shelf.items.some(item => Number(item.year) >= 2000));
+    if (noir) {
+      assert.ok(shelf.items.some(item => Number(item.year) === 2003 || Number(item.year) === 2004));
+      assert.ok(shelf.items.some(item => Number(item.year) === 1942));
+      assert.ok(shelf.items.every(item => Number(item.year) !== 2026), 'the guide and player receive the original release year');
+    }
     assert.deepEqual(rotationModes,['reserve'],'the opening avoids a separate history peek');
     const picked=shelf.items[0].identifier;
     const commit=await worker.fetch(new Request('https://api.example/api/v3/ia/playback',{method:'POST',

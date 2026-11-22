@@ -38,6 +38,24 @@ test('the explicitly Spanish-labelled Animal Kingdom file stays out of Noir reco
   assert.equal(iaReviewedFileAllowed(item,'106'),true);
 });
 
+
+test('confirmed hosted, off-studio, and soundtrack uploads stay out of Noir and Hammer House', async () => {
+  const {iaReviewedFileAllowed}=await import('../ia_file_contract.js');
+  const gate=relay().stationGate;
+  const rejected=[['108','ccp-red-house','Classic Cinema Plus #3 (The Red House)'],
+    ['108','homv-s-0-e-3-example','House of Master Vyle Presents Swamp Women'],
+    ['124','orwells-nightmare','Orwell’s Nightmare: 1984 · 1984 (1984)'],
+    ['124','hammer-frankenstein-film-music','HAMMER FRANKENSTEIN FILM MUSIC'],
+    ['124','alejandro-jodorowsky-el-ladron-del-arcoiris','Alejandro Jodorowsky - The Rainbow Thief']];
+  for(const [channel,identifier,title] of rejected) {
+    const row={identifier,title,media:{type:'video',runtime:5400,width:640,height:480}};
+    assert.equal(iaReviewedFileAllowed(row,channel),false,title);
+    assert.equal(gate(channel,row),false,title);
+  }
+  assert.ok(iaReviewedFileAllowed({identifier:'TheRedHouse',title:'The Red House (1947)'},'108'));
+  assert.ok(iaReviewedFileAllowed({identifier:'xtheunknown',title:'X The Unknown (1956)'},'124'));
+});
+
 test('Sporting Life cannot promote civic meetings or concert uploads through outdoor subject tags',async()=>{
   const f=relay(),{catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
   const rejected=['Oceanside City Council Meeting - December 7 2016 PART 1','A Conversation with Secretary Sally Jewell','Green Day - The Easter Show 1992 - FULL PERFORMANCE',

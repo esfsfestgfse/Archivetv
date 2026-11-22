@@ -6096,8 +6096,15 @@ function iaReviewedFileAllowed(item, channel) {
   if (!file) { try { file = decodeURIComponent(new URL(media.url || item.mediaUrl || item.url).pathname.split('/').pop()); } catch (_) {} }
   file = file.split('/').pop();
 
-  if (String(channel) === '108' && source === 'animal-kingdom-david-michod-2010-spa' &&
-      /\)\s+SPA(?:\.|$)/i.test(file || item.title || '')) return false;
+  const station = String(channel);
+  const title = String(item.title || '');
+  if (station === '108') {
+    if (source === 'animal-kingdom-david-michod-2010-spa' && /\)\s+SPA(?:\.|$)/i.test(file || title)) return false;
+    if (/^(?:ccp-red-house|edgar-von-ghoul[-_]|homv-)/i.test(source) ||
+        /\b(?:classic cinema plus|midnight chillers|house of master vyle)\b/i.test(title)) return false;
+  }
+  if (station === '124' && (/^(?:hammer-frankenstein-film-music|alejandro-jodorowsky-el-ladron-del-arcoiris|homv-)/i.test(source) ||
+      /\b(?:hammer frankenstein film music|the rainbow thief|the flesh and the fury|x[ -]posing twins of evil|house of master vyle|orwell.s nightmare)\b/i.test(title))) return false;
 
   if (String(channel) === '575') {
     // Match reviewed Archive files, because a resolution claim in an upload

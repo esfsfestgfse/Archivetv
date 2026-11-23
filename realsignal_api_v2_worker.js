@@ -1392,6 +1392,24 @@ async function withFreshnessLedger(env, body) {
   return { ...body, recentIds: merged.slice(0, sourceHistoryLimit(body)), freshnessLedger: true };
 }
 
+async function readNoirHistory(env, recentIds) {
+  if (!env.realsignal_catalog?.prepare || !recentIds.size) return [];
+  try {
+    // Inactive routes can still identify the work after leaving the station.
+    const history = await env.realsignal_catalog.prepare(
+      "SELECT id,title,metadata_json FROM programs WHERE id IN (SELECT value FROM json_each(?))"
+    ).bind(JSON.stringify([...recentIds])).all();
+    return (history.results || []).map(row => {
+      let releaseYear;
+      try { releaseYear = JSON.parse(row.metadata_json || "{}")?.releaseYear; } catch (_) { /* tolerate legacy rows */ }
+      return { id: row.id, title: row.title, releaseYear };
+    });
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "noir-history-read-failed", error: String(error).slice(0, 160) }));
+    return [];
+  }
+}
+
 async function rememberFreshness(env, channel, items, ctx) {
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.batch !== "function") return;
   const channelKey = normalizedChannelKey(channel);
@@ -1406,7 +1424,13 @@ async function rememberFreshness(env, channel, items, ctx) {
   const now = Date.now();
   const work = (async () => {
     try {
-      const statements = ids.map((id) => env.realsignal_catalog.prepare("INSERT INTO channel_freshness (channel_key, program_id, last_served_at, play_count) VALUES (?, ?, ?, 1) ON CONFLICT(channel_key, program_id) DO UPDATE SET last_served_at=excluded.last_served_at, play_count=channel_freshness.play_count+1").bind(channelKey, id, now));
+      const insert = "INSERT INTO channel_freshness (channel_key, program_id, last_served_at, play_count)";
+      const update = "ON CONFLICT(channel_key, program_id) DO UPDATE SET last_served_at=excluded.last_served_at, play_count=channel_freshness.play_count+1";
+      // Older dials also sent work keys. An invalid ID must leave valid writes
+      // in the same D1 batch intact.
+      const statements = ids.map(id => channelKey === "film-noir-desk"
+        ? env.realsignal_catalog.prepare(insert + " SELECT ?,id,?,1 FROM programs WHERE id=? " + update).bind(channelKey, now, id)
+        : env.realsignal_catalog.prepare(insert + " VALUES (?, ?, ?, 1) " + update).bind(channelKey, id, now));
       await env.realsignal_catalog.batch(statements);
       freshnessReadCache.delete(channelKey);
     } catch (_) {
@@ -1420,10 +1444,10 @@ async function rememberFreshness(env, channel, items, ctx) {
 /* Freshness is a preference, not a hard ban. If a catalog has new material,
    exclude the client's recent shelf. If it does not, return the last-good
    catalog rather than turning a healthy channel into No Signal. */
-function applyFreshness(items, body) {
+function applyFreshness(items, body, noirHistory = []) {
   if (!Array.isArray(items) || !items.length) return [];
   if (body?.sourceCatalog === true && (body.channel || body.profileKey) === "film-noir-desk") {
-    const seen = SourcePrograms.noirFilmRecent(items, [...recentCatalogIds(body)]);
+    const seen = SourcePrograms.noirFilmRecent(noirHistory.concat(items), [...recentCatalogIds(body)]);
     return items.filter(item => !seen.has(queueItemKey(item)) && !seen.has(SourcePrograms.noirFilmKey(item)));
   }
   const musicProfile = sourceProfile(body);
@@ -1685,7 +1709,9 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   const eligibleItems = items.filter((item) => !blockedProviders.has(sourceProviderKey(item && item.provider)));
   // Let OK TV balance by series before cutting to the playback window.
   const qualificationLimit = channel === "ok-tv-channel" ? eligibleItems.length : limit;
-  const filtered = stableCatalogItems(derivedMusicYears ? okMusicBalanceDecades(eligibleItems) : eligibleItems, effectiveBody, qualificationLimit);
+  const noirDesk = effectiveBody.sourceCatalog === true && channel === "film-noir-desk";
+  const qualified = stableCatalogItems(derivedMusicYears ? okMusicBalanceDecades(eligibleItems) : eligibleItems, effectiveBody, qualificationLimit);
+  const filtered = noirDesk ? qualified.map(SourcePrograms.withNoirFilmYear) : qualified;
   /* A catalog row without a resolved media URL is useful evidence for a
      background repair, but it is not a playable program. Keep it in the
      candidate union while measuring depth/freshness and selecting the public
@@ -1693,8 +1719,8 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   const playable = filtered.filter(queueItemPlayable).map(item => personalRotation
     ? { ...item, canonicalProgramKey: okPlaybackIdentity(item, "tv") } : item);
   const playableCatalog = okCatalog ? okBalancedCandidates([playable], okMusicChannel({profileKey:channel}) ? "music" : channel === "ok-movie-channel" ? "movie" : "tv", limit) : vimeoCatalog ? vimeoBalancedItems(playable) : playable;
-  const noirDesk = effectiveBody.sourceCatalog === true && channel === "film-noir-desk";
   const recentIDs = recentCatalogIds(effectiveBody);
+  const noirHistory = noirDesk && !ignoreFreshness ? options.noirHistory ?? await readNoirHistory(env, recentIDs) : [];
   const okKind = okMusicChannel({profileKey:channel}) ? "music" : channel === "ok-movie-channel" ? "movie" : "tv";
   const recentPrograms = new Set(personalRotation && !ignoreFreshness && Array.isArray(body.recentProgramKeys)
     ? body.recentProgramKeys.slice(0, 1024).filter(key => typeof key === "string" && key.length <= 500) : []);
@@ -1720,7 +1746,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   }
   const strictOKFreshness = deepCatalog || rotatingSourceCatalog;
   const sportsPlayed = new Set(Sports.enabled(channel) ? [...recentIDs].filter(key=>key.startsWith('sports:')).concat(Sports.history(playableCatalog,[...recentIDs]).map(item=>Sports.key(item,channel))) : []);
-  const fresh = ignoreFreshness ? playableCatalog : noirDesk ? applyFreshness(playableCatalog, effectiveBody) : strictOKFreshness
+  const fresh = ignoreFreshness ? playableCatalog : noirDesk ? applyFreshness(playableCatalog, effectiveBody, noirHistory) : strictOKFreshness
     ? playableCatalog.filter(item => !recentIDs.has(queueItemKey(item)) && !sportsPlayed.has(Sports.key(item,channel)) && (!okCatalog || !recentPrograms.has(okPlaybackIdentity(item, okKind))))
     : applyFreshness(playableCatalog, effectiveBody);
   const requestedCount = Math.max(1, Math.min(5, Number(effectiveBody && effectiveBody.count) || 3));
@@ -1780,7 +1806,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
        caused the guide/freshness layer to miscount repeats. */
     items: shelf,
     ...(Sports.enabled(channel)?{uniqueEvents:Sports.uniqueCount(playableCatalog,channel)}:{}),
-    candidateItems: deepCatalog ? freshSeriesOrdered : filtered,
+    candidateItems: deepCatalog || (noirDesk && fresh.length) ? freshSeriesOrdered : filtered,
     ready: shelf.length,
     candidates: filtered.length,
     catalogDepth: noirDesk ? playableDepth : filtered.length,
@@ -2867,6 +2893,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
   const maintenance = body.maintenance === true;
   const profile = sourceProfile(body);
   if (!profile) return json({ error: "unknown source profile", requestId: id }, 404);
+  const noirDesk = profile.profileKey === "film-noir-desk";
   const apiVersion = new URL(request.url).pathname.startsWith(V3_PREFIX) ? "v3" : "v2";
   if (profile.derivedCatalogOnly === true) return handleDerivedSourceCatalog(env, ctx, id, body, profile, apiVersion);
   if (!profile.queries.length) return json({ error: "source profile has no discovery queries", requestId: id }, 503);
@@ -2874,11 +2901,13 @@ async function handleSourceCatalog(request, env, ctx, id) {
   const personalFreshness = !maintenance && profile.personalRotation;
   const ledgerIds = personalFreshness ? [] : await readFreshnessIds(env, profile.profileKey);
   const playedIds = Array.from(new Set((Array.isArray(body.playedIds) ? body.playedIds : [])
-    .map((value) => String(value || "").trim().slice(0, 500)).filter(Boolean))).slice(0, 8);
+    .map((value) => String(value || "").trim().slice(0, 500)).filter(id => id && (!noirDesk || !id.startsWith("noir:"))))).slice(0, 8);
   /* Client history is newest-first. Keep the order intact so the freshness
      filter excludes the newest played items first instead of accidentally
      preferring the oldest part of the ledger. */
-  const sourceRecentIds = Array.from(new Set((Array.isArray(body.recentIds) ? body.recentIds : []).concat(ledgerIds))).slice(0, sourceHistoryLimit({ channel: profile.profileKey }));
+  const sourceRecentIds = Array.from(new Set((Array.isArray(body.recentIds) ? body.recentIds : [])
+    .concat(noirDesk ? playedIds : [], ledgerIds))).slice(0, sourceHistoryLimit({ channel: profile.profileKey }));
+  const noirHistory = noirDesk ? await readNoirHistory(env, recentCatalogIds({ channel: profile.profileKey, recentIds: sourceRecentIds })) : [];
   /* Viewer requests honor provider cooldowns so a slow or failing source can
      never block a shelf. A bounded maintenance repair is different: it is the
      health check that decides whether a cooled provider has recovered, so it
@@ -2908,7 +2937,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
     recentSeries: body.recentSeries,
     recentProgramKeys: body.recentProgramKeys,
     freshnessLedger: !personalFreshness,
-  }, SOURCE_LIMITS.SOURCE_MAX_ITEMS, { blockedProviders: disabledProviders }).catch((error) => {
+  }, SOURCE_LIMITS.SOURCE_MAX_ITEMS, { blockedProviders: disabledProviders, noirHistory }).catch((error) => {
     console.warn(JSON.stringify({ event: "source-catalog-read-failed", requestId: id, error: String(error).slice(0, 160) }));
     return null;
   });
@@ -3036,7 +3065,6 @@ async function handleSourceCatalog(request, env, ctx, id) {
       themeMinScore: 1,
     };
     const verified = uniqueQueueItems(merged.items, maintenanceBody, SOURCE_LIMITS.SOURCE_MAX_ITEMS);
-    const noirDesk = normalized.profileKey === "film-noir-desk";
     const seats = noirDesk ? SourcePrograms.noirFilmSeats(verified) : verified;
     return json({
       profileKey: normalized.profileKey,
@@ -3063,7 +3091,6 @@ async function handleSourceCatalog(request, env, ctx, id) {
     }, verified.length ? 200 : 503, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Source": "server-source-catalog-maintenance", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
   }
   const cachedItems = forceDeepRefresh && cached && Array.isArray(cached.candidateItems) ? cached.candidateItems : (forceDeepRefresh && cached && Array.isArray(cached.items) ? cached.items : []);
-  const noirDesk = profile.profileKey === "film-noir-desk";
   const discoveredItems = forceDeepRefresh
     ? uniqueQueueItems(cachedItems.concat(first.items || []), { ...body, ...(noirDesk ? { channel: profile.profileKey } : {}), sourceCatalog: true, denyTerms: profile.deny, themeTerms: profile.match, strictTopicTerms: profile.strictTopicTerms, minContentYear: profile.minContentYear, minRuntimeSeconds: profile.minRuntimeSeconds, movieLane: profile.movieLane, laneRequired: profile.laneRequired, laneDeny: profile.laneDeny, themeMinScore: 1 }, SOURCE_LIMITS.SOURCE_MAX_ITEMS)
     : first.items;
@@ -3073,7 +3100,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
   const personalIds = new Set(sourceRecentIds);
   const unseenFirstItems = personalFreshness
     ? canonicalItems.filter(item => !personalIds.has(queueItemKey(item)) && !seenProgramKeys.has(item.canonicalProgramKey))
-    : applyFreshness(canonicalItems, freshnessBody);
+    : applyFreshness(canonicalItems, freshnessBody, noirHistory);
   const catalogExhausted = discoveredItems.length > 0 && unseenFirstItems.length === 0;
   const freshFirstItems = catalogExhausted ? canonicalItems : unseenFirstItems;
   const readyFirstItems = noirDesk ? SourcePrograms.noirFilmSeats(freshFirstItems).slice(0, Math.max(1, Math.min(5, Number(body.count) || 3))) : freshFirstItems;
@@ -3081,7 +3108,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
   const firstUnseen = noirDesk ? SourcePrograms.noirFilmSeats(unseenFirstItems).length : unseenFirstItems.length;
   if (playedIds.length) rememberFreshness(env, normalized.profileKey, playedIds, ctx);
   const sportsFirst = Sports.enabled(normalized.profileKey) ? sportsShelf({items:freshFirstItems,candidateItems:discoveredItems},{...body,channel:normalized.profileKey,count:body.count||5}) : null;
-  return json({ profileKey: normalized.profileKey, items: sportsFirst ? sportsFirst.items : readyFirstItems, ...(sportsFirst?{candidateItems:discoveredItems,uniqueEvents:sportsFirst.uniqueEvents}:noirDesk?{candidateItems:discoveredItems,playableCatalogDepth:firstDepth}:{}), ready: sportsFirst ? sportsFirst.items.length : readyFirstItems.length, candidates: discoveredItems.length, catalogDepth: firstDepth, unseenCatalogItems: firstUnseen, seenCatalogItems: Math.max(0, firstDepth - firstUnseen), catalogExhausted, repeatAllowed: catalogExhausted, lanes: first.lanes, hydrating: true, adaptiveFreshness: true, freshnessLedger: true, freshnessExcluded: Math.max(0, firstDepth - firstUnseen), freshnessWindow: recentCatalogIds(freshnessBody).size, catalogVersion: "source-server-1", source: forceDeepRefresh ? "server-source-catalog-refresh" : "server-source-catalog", providerAvailability: sourceProviderAvailability(env, freshFirstItems, Array.from(disabledProviders)), limits: SOURCE_LIMITS, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, freshFirstItems.length ? 200 : 503, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Source": "server-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
+  return json({ profileKey: normalized.profileKey, items: sportsFirst ? sportsFirst.items : readyFirstItems, ...(sportsFirst?{candidateItems:discoveredItems,uniqueEvents:sportsFirst.uniqueEvents}:noirDesk?{candidateItems:freshFirstItems,playableCatalogDepth:firstDepth}:{}), ready: sportsFirst ? sportsFirst.items.length : readyFirstItems.length, candidates: discoveredItems.length, catalogDepth: firstDepth, unseenCatalogItems: firstUnseen, seenCatalogItems: Math.max(0, firstDepth - firstUnseen), catalogExhausted, repeatAllowed: catalogExhausted, lanes: first.lanes, hydrating: true, adaptiveFreshness: true, freshnessLedger: true, freshnessExcluded: Math.max(0, firstDepth - firstUnseen), freshnessWindow: recentCatalogIds(freshnessBody).size, catalogVersion: "source-server-1", source: forceDeepRefresh ? "server-source-catalog-refresh" : "server-source-catalog", providerAvailability: sourceProviderAvailability(env, freshFirstItems, Array.from(disabledProviders)), limits: SOURCE_LIMITS, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, freshFirstItems.length ? 200 : 503, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Source": "server-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
 }
 
 const worker = {

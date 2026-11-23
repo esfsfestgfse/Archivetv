@@ -26,7 +26,22 @@
     }
     return disclosed(title)||description.split(/[.!?\n]+/).some(disclosed);
   }
+  // Reviewed release identities for these exact public uploads.
+  var reviewedNoirWorks = {
+    'yt:5r4H3CAMeJg': '1955:bigcombo',
+    'yt:PKNXaoVfQhI': '1955:bigcombo',
+    'yt:iIkCXF9Y4ow': '1955:bigcombo',
+    'pt:vod.newellijay.tv/377d9c33-3f18-407b-aa21-383a1d814df4': '1955:manwiththegoldenarm',
+    'yt:zaa6lFN0KaY': '1949:portofnewyork',
+    'yt:s7tfQVsxC3Y': '1975:farewellmylovely',
+  };
+  function reviewedNoirWork(item) {
+    var id = item && (item.id || item.identifier);
+    return Object.hasOwn(reviewedNoirWorks, id) ? reviewedNoirWorks[id] : '';
+  }
   function noirFilmKey(item) {
+    var reviewed = reviewedNoirWork(item);
+    if (reviewed) return 'noir:' + reviewed;
     var title = clean(item && item.title).trim();
     var credit = title.match(/^(.+?)\s*[([]((?:19|20)\d{2})[)\]]/) ||
       title.match(/^(.+?)\s+(?:-\s+)?((?:19|20)\d{2})(?=\s*(?:[|,-]|$))/);
@@ -39,12 +54,16 @@
     return name.length >= 3 && Number.isInteger(year) && year >= 1900 && year <= new Date().getUTCFullYear()
       ? "noir:" + year + ":" + name : "";
   }
+  function withNoirFilmYear(item) {
+    var year = Number(noirFilmKey(item).slice(5, 9));
+    return year ? { ...item, year: year, releaseYear: year } : { ...item, year: '' };
+  }
   function noirFilmAllowed(item) {
     if (!item || Number(item.duration) < 3000 || !Number(item.duration) || item.isLive === true || item.liveBroadcastContent === 'live') return false;
     var title = clean(item.title), opening = clean(item.description).trim().split(/[.!?](?:\s+|$)|\n/)[0];
     if (/\b(?:documentar(?:y|ies)|retrospective|video essay|history of|film noir history|interviews?|analysis|explained|lectures?|commentary|rank(?:ed|ings?)|countdown|top\s+(?:\d+|ten)|clips?|trailers?|teasers?|reaction|recap|fan[ -]?(?:edit|film|made)|shorts|making of|behind the scenes|gameplay|live[ -]?stream|bringing darkness to light|personal journey through film noir)\b/i.test(title)) return false;
     if (/^(?:an?\s+)?documentary\b|\bthis (?:video|film|programme|program) is (?:an?\s+)?documentary\b/i.test(opening)) return false;
-    if (noirFilmKey(item) === 'noir:1955:bigcombo') return true;
+    if (reviewedNoirWork(item) || noirFilmKey(item) === 'noir:1955:bigcombo') return true;
     var topic = /\b(?:film[ -]noir|neo[ -]noir|noir (?:movie|film|feature|classic)|detective (?:movie|film)|black and white crime)\b/i;
     var full = /\b(?:full|complete|feature)[ -]+(?:movie|film)\b|\bfull[ -]length\b/i;
     return topic.test([title, item.description, item.tags, item.subject].join(' ')) &&
@@ -163,5 +182,5 @@
     return balanced.concat(unknown);
   }
   return {allow:allow, warFilmProfile:warFilmProfile, balanceWarFilmEras:balanceWarFilmEras,
-    noirFilmKey:noirFilmKey, noirFilmSeats:noirFilmSeats, noirFilmRecent:noirFilmRecent};
+    noirFilmKey:noirFilmKey, noirFilmSeats:noirFilmSeats, noirFilmRecent:noirFilmRecent, withNoirFilmYear:withNoirFilmYear};
 });

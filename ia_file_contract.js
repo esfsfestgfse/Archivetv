@@ -277,6 +277,7 @@ export function iaReviewedFileAllowed(item, channel) {
   const station = String(channel);
   const title = String(item.title || '');
   if (station === '108') {
+    if (source.toLowerCase() === 'razor-fist-arcade-fallen-aces') return false;
     if (source === 'animal-kingdom-david-michod-2010-spa' && /\)\s+SPA(?:\.|$)/i.test(file || title)) return false;
     const programLabel = [source, title, file].join(' ').replace(/[._-]+/g, ' ');
     if (/^(?:gaming|video games?|lets play)$/i.test(String(item.category || item.meta?.category || '').trim()) ||

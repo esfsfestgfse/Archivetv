@@ -662,7 +662,7 @@ export function qualifySourceItem(profile, item) {
   const okEmbed = item.provider === "OK.ru" && /^https:\/\/ok\.ru\/videoembed\/\d+(?:[?#]|$)/i.test(url);
   const candidate = okEmbed ? { ...item, type: "embed", url, embedUrl: url, embedAllowed: true } : item;
   if (!accepted(profile, candidate, candidate.provider)) return null;
-  const verified = normalized(candidate, candidate.provider, candidate.query);
+  const verified = normalized(candidate, candidate.provider, candidate.query, profile);
   if (item.curatedVerified) verified.id = okCuratedCatalogId(profile, verified);
   return verified;
 }
@@ -913,8 +913,8 @@ function okAdmissionStats(profile, candidates) {
   return stats;
 }
 
-function normalized(item, provider, query) {
-  return {
+function normalized(item, provider, query, profile) {
+  const result = {
     id: text(item.id, 300),
     title: text(item.title, 500),
     description: text(item.description, 1800),
@@ -955,6 +955,7 @@ function normalized(item, provider, query) {
     ...(okAnimationFamily({profileKey:item.animationFamily ? `ok-${item.animationFamily}-channel` : ''}) ? {animationFamily:item.animationFamily,animationVerified:item.animationVerified===true,animationVerificationVersion:item.animationVerificationVersion,animationEpisodeRuntime:Number(item.animationEpisodeRuntime)||0} : {}),
     ...(item.curatedFamily ? {curatedFamily:text(item.curatedFamily,40),curatedVerified:item.curatedVerified===true,curatedVerificationVersion:Number(item.curatedVerificationVersion)||0,episodeIdentity:text(item.episodeIdentity,80)} : {}),
   };
+  return profile?.profileKey === "film-noir-desk" ? SourcePrograms.withNoirFilmYear(result) : result;
 }
 
 async function mapLimit(values, limit, fn) {
@@ -1219,7 +1220,7 @@ async function youtube(profile, rotation, env, options = {}) {
       embedUrl: `https://www.youtube-nocookie.com/embed/${candidate.rawId}`,
       sourceUrl: `https://www.youtube.com/watch?v=${candidate.rawId}`,
     };
-    return accepted(profile, hydrated, "YouTube") ? normalized(hydrated, "YouTube", candidate.query) : null;
+    return accepted(profile, hydrated, "YouTube") ? normalized(hydrated, "YouTube", candidate.query, profile) : null;
   }).filter(Boolean);
   return { provider: "YouTube", items: unique(items).slice(0, firstLane ? 12 : SOURCE_MAX_ITEMS), health: { searched: searchEnabled ? queries.length : 0, searchEnabled, candidates: candidates.length, searchCandidates: searchCandidates.length, totalResults, pages, channelSeeds: channelLane.health, details: detailItems.length, detailBatches: detailBatches.length, firstLane } };
 }
@@ -1309,7 +1310,7 @@ async function peerTube(profile, rotation, env, options = {}) {
       url: text(file.fileUrl, 1400),
       sourceUrl: text(item.sourceUrl, 1400),
     };
-    return accepted(profile, hydrated, "PeerTube") ? normalized(hydrated, "PeerTube", item.query) : null;
+    return accepted(profile, hydrated, "PeerTube") ? normalized(hydrated, "PeerTube", item.query, profile) : null;
   });
   return { provider: "PeerTube", items: unique(detailed.filter(Boolean)).slice(0, firstLane ? 8 : SOURCE_MAX_ITEMS), health: { searched: searchedJobs, candidates: raw.length, details: detailed.filter(Boolean).length, instances: firstLane ? Math.min(1, instances.length) : instances.length, firstLane } };
 }

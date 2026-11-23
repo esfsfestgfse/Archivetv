@@ -1150,3 +1150,147 @@ test('564 admits whole noir features, with one ready seat per work and alternate
     assert.equal(scope.v2NextFreshIndex(profile,retry,''),0,name+' alternate remains available after a failed first route');
   }
 });
+
+test('108 exact Arcade gameplay identity is blocked without subject on both cached dials',async()=>{
+  const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
+  const archiveId='razor-fist-arcade-fallen-aces';
+  const url='https://archive.org/download/'+archiveId+'/recording.mp4';
+  const item={identifier:archiveId+'::recording.mp4',title:'Fallen Aces',media:{url,type:'video',runtime:5400,width:720,height:480}};
+  assert.equal(relay().stationGate('108',item),false);
+  assert.equal(catalogFallbackAllowed(item,{channel:'108',themeMinScore:0}),false);
+  for(const gate of browserArchiveGates()){
+    assert.equal(gate({num:108},{id:archiveId,title:item.title},{}),false,'legacy parent without subject or media');
+    assert.equal(gate({num:108},{id:item.identifier,title:item.title,url},{}),false,'legacy selected file without subject');
+  }
+});
+
+// Selected public rows from the coordinator’s Film Noir Desk capture.
+const noirCapture = [
+  {"id":"pt:vod.newellijay.tv/377d9c33-3f18-407b-aa21-383a1d814df4","provider":"PeerTube","title":"The Man with the Golden Arm (1955)","description":"Directed by Otto Preminger. CW for drug use and additiction. The Man with the Golden Arm is a groundbreaking 1955 film noir directed by Otto Preminger, based on Nelson Algren’s novel of the same name. Starring Frank Sinatra as Frankie Machine,...","duration":7146,"aspectRatio":1.725,"type":"video","url":"https://vod.newellijay.tv/static/web-videos/9ab9c33f-1d4e-4af4-afbc-18f4e06d5b12-720.mp4","rights":"Public Domain Dedication"},
+  {"id":"yt:13pfHpU2iEE","provider":"YouTube","title":"Film Noir documentary - Bringing Darkness Into Light","description":"Copyright Disclaimer under Section 107 of the copyright act 1976, allowance is made for fair use for purposes such as criticism, comment, news reporting, scholarship, and research. Fair use is a use permitted by copyright statute that might otherwise be infringing. Non-profit, ed","duration":4057,"aspectRatio":1.7777777777777777,"type":"embed","url":"https://www.youtube-nocookie.com/embed/13pfHpU2iEE","embedUrl":"https://www.youtube-nocookie.com/embed/13pfHpU2iEE","rights":"Standard YouTube license","year":"2026"},
+  {"id":"yt:5r4H3CAMeJg","provider":"YouTube","title":"The Big Combo (1955) | Classic Film Noir Crime Thriller | Full Movie HD","description":"Step into the shadowy world of classic American film noir with The Big Combo (1955) — a gripping crime thriller packed with suspense, corruption, obsession, and unforgettable black-and-white cinematography. Directed by Joseph H. Lewis, this iconic noir follows police lieutenant L","duration":5251,"aspectRatio":1.7777777777777777,"type":"embed","url":"https://www.youtube-nocookie.com/embed/5r4H3CAMeJg","embedUrl":"https://www.youtube-nocookie.com/embed/5r4H3CAMeJg","rights":"Standard YouTube license","year":"2026"},
+  {"id":"yt:5s-sSHplXRc","provider":"YouTube","title":"Undertow (1949) Film noir","description":"Undertow 1949 full movie. Scott Brady stars in this film noir crime drama as an ex gangster from Chicago who has gone straight but ends up framed for the hit on a powerful mob boss. this crime film has a great chase scene involving a LONG corridor which should not be missed. the ","duration":4232,"aspectRatio":1.7777777777777777,"type":"embed","url":"https://www.youtube-nocookie.com/embed/5s-sSHplXRc","embedUrl":"https://www.youtube-nocookie.com/embed/5s-sSHplXRc","rights":"Standard YouTube license","year":"2018"},
+  {"id":"yt:75dFETIc6qw","provider":"YouTube","title":"The Rules of Film Noir (BBC)","description":"BBC documentary. Bogey, Bacall and Mitchum play it tough as Matthew Sweet celebrates the hardboiled world of noir movies. *Had to edit out clips from 'The Killers'.","duration":3316,"aspectRatio":1.7777777777777777,"type":"embed","url":"https://www.youtube-nocookie.com/embed/75dFETIc6qw","embedUrl":"https://www.youtube-nocookie.com/embed/75dFETIc6qw","rights":"Standard YouTube license","year":"2025"},
+  {"id":"yt:iIkCXF9Y4ow","provider":"YouTube","title":"The Big Combo (1955) [Film Noir] [Crime]","description":"If you like this movie and our channel, please subscribe: https://goo.gl/0qDmXe | Police Lt. Leonard Diamond is on a personal crusade to bring down sadistic gangster Mr. Brown. He's also dangerously obsessed with Brown's girlfriend, the suicidal Susan Lowell. His main objective a","duration":5013,"aspectRatio":1.7777777777777777,"type":"embed","url":"https://www.youtube-nocookie.com/embed/iIkCXF9Y4ow","embedUrl":"https://www.youtube-nocookie.com/embed/iIkCXF9Y4ow","rights":"Standard YouTube license","year":"2013"},
+  {"id":"yt:NSHdpRsjYqk","provider":"YouTube","title":"The Rules of Film Noir (BBC 2009)","description":"BBC documentary showing the characteristic traits of Film Noir and their historical context. Featuring interviews with Paul Schrader, George Pelecanos, Sarah Churchwell, Roger Deakins, Neil Brand and presented by Matthew Sweet.","duration":3304,"aspectRatio":1.7777777777777777,"type":"embed","url":"https://www.youtube-nocookie.com/embed/NSHdpRsjYqk","embedUrl":"https://www.youtube-nocookie.com/embed/NSHdpRsjYqk","rights":"Standard YouTube license","year":"2025"},
+  {"id":"yt:PKNXaoVfQhI","provider":"YouTube","title":"Lee Van Cleef's Unforgettable Noir Classic | The Big Combo (1955) | Crime Thriller Full Movie 4K","description":"Welcome to the ultimate presentation of The Big Combo (1955) full movie, a true masterpiece of classic film noir. Experience this definitive 1950s crime thriller exactly as it was meant to be seen, showcasing some of the most striking chiaroscuro lighting and realistic cinematogr","duration":5246,"aspectRatio":1.7777777777777777,"type":"embed","url":"https://www.youtube-nocookie.com/embed/PKNXaoVfQhI","embedUrl":"https://www.youtube-nocookie.com/embed/PKNXaoVfQhI","rights":"Standard YouTube license","year":"2026"},
+  {"id":"yt:s7tfQVsxC3Y","provider":"YouTube","title":"\"Farewell My Lovely\" Robert Mitchum*Film Noir","description":"Detective Philip Marlowe [Robert Mitchum] trying to solve a murder he has stumbled on, involved with the California Gambling scene and three potentially dangerous women... Farewell, My Lovely is a 1975 American neo noir film, directed by Dick Richards and featuring Robert Mitchum","duration":5474,"aspectRatio":1.7777777777777777,"type":"embed","url":"https://www.youtube-nocookie.com/embed/s7tfQVsxC3Y","embedUrl":"https://www.youtube-nocookie.com/embed/s7tfQVsxC3Y","rights":"Standard YouTube license","year":"2015"},
+  {"id":"yt:VJz4QOBhrCY","provider":"YouTube","title":"The Rules of Film Noir (BBC Documentary, 2009)","description":"Film noir is a cinematic term used primarily to describe stylish Hollywood crime dramas, particularly those that emphasize cynical attitudes and motivations. The 1940s and 1950s are generally regarded as the \"classic period\" of American film noir. Film noir of this era is associa","duration":4022,"aspectRatio":1.7777777777777777,"type":"embed","url":"https://www.youtube-nocookie.com/embed/VJz4QOBhrCY","embedUrl":"https://www.youtube-nocookie.com/embed/VJz4QOBhrCY","rights":"Standard YouTube license","year":"2023"},
+  {"id":"yt:zaa6lFN0KaY","provider":"YouTube","title":"Murder & Drug Smuggling: Yul Brynner's Screen Debut - Port of New York (1949) 🎬 - Refurbished Movie","description":"Port of New York (1949) Directed by: László Benedek Writers: Eugene Ling, Leo Townsend, Arthur A. Ross Starring: Scott Brady, Richard Rober, K.T. Stevens, Yul Brynner Runtime: 1h 22m Genre: Film Noir, Crime, Drama, Thriller IMDb Rating: 6.0/10 Plot Summary: New York Harbor become","duration":4891,"aspectRatio":1.7777777777777777,"type":"embed","url":"https://www.youtube-nocookie.com/embed/zaa6lFN0KaY","embedUrl":"https://www.youtube-nocookie.com/embed/zaa6lFN0KaY","rights":"Standard YouTube license","year":"2026"},
+  {"id":"yt:ZB0JzHWFP4s","provider":"YouTube","title":"50 Greatest Film Noir Movies of All Time Ranked","description":"Step into a world of shadowy detectives, dangerous criminals, femme fatales, double-crosses, and unforgettable mysteries with 50 Greatest Film Noir Movies of All Time Ranked! From smoky back rooms and rain-soaked city streets to hard-boiled investigations and morally complicated ","duration":3153,"aspectRatio":1.7777777777777777,"type":"embed","url":"https://www.youtube-nocookie.com/embed/ZB0JzHWFP4s","embedUrl":"https://www.youtube-nocookie.com/embed/ZB0JzHWFP4s","rights":"Standard YouTube license","year":"2026"}
+];
+const noirComboIds=['yt:5r4H3CAMeJg','yt:PKNXaoVfQhI','yt:iIkCXF9Y4ow'];
+const noirYears={
+  'pt:vod.newellijay.tv/377d9c33-3f18-407b-aa21-383a1d814df4':1955,
+  'yt:zaa6lFN0KaY':1949,
+  'yt:s7tfQVsxC3Y':1975,
+  'yt:5s-sSHplXRc':1949,
+};
+
+test('564 captured features retain release years and three reviewed Big Combo routes share a seat', async()=>{
+  const {sourceProfile,qualifySourceItem}=await import('../realsignal_source_catalog.js');
+  const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
+  const policy=require('../assets/source-program-policy.js'), profile=sourceProfile({profileKey:'film-noir-desk'});
+  const selected=noirCapture.filter(row=>noirComboIds.includes(row.id));
+  assert.equal(policy.noirFilmSeats(selected).length,1,'the promotional prefix still identifies the same feature');
+  const years={...noirYears,...Object.fromEntries(noirComboIds.map(id=>[id,1955]))};
+  for(const row of noirCapture){
+    const accepted=qualifySourceItem(profile,row);
+    assert.equal(!!accepted,row.id in years,row.title);
+    assert.equal(catalogFallbackAllowed(row,{sourceCatalog:true,channel:profile.profileKey}),row.id in years,row.title);
+    if(accepted)assert.equal(Number(accepted.year),years[row.id],row.title+' displays the film release year');
+  }
+  for(const name of ['the_dial_desktop.html','the_dial_mobile.html']){
+    const html=fs.readFileSync(path.join(root,name),'utf8'),scope={window:{RealSignalSourcePrograms:policy}};
+    for(const fn of ['v2SourceProgramAllowed','v2PruneSourcePrograms']){
+      const start=html.indexOf('function '+fn+'(');
+      vm.runInNewContext(html.slice(start,html.indexOf('\n',start)),scope);
+    }
+    const state={items:noirCapture.slice(),cursor:0};
+    scope.v2PruneSourcePrograms(profile,state);
+    assert.deepEqual(Object.fromEntries(state.items.map(row=>[row.id,Number(row.year)])),years,
+      name+' drops the captured contaminants and relabels cached films with their release years');
+  }
+});
+
+test('564 browser writes only provider IDs from legacy mixed history',async()=>{
+  const profile={profileKey:'film-noir-desk',name:'Film Noir Desk'}, [played]=noirComboIds;
+  const comboWork='noir:1955:bigcombo', doaOriginal='yt:doa1950-old';
+  let report;
+  for(const name of ['the_dial_desktop.html','the_dial_mobile.html']){
+    const html=fs.readFileSync(path.join(root,name),'utf8'), start=html.indexOf('async function v2ServerSourceCatalog(');
+    const scope={IA_API_BASE:'https://local.example/api/v3',v2Recent:()=>[played,comboWork,doaOriginal],v2RecentSeries:()=>[],
+      withTO:promise=>promise,v2Unique:items=>items,fetch:async(_url,opts)=>{
+        report=JSON.parse(opts.body);
+        return {ok:true,json:async()=>({items:[]})};
+      }};
+    vm.runInNewContext(html.slice(start,html.indexOf('\nasync function v2LoadProfile(',start)),scope);
+    await scope.v2ServerSourceCatalog(profile,0,false);
+    assert.deepEqual(report.playedIds,[played,doaOriginal],name+' sends only provider IDs to the ledger');
+  }
+});
+
+test('564 Worker SQLite writes real IDs and suppresses inactive editions on return',async()=>{
+  const {DatabaseSync}=require('node:sqlite'), sql=new DatabaseSync(':memory:');
+  const {default:worker}=await import('../realsignal_api_v2_worker.js');
+  const profile={profileKey:'film-noir-desk'},[played]=noirComboIds;
+  const comboWork='noir:1955:bigcombo',doaOriginal='yt:doa1950-old';
+  try{
+    sql.exec('PRAGMA foreign_keys = ON');
+    for(const file of ['0001_realsignal_catalog.sql','0002_realsignal_v3_observability.sql','0003_realsignal_v4_adaptive_catalog.sql']){
+      sql.exec(fs.readFileSync(path.join(root,'migrations',file),'utf8'));
+    }
+    const add=sql.prepare('INSERT INTO programs(id,provider,source_identifier,title,description,duration_seconds,aspect_ratio,media_type,media_url,rights,year,metadata_json,first_seen_at,last_seen_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+    const link=sql.prepare('INSERT INTO channel_programs(channel_key,program_id,last_seen_at) VALUES(?,?,1)');
+    const doa=(id,year)=>({id,year:'2026',title:'D.O.A. ('+year+') | Film Noir Full Movie',provider:'YouTube',
+      type:'embed',url:'https://www.youtube-nocookie.com/embed/'+id.slice(3),rights:'Standard YouTube license',duration:5300,aspectRatio:1.7,language:'en'});
+    const rows=[...noirCapture,doa(doaOriginal,1950),doa('yt:doa1950-alt',1950),doa('yt:doa1988',1988)];
+    for(const row of rows){
+      add.run(row.id,row.provider,row.id,row.title,row.description||'',row.duration,row.aspectRatio,row.type,row.embedUrl||row.url,row.rights,String(row.year||''),JSON.stringify(row),1,1);
+      link.run(profile.profileKey,row.id);
+    }
+    const db={
+      prepare(query){return {bind(...params){return {query,params,async all(){return {results:sql.prepare(query).all(...params)};},
+        async first(){return sql.prepare(query).get(...params)||null;}};}};},
+      async batch(statements){
+        sql.exec('BEGIN');
+        try{
+          const rows=statements.map(({query,params})=>sql.prepare(query).run(...params));
+          sql.exec('COMMIT');
+          return rows;
+        }catch(error){sql.exec('ROLLBACK');throw error;}
+      },
+    };
+    const pending=[],ctx={waitUntil(promise){pending.push(promise);}};
+    async function open(body={}){
+      const response=await worker.fetch(new Request('https://local.example/api/v3/source/catalog',{method:'POST',
+        headers:{'content-type':'application/json'},body:JSON.stringify({profileKey:profile.profileKey,count:5,minimumReady:1,...body})}),
+        {realsignal_catalog:db},ctx);
+      assert.equal(response.status,200);
+      await Promise.all(pending.splice(0));
+      return response.json();
+    }
+    const initial=await open();
+    // Replay an older dial's mixed payload. An unknown provider ID must not
+    // roll back the real program IDs in the transactional batch either.
+    await open({playedIds:[played,comboWork,'yt:missing-foreign-key',doaOriginal]});
+    assert.deepEqual(sql.prepare('SELECT program_id FROM channel_freshness ORDER BY program_id').all().map(row=>row.program_id),
+      [played,doaOriginal].sort(),'only real provider IDs reach the freshness table');
+    assert.equal(initial.catalogDepth,7,'four reviewed features, Big Combo and two distinct D.O.A. works');
+    assert.deepEqual(initial.candidateItems.filter(row=>noirComboIds.includes(row.id)).map(row=>row.id).sort(),noirComboIds.slice().sort());
+    for(const row of initial.candidateItems.filter(row=>row.id in noirYears))assert.equal(Number(row.year),noirYears[row.id]);
+
+    for(const id of [played,doaOriginal]){
+      sql.prepare("UPDATE programs SET status='inactive' WHERE id=?").run(id);
+      sql.prepare('DELETE FROM channel_programs WHERE program_id=?').run(id);
+    }
+    const returning=await open();
+    const forbidden=new Set([...noirComboIds,doaOriginal,'yt:doa1950-alt']);
+    assert.ok(returning.items.some(row=>row.id==='yt:doa1988'&&Number(row.year)===1988),'separate remake remains fresh');
+    assert.ok(returning.items.length>0);
+    for(const row of [...returning.items,...returning.candidateItems]){
+      assert.ok(!forbidden.has(row.id),'inactive originals suppress '+row.id+' from a fresh dial');
+    }
+    assert.equal(returning.candidateItems.length,5,'only the five unseen works are available to the fresh dial');
+  }finally{sql.close();}
+});

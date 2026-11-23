@@ -1962,8 +1962,8 @@ window.addEventListener("unhandledrejection",function(e){
     <div class="settings-row"><span id="setAdsLabel">Commercials</span><button type="button" class="rbtn xs" id="setAds" role="switch" aria-labelledby="setAdsLabel" aria-checked="true">On</button></div>
     <div class="settings-row"><span id="setBumpersLabel">Station bumpers</span><button type="button" class="rbtn xs" id="setBumpers" role="switch" aria-labelledby="setBumpersLabel" aria-checked="true">On</button></div>
     <div class="settings-row"><span>Night dim</span><button type="button" class="rbtn xs" id="setNight" aria-label="Night dim: Auto">Auto</button></div>
-    <div class="settings-row"><span>Clock format</span><button type="button" class="rbtn xs" id="setClock">12H</button></div>
-    <div class="settings-row"><span>Picture controls</span><button type="button" class="rbtn xs" id="setPicLink">Open</button></div>
+    <div class="settings-row"><span id="setClockLabel">Clock format</span><button type="button" class="rbtn xs" id="setClock" aria-labelledby="setClockLabel setClock">12H</button></div>
+    <div class="settings-row"><span>Picture controls</span><button type="button" class="rbtn xs" id="setPicLink" aria-label="Open picture controls">Open</button></div>
     <details class="settings-group"><summary>Weather location</summary><div class="settings-group-body">
       <div class="settings-row"><span>Location mode</span><button type="button" class="rbtn xs" id="setLocMode">Home ZIP</button></div>
       <div class="settings-row"><input id="homeZipInput" class="settings-input" type="text" aria-label="Home ZIP" placeholder="5-digit ZIP" inputmode="numeric" maxlength="5" autocomplete="postal-code"><button type="button" id="btnZipSave" class="rbtn xs">Set ZIP</button></div>
@@ -11082,11 +11082,13 @@ function renderSettings(){
   var lm=$("setLocMode"); if(lm)lm.textContent=(locMode==="zip")?("HOME "+(homeLoc.zip||"ZIP")):"GPS";
   var hz=$("homeZipInput"); if(hz&&!hz.value)hz.value=homeLoc.zip||"";
 }
-var settingsOpener=null;
+var settingsOpener=null,settingsInertDock=null;
 function closeSettings(){
   var dialog=$("settingsOv");
   if(!dialog?.classList.contains("show"))return false;
   dialog.classList.remove("show");
+  if(settingsInertDock)settingsInertDock.inert=false;
+  settingsInertDock=null;
   if(settingsOpener?.isConnected)settingsOpener.focus({preventScroll:true});
   settingsOpener=null;
   return true;
@@ -11098,8 +11100,13 @@ function showSettings(focus){
   (focus||dialog.querySelector("button")).focus({preventScroll:true});
 }
 function toggleSettings(){
-  if(closeSettings())return;
+  if(picPop?.classList.contains("show")||closeSettings())return;
   settingsOpener=document.activeElement;
+  var dock=$("rsV6Dock");
+  if(dock&&!dock.inert){
+    dock.inert=true;
+    settingsInertDock=dock;
+  }
   showSettings();
 }
 function closeSettingsPicture(){
@@ -11124,6 +11131,9 @@ function settingsKey(event){
       event.preventDefault();
       (event.shiftKey?last:first)?.focus();
     }
+  }else if(!dialog.contains(event.target)){
+    event.preventDefault();
+    event.stopPropagation();
   }
 }
 document.addEventListener("keydown",settingsKey,true);

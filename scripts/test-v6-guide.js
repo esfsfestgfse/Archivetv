@@ -249,6 +249,48 @@ test('disconnecting Cast cannot leave a legacy guide competing with or blocking 
   assert.equal(h.legacy.classList.contains('show'), false, 'close can still dismiss a legacy guide left by Cast');
 });
 
+
+for (const file of ['the_dial_mobile.html', 'the_dial_desktop.html']) {
+  test(file + ': only the Settings stack releases the dock lock it acquired', () => {
+    const source = fs.readFileSync(path.join(root, file), 'utf8');
+    const stack = source.slice(source.indexOf('var settingsOpener='), source.indexOf('function settingsKey('));
+    const picture = source.slice(source.indexOf('wire("setPicLink",'), source.indexOf('wire("setDiagLink",'));
+    for (const wasInert of [false, true]) {
+      const h = harness();
+      function append(tag, id, parent = h.document.body) {
+        const node = parent.appendChild(h.document.createElement(tag));
+        node.id = id;
+        return node;
+      }
+      const dock = append('section', 'rsV6Dock');
+      dock.inert = wasInert;
+      const settings = append('div', 'settingsOv');
+      const close = append('button', 'settingsClose', settings);
+      const pictureLink = append('button', 'setPicLink', settings);
+      const picPop = append('div', 'picPop');
+      const pictureClose = append('button', 'picClose', picPop);
+      settings.querySelector = () => close;
+      Object.assign(h.context, {
+        $: id => h.ids.get(id), picPop, renderSettings() {},
+        wire: (id, handler) => h.ids.get(id).addEventListener('click', handler),
+      });
+      vm.runInContext(stack + picture, h.context);
+
+      h.context.toggleSettings();
+      assert.equal(dock.inert, true, 'opening Settings blocks the dock');
+      pictureLink.click();
+      assert.equal(h.document.activeElement, pictureClose);
+      assert.equal(dock.inert, true, 'Picture keeps the dock blocked');
+      pictureClose.click();
+      assert.equal(h.document.activeElement, pictureLink);
+      assert.equal(dock.inert, true, 'returning to Settings keeps the dock blocked');
+      h.context.closeSettings();
+      assert.equal(dock.inert, wasInert);
+      assert.equal(h.document.activeElement, h.opener);
+    }
+  });
+}
+
 if (process.env.ATV_GUIDE_BROWSER_TEST === '1') {
   test('offline Guide and Settings browser regressions', async t => {
     const { chromium } = require('playwright');
@@ -324,7 +366,26 @@ if (process.env.ATV_GUIDE_BROWSER_TEST === '1') {
         const close = settings.getByRole('button', { name: 'Close settings' });
         const advanced = settings.getByText('Advanced', { exact: true });
         const focused = locator => locator.evaluate(el => el === document.activeElement);
+
+        const dockGuide = page.locator('#rsV6Guide');
+        const guidePanel = page.locator('#rsV6GuidePanel');
+        async function activateDockGuide() {
+          const { x, y, width, height } = await dockGuide.boundingBox();
+          if (build === 'mobile') await page.touchscreen.tap(x + width / 2, y + height / 2);
+          else await page.mouse.click(x + width / 2, y + height / 2);
+        }
+        async function assertDockBlocked(dialog) {
+          await activateDockGuide();
+          assert.equal(await guidePanel.isVisible(), false, 'pointer activation must not open Guide');
+          await dockGuide.evaluate(button => button.focus());
+          assert.equal(await focused(dockGuide), false, 'the dock must reject keyboard focus');
+          await page.keyboard.press('g');
+          assert.equal(await guidePanel.isVisible(), false, 'the Guide shortcut stays inside the modal');
+          await page.keyboard.press('Tab');
+          assert.equal(await dialog.evaluate(el => el.contains(document.activeElement)), true);
+        }
         assert.equal(await focused(close), true);
+        await assertDockBlocked(settings);
         await close.press('Shift+Tab');
         assert.equal(await focused(advanced), true, 'collapsed groups are skipped');
         await advanced.press('Enter');
@@ -342,18 +403,27 @@ if (process.env.ATV_GUIDE_BROWSER_TEST === '1') {
           assert.equal(await focused(closePicture), true);
           await closePicture.press('Shift+Tab');
           assert.equal(await focused(picture.locator('#picReset')), true);
+          await assertDockBlocked(picture);
           if (dismiss === 'Escape') await page.keyboard.press('Escape');
           else await closePicture.click();
           assert.equal(await picture.isVisible(), false);
           assert.equal(await focused(pictureLink), true);
+          await assertDockBlocked(settings);
         }
         await settings.locator('#castBridgeUrlInput').press('Escape');
         assert.equal(await settings.isVisible(), false);
         assert.equal(await focused(page.locator('#rsV6Menu')), true);
+        await activateDockGuide();
+        assert.equal(await guidePanel.isVisible(), true);
       });
 
       await check('preference controls expose their names, states and three Night dim values', async page => {
         const settings = await openSettings(page);
+        const clock = settings.getByRole('button', { name: 'Clock format 12H', exact: true });
+        assert.equal(await clock.count(), 1);
+        await clock.click();
+        assert.equal(await settings.getByRole('button', { name: 'Clock format 24H', exact: true }).count(), 1);
+        assert.equal(await settings.getByRole('button', { name: 'Open picture controls', exact: true }).count(), 1);
         for (const [name, key] of [['Commercials', 'ads'], ['Station bumpers', 'bumpers']]) {
           const control = settings.getByRole('switch', { name, exact: true });
           assert.equal(await settings.getByRole('switch', { name, checked: true }).count(), 1, name + ' starts checked');

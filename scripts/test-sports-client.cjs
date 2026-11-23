@@ -75,7 +75,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file 
 function sportsDesk(file, dependencies = {}) {
   const source = fs.readFileSync(file, 'utf8');
   const nodes = {};
-  let tab, mode, day, clock = Date.parse('2026-11-22T18:00:00Z');
+  let tab, mode, day, card, clock = Date.parse('2026-11-22T18:00:00Z');
   class FixtureDate extends Date {
     constructor(...args) { super(...(args.length ? args : [clock])); }
     static now() { return clock; }
@@ -91,7 +91,7 @@ function sportsDesk(file, dependencies = {}) {
     };
   }
   function control(dataset, callback) {
-    return { dataset, classList: { toggle() {} }, addEventListener(_, fn) { callback(fn); } };
+    return { dataset, classList: { toggle() {}, add() {}, remove() {} }, addEventListener(_, fn) { callback(fn); } };
   }
   nodes.sportsPicker = node();
   nodes.sportsSubPicker = node(() => ['today', 'livetv', 'scores'].map(sv =>
@@ -103,7 +103,10 @@ function sportsDesk(file, dependencies = {}) {
       control({ sportsLiveMode: value }, fn => { (mode ||= {})[value] = fn; }));
     return [];
   });
-  for (const id of ['sportsRefreshBtn', 'sportsLiveList', 'sportsLiveSearch', 'sportsLiveCount']) nodes[id] = node();
+  for (const id of ['sportsRefreshBtn', 'sportsLiveSearch', 'sportsLiveCount']) nodes[id] = node();
+  nodes.sportsLiveList = node(selector => selector === '[data-ci]' ?
+    Array.from(nodes.sportsLiveList.innerHTML.matchAll(/data-ci="(\d+)"/g), ([, ci]) =>
+      control({ ci }, fn => { (card ||= {})[ci] = fn; })) : []);
   nodes.sportsRefreshBtn.classList = { add() {}, remove() {} };
   const timers = new Map();
   let timerId = 0;
@@ -135,6 +138,7 @@ function sportsDesk(file, dependencies = {}) {
   return {
     body: nodes.sportsBody, list: nodes.sportsLiveList, count: nodes.sportsLiveCount, scope,
     tab: value => tab[value](), mode: value => mode[value](), day: value => day[value](),
+    selectFeed: index => card[index](),
     tick(ms) {
       clock += ms;
       for (const [id, timer] of timers) if (timer.at <= clock) { timers.delete(id); timer.fn(); }
@@ -248,6 +252,43 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
       desk.mode('healthy');
       assert.match(desk.list.innerHTML, /Arena One[\s\S]*Arena Two/);
     }
+  });
+
+  test(file + ': Live Now advances to the successor at 18:01 without restarting the selected feed', async () => {
+    const xml = epgProgramme('one', '20261122175900', '20261122180100', 'First event') +
+      epgProgramme('one', '20261122180100', '20261122190000', 'Successor event') +
+      expiredProgramme('two');
+    let guideFetches = 0, starts = 0, stops = 0, player;
+    const desk = sportsDesk(file, {
+      fetch: async () => { guideFetches++; return guideResponse(xml); },
+      playTV(feed) { starts++; player = { feed }; },
+      stopTVPlayback() { stops++; player = null; }
+    });
+    desk.tab('livetv');
+    await flushSports();
+    desk.mode('live');
+    assert.match(desk.list.innerHTML, /First event/);
+    assert.doesNotMatch(desk.list.innerHTML, /Successor event/);
+    desk.selectFeed(0);
+    const activePlayer = player, activeBody = desk.body.innerHTML;
+    assert.equal(activePlayer.feed.name, 'Arena One');
+
+    desk.tick(59999);
+    assert.match(desk.list.innerHTML, /First event/);
+    desk.tick(1);
+    assert.match(desk.list.innerHTML, /Successor event/);
+    assert.match(desk.list.innerHTML, /sports-feed-card onair sel/);
+    assert.doesNotMatch(desk.list.innerHTML, /First event|Guide coverage has expired/);
+    assert.match(desk.count.textContent, /LIVE$/);
+    assert.equal(desk.body.innerHTML, activeBody);
+    assert.equal(player, activePlayer);
+    assert.equal(starts, 1);
+    assert.equal(stops, 1);
+    assert.equal(guideFetches, 1);
+
+    desk.tick(59 * 60000);
+    assert.match(desk.list.innerHTML, /Guide coverage has expired/);
+    assert.equal(player, activePlayer);
   });
 
   test(file + ': Live Now keeps healthy feeds available while loading or timed out and ignores late XMLTV', async () => {

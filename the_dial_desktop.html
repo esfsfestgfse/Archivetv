@@ -12658,8 +12658,8 @@ function fetchIPTV(){var now=Date.now();if(iptvCache&&iptvCache.length){if(now-i
 /* ---------- EPG "now playing" ----------
    The Tubi playlist ships a matching XMLTV guide (verified: all 173 tvg-ids in the playlist have
    a channel entry in the guide). The file is ~3MB, so it is fetched lazily on first use, scanned
-   with a regex rather than DOMParser, and only the programme airing RIGHT NOW per channel is
-   kept -- the other ~11k entries are discarded immediately so nothing large stays resident. */
+   with a regex rather than DOMParser. Live TV keeps its now-only map. Sports also keeps
+   start, stop and title for current and upcoming programmes from the same snapshot. */
 var epgNow=null, epgFetching=null, epgAt=0, epgCoverage=null;
 function epgParseTime(t){
   var m=/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})\s*([+-]\d{4})?/.exec(String(t||""));
@@ -12669,7 +12669,7 @@ function epgParseTime(t){
 }
 async function fetchEPG(requireCoverage){
   var now=Date.now();
-  if(epgNow && now-epgAt < 20*60*1000 && (!requireCoverage || (epgCoverage&&now<Math.min(epgCoverage.stop,epgCoverage.change)))) return epgNow;   /* refresh every 20 min */
+  if(epgNow && now-epgAt < 20*60*1000 && (!requireCoverage || (epgCoverage&&now<epgCoverage.stop))) return epgNow;   /* refresh every 20 min */
   if(epgFetching) return epgFetching;
   epgFetching=(async function(){
     try{
@@ -12678,8 +12678,7 @@ async function fetchEPG(requireCoverage){
         return r.text();
       }),20000);
       var now=Date.now(), map={}, kept=0;
-      /* Keep each channel's coverage and next programme boundary alongside the now-only map. */
-      var coverage={stop:0,change:Infinity,channels:Object.create(null)};
+      var coverage={stop:0,channels:Object.create(null)};
       var re=/<programme\b([^>]*)>([\s\S]*?)<\/programme>/g, mm;
       while((mm=re.exec(txt))){
         var attrs=mm[1], id=/\bchannel="([^"]+)"/.exec(attrs),
@@ -12687,15 +12686,15 @@ async function fetchEPG(requireCoverage){
         if(!id||!start||!stop)continue;
         var st=epgParseTime(start[1]), sp=epgParseTime(stop[1]);
         if(!(st<sp))continue;
-        var channel=id[1], span=coverage.channels[channel]||(coverage.channels[channel]={start:Infinity,stop:0,change:Infinity});
+        var channel=id[1], span=coverage.channels[channel]||(coverage.channels[channel]={start:Infinity,stop:0,programmes:[]});
         span.start=Math.min(span.start,st); span.stop=Math.max(span.stop,sp);
         coverage.stop=Math.max(coverage.stop,sp);
         if(sp<=now)continue;
-        span.change=Math.min(span.change,st>now?st:sp); coverage.change=Math.min(coverage.change,span.change);
-        if(st>now)continue;
         var tm=/<title[^>]*>([^<]*)<\/title>/.exec(mm[2]);
         if(!tm)continue;
-        map[channel]={title:tm[1],start:st,stop:sp}; kept++;
+        var programme={title:tm[1],start:st,stop:sp};
+        span.programmes.push(programme);
+        if(st<=now){map[channel]=programme; kept++;}
       }
       if(!coverage.stop)throw new Error("guide contains no dated programmes");
       epgNow=map; epgAt=Date.now(); epgCoverage=coverage;
@@ -14046,27 +14045,48 @@ async function tuneSports(ch,sl,my){
         '<div class="sports-live-tools"><input id="sportsLiveSearch" class="sports-live-search" aria-label="Search live sports channels" placeholder="SEARCH LIVE SPORTS\u2026"><div class="sports-live-modes" role="group" aria-label="Sports feed filter"><button type="button" class="sports-live-mode active" data-sports-live-mode="healthy">HEALTHY FEEDS</button><button type="button" class="sports-live-mode" data-sports-live-mode="live">LIVE NOW</button></div><span id="sportsLiveCount" class="sports-live-count"></span></div>'+
         '<div id="sportsLiveList" class="sports-live-grid"></div></section>';
       var sportsListEl=$("sportsLiveList"), sportsSearch=$("sportsLiveSearch"), sportsCount=$("sportsLiveCount"),sportsLiveMode="healthy";
-      var guide=null, programmes={}, guideLoading=true, guideError="";
+      var guide=null, guideLoading=true, guideError="", selectedFeed=null;
       function trustedSportsFeed(c){ return !!((c.checked||c.verified)&&Number(c._strikes||0)===0); }
-      function sportsProgramme(c){
-        var row=guide&&c.tvgId&&programmes[c.tvgId], now=Date.now();
-        return row&&row.start<=now&&now<row.stop?row:null;
+      function sportsProgramme(c,now){
+        var span=guide&&guide.channels[c.tvgId];
+        if(!span)return null;
+        for(var i=span.programmes.length-1;i>=0;i--){
+          var row=span.programmes[i];
+          if(row.start<=now&&now<row.stop)return row;
+        }
+        return null;
       }
-      function trustedSportsLive(c){ return trustedSportsFeed(c)&&!!sportsProgramme(c); }
+      function scheduleGuideRedraw(now){
+        clearTimeout(sportsGuideTimer);
+        var change=Infinity;
+        function consider(at){ if(at>now)change=Math.min(change,at); }
+        chans.forEach(function(c){
+          var span=guide.channels[c.tvgId];
+          if(!span)return;
+          consider(span.start);
+          consider(span.stop);
+          span.programmes.forEach(function(row){consider(row.start); consider(row.stop);});
+        });
+        if(change<Infinity)sportsGuideTimer=setTimeout(function(){
+          if(sportsRequestCurrent(request,"livetv"))renderSportsCards(sportsSearch?sportsSearch.value:"");
+        },Math.min(change-now,2147483647));
+      }
       function renderSportsCards(query){
         if(!sportsListEl)return;
         var q=String(query||"").toLowerCase().trim(), live=sportsLiveMode==="live", notice="", incomplete=false;
-        var modeRows=live?chans.filter(trustedSportsLive):chans;
+        var now=Date.now();
+        if(guide)scheduleGuideRedraw(now);
+        var modeRows=live?chans.filter(function(c){return trustedSportsFeed(c)&&sportsProgramme(c,now);}):chans;
         var visible=q?modeRows.filter(function(c){ return (String(c.name||"")+" "+String(c.cat||"")+" "+String(c.src||"")).toLowerCase().indexOf(q)>-1; }):modeRows;
         if(live){
           if(guideLoading)notice="Loading live sports guide\u2026";
           else if(!guide)notice="Live Now unavailable. "+guideError;
           else{
-            var now=Date.now(), eligible=chans.filter(trustedSportsFeed);
+            var eligible=chans.filter(trustedSportsFeed);
             var spans=eligible.map(function(c){return guide.channels[c.tvgId];});
-            var covered=spans.filter(function(span){return span&&span.start<=now&&now<Math.min(span.stop,span.change);}).length;
+            var covered=spans.filter(function(span){return span&&span.start<=now&&now<span.stop;}).length;
             if(!covered){
-              var expired=guide.stop<=now||spans.some(function(span){return span&&Math.min(span.stop,span.change)<=now;});
+              var expired=guide.stop<=now||spans.some(function(span){return span&&span.stop<=now;});
               notice=expired?"Live Now unavailable. Guide coverage has expired.":"Live Now unavailable. No current sports guide coverage.";
             }else if(covered<eligible.length){
               incomplete=true; notice="Partial guide coverage. Some healthy feeds have no current schedule.";
@@ -14076,10 +14096,10 @@ async function tuneSports(ch,sl,my){
         }
         if(sportsCount)sportsCount.textContent=visible.length+" / "+modeRows.length+(live?" LIVE":" HEALTHY");
         sportsListEl.innerHTML=(notice?sportsNotice(notice):"")+(visible.length?visible.map(function(c){
-          var i=chans.indexOf(c), epg=sportsProgramme(c), isLive=trustedSportsLive(c);
-          var left=epg?Math.max(0,Math.round((epg.stop-Date.now())/60000)):0;
+          var i=chans.indexOf(c), epg=sportsProgramme(c,now), isLive=!!(epg&&trustedSportsFeed(c));
+          var left=epg?Math.max(0,Math.round((epg.stop-now)/60000)):0;
           var program=epg?((isLive?"LIVE NOW":"SCHEDULED")+" \u00b7 "+epg.title+(left?(" \u00b7 "+left+" min left"):"")):"";
-          return '<button type="button" class="sports-live-card sports-feed-card'+(isLive?' onair':'')+'" data-ci="'+i+'" data-epg="'+esch(c.tvgId||"")+'">'+
+          return '<button type="button" class="sports-live-card sports-feed-card'+(isLive?' onair':'')+(c===selectedFeed?' sel':'')+'" data-ci="'+i+'" data-epg="'+esch(c.tvgId||"")+'">'+
             '<div class="sports-feed-top"><span class="sports-feed-state '+(isLive?"ready":((c.checked||c.verified)?"ready":"candidate"))+'">'+(isLive?"LIVE NOW":c.checked?"CHECKED":c.verified?"VERIFIED":"CATALOG")+'</span>'+
             '<span class="sports-live-source">'+esch(String(c.src||c.cat||"").slice(0,24))+'</span></div>'+
             '<div class="sports-feed-name">'+esch(String(c.name).slice(0,60))+'</div>'+
@@ -14090,7 +14110,7 @@ async function tuneSports(ch,sl,my){
       function wireSportsCards(){ if(!sportsListEl)return;
         sportsListEl.querySelectorAll("[data-ci]").forEach(function(el){ el.addEventListener("click",function(){
           sportsListEl.querySelectorAll("[data-ci]").forEach(function(x){x.classList.remove("sel");}); el.classList.add("sel");
-          var i=+el.dataset.ci; window.__tvNoAdvance=true; playTV(chans[i],my,chans,i,1);
+          var i=+el.dataset.ci; selectedFeed=chans[i]; window.__tvNoAdvance=true; playTV(selectedFeed,my,chans,i,1);
           try{ bodyEl.scrollTop=0; }catch(e){}
         }); });
       }
@@ -14105,7 +14125,7 @@ async function tuneSports(ch,sl,my){
       if(sportsSearch){ sportsSearch.addEventListener("input",function(){ renderSportsCards(sportsSearch.value); }); sportsSearch.addEventListener("keydown",function(e){ e.stopPropagation(); }); }
       bodyEl.querySelectorAll("[data-sports-live-mode]").forEach(function(btn){btn.addEventListener("click",function(){sportsLiveMode=btn.dataset.sportsLiveMode||"healthy";bodyEl.querySelectorAll("[data-sports-live-mode]").forEach(function(x){x.classList.toggle("active",x===btn);});renderSportsCards(sportsSearch?sportsSearch.value:"");});});
       try{
-        programmes=await withTO(fetchEPG(true),SPORTS_COVERAGE_TIMEOUT);
+        await withTO(fetchEPG(true),SPORTS_COVERAGE_TIMEOUT);
         guide=epgCoverage;
         if(!guide)guideError="Could not load the schedule.";
       }catch(e){ guideError="The guide request timed out."; }
@@ -14114,23 +14134,15 @@ async function tuneSports(ch,sl,my){
       if(guide){
         /* EPG is the reliable live-now signal. Re-sort after it arrives so the directory
            opens on actual ON AIR feeds instead of alphabetic catalog entries. */
+        var now=Date.now();
         chans.sort(function(a,b){
-          var ae=trustedSportsFeed(a)&&sportsProgramme(a),be=trustedSportsFeed(b)&&sportsProgramme(b);
+          var ae=trustedSportsFeed(a)&&sportsProgramme(a,now),be=trustedSportsFeed(b)&&sportsProgramme(b,now);
           if(!!ae!==!!be)return be?1:-1;
           if(ae&&be&&ae.start!==be.start)return be.start-ae.start;
           if((a._strikes||0)!==(b._strikes||0))return (a._strikes||0)-(b._strikes||0);
           if((a._trust||0)!==(b._trust||0))return (b._trust||0)-(a._trust||0);
           return String(a.name||"").toLowerCase().localeCompare(String(b.name||"").toLowerCase());
         });
-        function redrawAtGuideChange(){
-          var now=Date.now(), change=Infinity;
-          chans.forEach(function(c){var span=guide.channels[c.tvgId]; if(span&&span.change>now)change=Math.min(change,span.change);});
-          if(change<Infinity)sportsGuideTimer=setTimeout(function(){
-            if(!sportsRequestCurrent(request,"livetv"))return;
-            renderSportsCards(sportsSearch?sportsSearch.value:""); redrawAtGuideChange();
-          },change-now);
-        }
-        redrawAtGuideChange();
       }
       renderSportsCards(sportsSearch?sportsSearch.value:"");
       nlog("sportstv",true,chans.length+" sports channels");

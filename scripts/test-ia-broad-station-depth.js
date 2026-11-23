@@ -1009,3 +1009,144 @@ for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': 
   for(const id of ['looney-tunes-complete','roger-ramjet','show-1_20260614','clue.club','sabrina-the-teenage-witch-1970'])
     assert.ok(queries.some(query=>query.includes('"'+id+'"')),id+' must be reached through exact-parent discovery');
 });
+
+test('124 admits selected Hammer features and rejects audit contaminants from relay, API and browser seats', async () => {
+  const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
+  const {qualifyIaFileRecord}=await import('../ia_file_contract.js');
+  const f=relay(), rules={channel:'124',iaRepair:true,themeMinScore:0};
+  const subject='hammer horror British horror feature film';
+  const rows=[
+    ['Superintendent Interview — School Committee', 'School Committee Superintendent Interview.mp4', false],
+    ['Everyman: Frankenstein', 'BBC Everyman Frankenstein.mp4', false],
+    ['Sherlock Holmes: The Masks of Death (1984)', 'The Masks of Death.mp4', false],
+    ['The Brides of Dracula (1960)', 'The Brides of Dracula (1960).ia.mp4', true],
+    ['Dracula Hammer Horror Film Anthology · #2 The Brides of Dracula (1960)', '02 - The Brides of Dracula (1960).mp4', true],
+    ['Dr Jekyll (2023)', 'Doctor Jekyll (2023).mp4', true],
+    ['The Brides of Dracula (1960)', 'School Committee Superintendent Interview.mp4', false],
+    ['The Brides of Dracula (1960)', 'extras.mp4', false],
+    ['The Hammer House of Horror Episode 1 (1980)', 'The Hammer House of Horror Episode 1 (1980).mp4', false],
+    ['The Long Night (1947)', 'The Long Night (1947).mp4', false, 'British film'],
+    ['The House That Dripped Blood (1971)', 'The.House.That.Dripped.Blood.1971.mp4', true, 'Amicus Productions'],
+    ['Interview with the Vampire (1994)', 'Interview with the Vampire (1994).mp4', true, 'Gothic horror'],
+  ];
+  const gates=browserArchiveGates();
+  for(const [title,fileName,expected,tags=subject] of rows){
+    const source='mixed-archive-upload', identifier=source+'::'+fileName;
+    const media={type:'video',url:'https://archive.org/download/'+source+'/'+encodeURIComponent(fileName),
+      runtime:5400,width:720,height:480,verification:'transport',verifiedAt:Date.now()};
+    const item={identifier,title,subject:tags,media};
+    assert.equal(f.stationGate('124',item),expected,title+' / '+fileName+' relay');
+    assert.equal(catalogFallbackAllowed(item,rules),expected,title+' / '+fileName+' persisted API');
+    assert.equal(qualifyIaFileRecord(item,rules).accepted,expected,title+' / '+fileName+' prepared API');
+    for(const gate of gates){
+      assert.equal(gate({num:124},{id:identifier,title,url:media.url,meta:{subject:tags}},{}),expected,title+' browser');
+    }
+  }
+  const bank=f.orderedIaEmergencySeeds('124',0).filter(item=>item.media?.url);
+  assert.ok(bank.filter(item=>f.stationGate('124',item)).length>=15,'keep the existing reviewed depth');
+});
+
+function browserArchiveGates(){
+  return ['the_dial_desktop.html','the_dial_mobile.html'].map(name=>{
+    const html=fs.readFileSync(path.join(root,name),'utf8');
+    const scope={URL,iaKnownVideoPolicyViolation:()=>false};
+    for(const prefix of ['function iaReviewedFileAllowed(', 'function iaCachedProgramAllowed(']){
+      const start=html.indexOf(prefix);
+      vm.runInNewContext(html.slice(start,html.indexOf('\n}',start)+2),scope);
+    }
+    return scope.iaCachedProgramAllowed;
+  });
+}
+
+test('108 rejects gameplay livestreams while keeping classic, neo-noir and true-crime feature titles', async () => {
+  const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
+  const {qualifyIaFileRecord}=await import('../ia_file_contract.js');
+  const f=relay(), gates=browserArchiveGates();
+  for(const [title,file,expected] of [
+    ['True Crime Gaming Livestream', 'True Crime Gameplay Livestream.mp4', false],
+    ['An Evening With Detectives', 'True Crime Streets of LA longplay.mp4', false],
+    ['True Crime (1999)', 'True Crime 1999.mp4', true],
+    ['The Red House (1947)', 'The Red House (1947).mp4', true],
+    ['Red Rock West (1993)', 'Red Rock West (1993).mp4', true],
+  ]){
+    const identifier='noir-upload::'+file, media={url:'https://archive.org/download/noir-upload/'+encodeURIComponent(file),
+      type:'video',runtime:5400,width:720,height:480,verification:'transport',verifiedAt:Date.now()};
+    const item={identifier,title,subject:'film noir crime thriller feature film',media};
+    const rules={channel:'108',iaRepair:true,themeMinScore:0};
+    assert.equal(f.stationGate('108',item),expected,title+' relay');
+    assert.equal(catalogFallbackAllowed(item,rules),expected,title+' persisted API');
+    assert.equal(qualifyIaFileRecord(item,rules).accepted,expected,title+' prepared API');
+    for(const gate of gates)assert.equal(gate({num:108},{id:identifier,title,url:media.url},{}),expected,title+' browser');
+  }
+  for(const name of ['channel_registry.js','the_dial_desktop.html','the_dial_mobile.html']){
+    const source=fs.readFileSync(path.join(root,name),'utf8');
+    assert.match(source,/"Noir & Mystery":\{desc:"[^"]*classic[^"]*neo-noir/i,name);
+    assert.doesNotMatch(source,/num:108,[^\n]*1940,1965/,name);
+  }
+});
+
+test('564 admits whole noir features, with one ready seat per work and alternate routes retained', async () => {
+  const {default:worker,catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
+  const {sourceProfile,qualifySourceItem}=await import('../realsignal_source_catalog.js');
+  const profile=sourceProfile({profileKey:'film-noir-desk'});
+  const titles=[
+    ['Film Noir Documentary',false], ['Film Noir: Bringing Darkness to Light',false],
+    ['A Personal Journey Through Film Noir',false], ['The History of Film Noir',false],
+    ['Top 10 Film Noir Movies Ranked',false], ['The Big Combo (1955) | Full Movie',true],
+    ['Big Combo - 1955 - Classic Film Noir',true], ['The Big Combo | Full Film',true],
+    ['D.O.A. (1950) | Full Movie',true], ['D.O.A. (1988) | Full Movie',true],
+  ];
+  const candidates=titles.map(([title],index)=>({id:'youtube:noir-'+index,provider:'YouTube',title,
+    description:'Film noir',duration:5400,aspectRatio:16/9,language:'en',year:'2025',type:'embed',
+    rights:'Standard YouTube license',url:'https://www.youtube-nocookie.com/embed/noir-'+index}));
+  Object.assign(candidates[7],{id:'pt:noir-7',provider:'PeerTube',rights:'Creative Commons Attribution',type:'video',url:'https://example.com/full-film.mp4'});
+  for(const [index,[title,expected]] of titles.entries()){
+    assert.equal(!!qualifySourceItem(profile,candidates[index]),expected,title+' provider');
+    assert.equal(catalogFallbackAllowed(candidates[index],{channel:profile.profileKey,sourceCatalog:true}),expected,title+' persisted');
+  }
+  assert.match(profile.queries.join(' '),/full movie/);
+  assert.doesNotMatch(profile.queries.join(' '),/documentary|history/);
+  const rows=candidates.map(item=>({id:item.id,title:item.title,provider:item.provider,media_type:item.type,
+    media_url:item.url,source_url:item.url,duration_seconds:item.duration,description:item.description,
+    aspect_ratio:item.aspectRatio,rights:item.rights,year:item.year,metadata_json:JSON.stringify({language:item.language})}));
+  const env={realsignal_catalog:{prepare(sql){return{bind(){return{
+    async all(){return {results:/FROM programs p JOIN channel_programs/i.test(sql)?rows:[]};},
+  };}};}}};
+  const request=recentIds=>new Request('https://api.example/api/v2/source/catalog',{method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({profileKey:profile.profileKey,minimumReady:1,count:5,recentIds})});
+  const response=await worker.fetch(request([]),env,{waitUntil(){}});
+  assert.equal(response.status,200);
+  const payload=await response.json();
+  assert.equal(payload.items.length,3,'one Big Combo seat and both release years of D.O.A.');
+  assert.equal(payload.candidateItems.length,5,'keep all valid delivery routes');
+  assert.equal(payload.playableCatalogDepth,3,'depth measures distinct features');
+  const nextResponse=await worker.fetch(request([candidates[5].id]),env,{waitUntil(){}});
+  assert.equal(nextResponse.status,200);
+  assert.deepEqual((await nextResponse.json()).items.map(item=>item.id),[candidates[8].id,candidates[9].id],
+    'the API serves the two unseen works before replaying any Big Combo route');
+  const guide=await worker.fetch(new Request('https://api.example/api/v3/guide?channel=564'),env,{waitUntil(){}});
+  assert.equal(guide.status,200);
+  assert.equal((await guide.json()).items.length,3,'the guide also exposes one seat per feature');
+
+  for(const name of ['the_dial_desktop.html','the_dial_mobile.html']){
+    const html=fs.readFileSync(path.join(root,name),'utf8');
+    const store=new Map(), scope={window:{RealSignalSourcePrograms:require('../assets/source-program-policy.js')},
+      V2_SOURCE_READY_BUFFER:5,v2Rejected:()=>[],v2Recent:key=>store.get('v2recent:'+key)||[],store:{get:(key,fallback)=>store.get(key)||fallback,set:(key,value)=>store.set(key,value)}};
+    for(const prefix of ['function v2SourceProgramAllowed(', 'function v2PruneSourcePrograms(', 'function v2Remember(', 'function v2NoirNext(', 'function v2NextFreshIndex(', 'function v2NoirCatalogOrder(', 'function v2CatalogOrder(']){
+      const start=html.indexOf(prefix);
+      const end=prefix.startsWith('function v2Noir')?html.indexOf('\n}',start)+2:html.indexOf('\n',start);
+      vm.runInNewContext(html.slice(start,end),scope);
+    }
+    const state={items:candidates.slice(),cursor:5};
+    scope.v2PruneSourcePrograms(profile,state);
+    assert.equal(state.items.length,5,name+' purges retained documentaries and lists');
+    const ordered=scope.v2CatalogOrder(profile.name,state.items,profile.profileKey);
+    assert.deepEqual(Array.from(ordered,item=>item.id),[5,8,9,6,7].map(i=>candidates[i].id),name+' orders distinct seats before alternate routes');
+    scope.v2Remember(profile.name,candidates[5]);
+    const next=scope.v2NextFreshIndex(profile,state,candidates[5].id);
+    assert.equal(state.items[next]?.id,candidates[8].id,name+' skips other routes to the feature just watched');
+    const retry={items:state.items.slice(1),cursor:0};
+    store.clear();
+    assert.equal(scope.v2NextFreshIndex(profile,retry,''),0,name+' alternate remains available after a failed first route');
+  }
+});

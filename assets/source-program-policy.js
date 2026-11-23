@@ -26,7 +26,50 @@
     }
     return disclosed(title)||description.split(/[.!?\n]+/).some(disclosed);
   }
+  function noirFilmKey(item) {
+    var title = clean(item && item.title).trim();
+    var credit = title.match(/^(.+?)\s*[([]((?:19|20)\d{2})[)\]]/) ||
+      title.match(/^(.+?)\s+(?:-\s+)?((?:19|20)\d{2})(?=\s*(?:[|,-]|$))/);
+    var name = (credit ? credit[1] : title.split(/\s*\|\s*|\s+-\s+/)[0])
+      .replace(/\b(?:full|complete|feature)[ -]+(?:movie|film)\b.*$/i, '');
+    name = name.toLowerCase().replace(/^\s*the\s+/, '').replace(/[^\p{L}\p{N}]/gu, '');
+    // Provider year is the upload year. Use a release credit or the known
+    // title alias, and leave ambiguous uploads independent.
+    var year = Number(item && item.releaseYear || credit && credit[2] || (/^(?:the\s+)?big combo(?:\s*(?:\||-)\s*(?:full (?:film|movie)|(?:classic )?film noir).*)?$/i.test(title) ? 1955 : 0));
+    return name.length >= 3 && Number.isInteger(year) && year >= 1900 && year <= new Date().getUTCFullYear()
+      ? "noir:" + year + ":" + name : "";
+  }
+  function noirFilmAllowed(item) {
+    if (!item || Number(item.duration) < 3000 || !Number(item.duration) || item.isLive === true || item.liveBroadcastContent === 'live') return false;
+    var title = clean(item.title), opening = clean(item.description).trim().split(/[.!?](?:\s+|$)|\n/)[0];
+    if (/\b(?:documentar(?:y|ies)|retrospective|video essay|history of|film noir history|interviews?|analysis|explained|lectures?|commentary|rank(?:ed|ings?)|countdown|top\s+(?:\d+|ten)|clips?|trailers?|teasers?|reaction|recap|fan[ -]?(?:edit|film|made)|shorts|making of|behind the scenes|gameplay|live[ -]?stream|bringing darkness to light|personal journey through film noir)\b/i.test(title)) return false;
+    if (/^(?:an?\s+)?documentary\b|\bthis (?:video|film|programme|program) is (?:an?\s+)?documentary\b/i.test(opening)) return false;
+    if (noirFilmKey(item) === 'noir:1955:bigcombo') return true;
+    var topic = /\b(?:film[ -]noir|neo[ -]noir|noir (?:movie|film|feature|classic)|detective (?:movie|film)|black and white crime)\b/i;
+    var full = /\b(?:full|complete|feature)[ -]+(?:movie|film)\b|\bfull[ -]length\b/i;
+    return topic.test([title, item.description, item.tags, item.subject].join(' ')) &&
+      (full.test(title) || Boolean(noirFilmKey(item)) && (topic.test(title) || full.test(opening)));
+  }
+  function noirFilmSeats(items) {
+    var seen = new Set();
+    return items.filter(function(item) {
+      var key = noirFilmKey(item);
+      if (!key) return true;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+  function noirFilmRecent(items, recent) {
+    var ages = new Map(recent.map(function(id, age) { return [id, age]; }));
+    items.forEach(function(item) {
+      var key = noirFilmKey(item), age = ages.get(String(item.id || item.identifier || ''));
+      if (key && age !== undefined) ages.set(key, Math.min(age, ages.get(key) ?? age));
+    });
+    return ages;
+  }
   function allow(profileKey,item){
+    if (profileKey === "film-noir-desk" && !noirFilmAllowed(item)) return false;
     // The retired Archive file stalled at startup. Preserve the film identity for the verified copy.
     if(profileKey==='ia-war-movies' && /\/(?:download|items)\/what-price-glory-1926\//i.test(String(item&&item.url||'')))return false;
     if(!/^(?:ok|vimeo)-/.test(String(profileKey||''))){
@@ -119,5 +162,6 @@
     }
     return balanced.concat(unknown);
   }
-  return {allow:allow, warFilmProfile:warFilmProfile, balanceWarFilmEras:balanceWarFilmEras};
+  return {allow:allow, warFilmProfile:warFilmProfile, balanceWarFilmEras:balanceWarFilmEras,
+    noirFilmKey:noirFilmKey, noirFilmSeats:noirFilmSeats, noirFilmRecent:noirFilmRecent};
 });

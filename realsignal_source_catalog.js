@@ -814,6 +814,7 @@ function accepted(profile, item, provider, checkAspect = true) {
   const admissionProfileKey = profile.parentProfileKey || profile.profileKey;
   const minimumRuntime = Math.max(SOURCE_MIN_RUNTIME, Number(profile.minRuntimeSeconds) || 0);
   if (!item || !(item.id || item.uuid || item.rawId) || !title || duration < minimumRuntime || (checkAspect && ratio < SOURCE_MIN_ASPECT_RATIO)) return false;
+  if (profile.profileKey === "film-noir-desk") return rightsOkay(item, source) && (source !== "YouTube" || englishOkay(item, true));
   if (profile.titleRequiredTerms.length && !termsMatch(titleHaystack, profile.titleRequiredTerms)) return false;
   const qualityMovieTitle = okMovieTitleQualified(profile, item);
   const okEpisode = source === "OK.ru" && admissionProfileKey === "ok-tv-channel" && /\b(?:s\d{1,2}[ ._-]*e\d{1,3}|\d{1,2}x\d{1,3})\b/i.test(title);
@@ -925,6 +926,7 @@ function normalized(item, provider, query) {
     channelSeed: text(item.channelSeed, 120),
     channelDiscovered: item.channelDiscovered === true,
     year: text(item.year, 12).slice(0, 4),
+    ...(item.releaseYear ? { releaseYear: Number(item.releaseYear) } : {}),
     rights: text(item.rights, 240),
     provider,
     ...(provider === "NASCAR Classics" ? { officialReplay: item.officialReplay === true, verification: item.verification, verifiedAt: Number(item.verifiedAt) || 0, raceTrack: item.raceTrack, raceSeries: item.raceSeries } : {}),

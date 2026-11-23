@@ -110,7 +110,7 @@ export const CH=[
  {nm:"Sunday Service", num:205,    cat:"DOC", gl:"faith",       era:[1940,1985], ns:"doc"},
  {nm:"VHS Vault", num:502,         cat:"RETRO",gl:"vhsvault",    era:[1980,1999], ns:"movie"},
  {nm:"Silent Cinema", num:107,     cat:"MOV", gl:"silentcinema", era:[1905,1929], ns:"movie"},
- {nm:"Noir & Mystery", num:108,    cat:"MOV", gl:"noirmystery",  era:[1940,1965], ns:"movie"},
+ {nm:"Noir & Mystery", num:108,    cat:"MOV", gl:"noirmystery",  era:[1940,2026], ns:"movie"},
  {nm:"Action & Serials", num:109,  cat:"MOV", gl:"actionserials",era:[1935,1965], ns:"movie"},
  {nm:"Classic Film", num:110,      cat:"MOV", gl:"classicmovie", era:[1930,1965], ns:"movie"},
  {nm:"The Drive-In", num:111,      cat:"MOV", gl:"drivein",     era:[1955,2026], ns:"movie"}, /* grindhouse/exploitation features */
@@ -527,7 +527,7 @@ export const CHANNEL_META={
 "Sunday Service":{desc:"Faith programming across every tradition - one per tune-in.",best:"Sunday mornings",rel:["Fallout Radio","Prelinger Vault"]},
 "VHS Vault":{desc:"Off-air tapes and home-video artifacts, 1980-99.",best:"late night",rel:["Modern Rerun TV","Found Footage Static"]},
 "Silent Cinema":{desc:"The silent era end to end \u2014 features, shorts and slapstick, 1905-1929.",best:"evenings",rel:["Classic Film","Comedy Classics"]},
-"Noir & Mystery":{desc:"Shadows, sirens and whodunits \u2014 film noir and detective pictures, 1940-65.",best:"late night",rel:["Nite-Owl 3","Classic Film"]},
+"Noir & Mystery":{desc:"Classic film noir, detective pictures and modern neo-noir.",best:"late night",rel:["Nite-Owl 3","Classic Film"]},
 "Action & Serials":{desc:"Adventure programmers and cliffhanger chapter plays.",best:"afternoons",rel:["Western Channel","Classic Film"]},
 "Classic Film":{desc:"Studio-era Hollywood, 1930-65 \u2014 the broad classic-movie pool.",best:"primetime",rel:["Noir & Mystery","Comedy Classics"]},
 "Modern Cartoons":{desc:"TV animation from the 1970s through the 2000s.",best:"weekend mornings",rel:["Classic Cartoons","Anime Alley"]},

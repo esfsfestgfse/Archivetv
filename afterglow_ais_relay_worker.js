@@ -6101,6 +6101,9 @@ function iaReviewedFileAllowed(item, channel) {
   if (station === '108') {
     if (source === 'animal-kingdom-david-michod-2010-spa' && /\)\s+SPA(?:\.|$)/i.test(file || title)) return false;
     const programLabel = [source, title, file].join(' ').replace(/[._-]+/g, ' ');
+    if (/^(?:gaming|video games?|lets play)$/i.test(String(item.category || item.meta?.category || '').trim()) ||
+        /\b(?:game ?play|longplay|speedrun|playthrough|gaming live ?stream|game live ?stream|live ?stream gaming)\b/i.test(programLabel) ||
+        /\b(?:gaming live ?stream|video game (?:playthrough|walkthrough|stream))\b/i.test(String(item.subject || item.subjects || item.meta?.subject || ''))) return false;
     if (source === '11th-hour' || /^(?:ccp-red-house|edgar-von-ghoul[-_]|homv-)/i.test(source) ||
         /\b(?:classic cinema plus|midnight chillers|midnight shock theat(?:er|re)|house of master vyle)\b/i.test(programLabel)) return false;
     // A long TV episode still carries an episode marker even when tagged as noir.
@@ -6108,8 +6111,34 @@ function iaReviewedFileAllowed(item, channel) {
     if (/\b(?:scored with (?:new )?ai music|ai generated (?:score|soundtrack|music))\b/i.test(programLabel)) return false;
     if (/\bcharles[\W_]+laughton[\W_]+directs[\W_]+the[\W_]+night[\W_]+of[\W_]+the[\W_]+hunter\b/i.test([source, title, file].join(' '))) return false;
   }
-  if (station === '124' && (/^(?:hammer-frankenstein-film-music|alejandro-jodorowsky-el-ladron-del-arcoiris|homv-)/i.test(source) ||
-      /\b(?:hammer frankenstein film music|the rainbow thief|the flesh and the fury|x[ -]posing twins of evil|house of master vyle|orwell.s nightmare)\b/i.test(title))) return false;
+  if (station === '124') {
+    const program = title.split(/\s+[·—]\s+/).at(-1);
+    const selected = [program, file].join(' ').replace(/[._-]+/g, ' ');
+    const identity = [source, media.sourceTitle, title, file].join(' ').replace(/[._-]+/g, ' ');
+    if (/^(?:hammer-frankenstein-film-music|alejandro-jodorowsky-el-ladron-del-arcoiris|homv-)/i.test(source) ||
+        /\b(?:hammer frankenstein film music|the rainbow thief|the flesh and the fury|x posing twins of evil|house of master vyle|orwell.s nightmare|masks of death|everyman\b.{0,80}\bfrankenstein|frankenstein\b.{0,80}\beveryman)\b/i.test(identity) ||
+        /\b(?:superintendent|school committee|school board)\b.{0,100}\b(?:interview|meeting)\b|\binterview\b.{0,100}\b(?:superintendent|school committee|school board)\b/i.test(identity) ||
+        /\b(?:documentary|featurettes?|bonus features?|behind the scenes|making of|trailers?|deleted scenes|dvd menu|tv movie|television movie|tv series|television series|s\s*\d{1,2}\s*e\s*\d{1,3}|episode\s*\d{1,3})\b/i.test(selected) ||
+        /\b(?:(?:cast|director|exclusive|extended|bonus) interviews?|interview with (?!the vampire\b))\b/i.test(selected)) return false;
+    const subject = item.subject || item.subjects || item.meta?.subject || item.meta?.subjects || '';
+    const theme = /\b(?:hammer (?:horror|films?(?: productions)?)|amicus (?:films?|productions)|gothic (?:horror|cinema))\b/i;
+    const titleKey = value => value.toLowerCase().replace(/[._-]+/g, ' ').replace(/\bdr\s+(?=jekyll\b)/g, 'doctor ')
+      .replace(/^\s*(?:#?\d{1,2}\s+)?(?:the\s+)?/, '').replace(/[^a-z0-9]/g, '');
+    const work = titleKey(program.replace(/\b(?:19|20)\d{2}\b.*$/, '').replace(/\b(?:full movie|full film|blu-?ray|dvdrip)\b.*$/i, ''));
+    const known = /^(?:bridesofdracula|doctorjekyll|twofacesofdoctorjekyll|xtheunknown|satanicritesofdracula)$/.test(work);
+    // Metadata-only parents can be searched and hydrated. A playable row needs
+    // a selected file that identifies the same work as the displayed title.
+    if (file || media.url || item.url || item.mediaUrl) {
+      const runtime = Number(media.runtime || item.runtimeSeconds || item.meta?.runtime || item.runtime);
+      if (media.type === 'audio' || item.type === 'audio' || runtime > 0 && runtime < 3000) return false;
+      // Transport metadata for this reviewed airing uses a truncated EPG filename.
+      if (source === 'The_Woman_in_Black_2_Angel_of_20191127_0100' &&
+          file === 'The Woman in Black 2_ Angel of____20191127_0100.mp4' && work === 'womaninblackangelofdeath') return true;
+      if (!work || !file || !titleKey(file).startsWith(work)) return false;
+      const feature = /\b(?:19|20)\d{2}\b|\b(?:full|complete|feature)[ -]+(?:film|movie)\b/i;
+      if (!known && (!theme.test([selected, subject].join(' ')) || !feature.test(selected))) return false;
+    }
+  }
 
   if (String(channel) === '575') {
     // Match reviewed Archive files, because a resolution claim in an upload

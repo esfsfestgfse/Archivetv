@@ -3007,32 +3007,20 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "peertube",
       "youtube"
     ],
+    "intent": "film",
+    "minRuntimeSeconds": 3000,
     "queries": [
-      "film noir documentary",
-      "film noir history",
-      "detective cinema history",
-      "black and white crime film history",
-      "noir cinematography documentary"
+      "classic film noir full movie",
+      "public domain noir full movie",
+      "classic detective full film",
+      "black and white crime full movie",
+      "The Big Combo 1955 full movie"
     ],
     "match": [
       "film noir",
-      "noir history",
-      "detective cinema",
-      "black and white crime film",
-      "noir cinematography",
-      "noir documentary"
-    ],
-    "deny": [
-      "fictional",
-      "music video",
-      "commercial",
-      "cartoon",
-      "gameplay",
-      "trailer",
-      "reaction",
-      "movie recap",
-      "fan edit",
-      "shorts"
+      "noir movie",
+      "detective film",
+      "crime film"
     ]
   },
   "horror-house": {

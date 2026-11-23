@@ -17,7 +17,7 @@ const TOPICS = {
   '117': ['independent feature', 'indie film', 'festival film', 'arthouse feature'],
   '119': ['samurai film', 'samurai movie', 'chanbara', 'jidaigeki'],
   '120': ['spanish cinema', 'mexican cinema', 'cine español', 'cine mexicano', 'latin american film'],
-  '124': ['hammer horror', 'hammer films', 'hammer film productions'],
+  '124': ['hammer horror', 'hammer films', 'hammer film productions', 'amicus productions', 'gothic horror'],
   '125': ['ealing studios', 'ealing comedy'],
   '131': ['british cult film', 'british horror', 'british science fiction', 'british crime film'],
   '132': ['cult film', 'cult horror', 'b movie', 'grindhouse film', 'midnight movie'],

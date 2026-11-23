@@ -59,7 +59,7 @@ for (const file of builds) {
   const gearHead = gearHeadStart >= 0 && gearHeadEnd > gearHeadStart ? html.slice(gearHeadStart, gearHeadEnd) : '';
   check(gearHead.includes("jay leno's garage") && gearHead.includes('jay leno car show') && gearHead.includes("leno's garage"), `${file}: Gear Head prioritizes Jay Leno automotive programming`);
   check(gearHead.includes('the tonight show') && gearHead.includes('talk show') && gearHead.includes('monologue'), `${file}: Gear Head rejects Jay Leno late-night/talk-show bleed`);
-  check(html.includes('sportsEpgById={}') && html.includes('function trustedSportsLive(c)') && html.includes('data-sports-live-mode="live"'), `${file}: sports EPG state survives rerenders and exposes a verified Live Now filter`);
+  check(html.includes('function scheduleGuideRedraw(now)') && html.includes('trustedSportsFeed(c)&&sportsProgramme(c,now)') && html.includes('data-sports-live-mode="live"'), `${file}: sports EPG state survives rerenders and exposes a verified Live Now filter`);
   check(html.includes('function todayEventState(status,when)') && html.includes('/postpon|cancel|abandon|suspend|no contest|delayed/'), `${file}: stale and invalid sports events are excluded from Live Now`);
   check(html.includes('cast-receiver-ack') && html.includes('REALSIGNAL_CAST_OK'), `${file}: Cast receiver playback contributes first-frame telemetry`);
   check(html.includes('__rsChannelHealthPolicy') && html.includes('function dynamicChannelHealth'), `${file}: lineup accepts temporary measured health overrides`);

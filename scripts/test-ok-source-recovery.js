@@ -190,6 +190,19 @@ const root = path.resolve(__dirname, '..');
   assert.equal(lateFrame.dataset.playbackState, 'playing', 'a slow document still has time to start its video');
   assert.equal(stallErrors.length, 1);
   window.RealSignalOKEmbed.stop();
+  const afterAd = window.RealSignalOKEmbed.play({ ...options, onError: error => stallErrors.push(error) });
+  const afterAdFrame = frames.at(-1);
+  advance(7700);
+  send('adStarted', 'https://ok.ru', afterAdFrame.contentWindow);
+  send('adCompleted', 'https://ok.ru', afterAdFrame.contentWindow);
+  advance(800);
+  afterAdFrame.onload();
+  await afterAd;
+  advance(6500);
+  send('started', 'https://ok.ru', afterAdFrame.contentWindow);
+  assert.equal(afterAdFrame.dataset.playbackState, 'playing', 'late document load keeps the newer post-ad grace period');
+  assert.equal(stallErrors.length, 1);
+  window.RealSignalOKEmbed.stop();
   const api = fs.readFileSync(path.join(root, 'realsignal_api_v2_worker.js'), 'utf8');
   assert.ok(api.includes('metadata_json=excluded.metadata_json'), 'catalog repairs must replace stale metadata');
   for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
@@ -198,7 +211,7 @@ const root = path.resolve(__dirname, '..');
     assert.ok(html.includes('function playOKEmbed'));
     assert.ok(html.includes('window.RealSignalOKEmbed.qualify(profile,item)'));
     const store = new Map();
-    const one = { id: 'ok:slow' }, two = { id: 'ok:next' };
+    const one = { id: 'ok:slow', canonicalProgramKey: 'episode:1' }, two = { id: 'ok:next', canonicalProgramKey: 'episode:2' };
     const state = { items: [one, two], cursor: 0, pendingId: one.id };
     const retunes = [];
     const dialect = {
@@ -216,8 +229,39 @@ const root = path.resolve(__dirname, '..');
     assert.deepEqual(state.items, [two], 'recovery leaves the other program ready');
     assert.deepEqual(retunes, [585], 'recovery retunes the same channel');
     assert.ok(dialect.v2Rejected('OK TV').includes(one.id));
-    dialect.v2Reject('OK TV', two);
+    const ch = { num: 585, previewKey: 'ok-tv-channel' };
+    const profile = { name: 'OK TV', profileKey: ch.previewKey };
+    let requests = 0;
+    Object.assign(dialect, {
+      window: { RealSignalOKEmbed: { normalize: item => item, qualify: () => true, programKey: window.RealSignalOKEmbed.programKey, order: (_, items) => items, reconcileShelf: (_, items) => ({ items, cursor: 0 }) } },
+      v2PreviewInflight: {}, V2_SOURCE_CACHE_VERSION: 65, V2_SOURCE_CATALOG_SIZE: 512, V2_SOURCE_MIN_CATALOG: 1, V2_SOURCE_CACHE_TTL: 720000,
+      v2SourceProgramAllowed: () => true, v2Landscape: () => true, v2ProfileRuntimeOkay: () => true, v2Recent: () => [],
+      v2ServerSourceCatalog: async () => { requests++; return { items: [one, two] }; },
+      v2NextRotation: () => 1, v2SourceHealth: () => ({}), refreshGuideData() {}, nlog() {},
+      v2Unique: rows => [...new Map(rows.map(item => [item.id, item])).values()],
+      v2MergeCatalog: (_, before, found) => dialect.v2Unique(found.concat(before)),
+      v2CatalogOrder: (key, items) => items.filter(item => !dialect.v2Rejected(key).includes(item.id))
+    });
+    const prune = html.slice(html.indexOf('function v2PruneSourcePrograms('), html.indexOf('\n', html.indexOf('function v2PruneSourcePrograms(')));
+    vm.runInNewContext(prune, dialect);
+    const restore = html.match(/^function v2RestoreOKStartupItems\([\s\S]*?^}/m);
+    if (restore) vm.runInNewContext(restore[0], dialect);
+    const loadStart = html.indexOf('async function v2LoadProfile(');
+    vm.runInNewContext(html.slice(loadStart, html.indexOf('\nfunction v2RejectEmbed(', loadStart)), dialect);
+    await dialect.v2LoadProfile(ch, profile, 7, true);
+    assert.ok(store.get('v2source:OK TV').items.some(item => item.id === one.id), 'refresh must keep temporarily cooled media in the cache');
+    dialect.v2PreviewState[585] = { items: [], cursor: 0 };
+    await dialect.v2LoadProfile(ch, profile, 7);
+    assert.ok(!dialect.v2PreviewState[585].items.some(item => item.id === one.id), 'a warm reload holds the cooled item off the shelf');
     now += 121000;
+    dialect.v2PruneSourcePrograms(profile, dialect.v2PreviewState[585]);
+    assert.ok(dialect.v2PreviewState[585].items.some(item => item.id === one.id), 'the same browser can select the episode after cooldown without a server refresh');
+    assert.equal(requests, 1, 'the initial catalog pull is enough');
+    const alternate = { ...one, id: 'ok:alternate' };
+    const selected = { items: [alternate, two], cursor: 0, currentId: alternate.id, okStartupItems: [one] };
+    dialect.v2PruneSourcePrograms(profile, selected);
+    assert.deepEqual(selected.items, [alternate, two], 'cooldown expiry preserves the on-air upload and never adds a second copy of the episode');
+    dialect.v2Reject('OK TV', two);
     assert.ok(!dialect.v2Rejected('OK TV').includes(one.id), 'a slow file becomes eligible again after the short cooldown');
     assert.ok(dialect.v2Rejected('OK TV').includes(two.id), 'confirmed provider errors retain the normal cooldown');
     assert.match(html, /V2_SOURCE_CACHE_VERSION=(?:6[4-9]|[7-9]\d|[1-9]\d{2,})/);

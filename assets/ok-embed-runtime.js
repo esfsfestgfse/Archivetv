@@ -181,7 +181,7 @@
     return new Promise(function (resolve) {
       var frame = document.createElement("iframe"), disposed = false, loaded = false, playing = false, providerResponded = false, startSuppressed = false, advanced = false, settled = false, timer;
       var offset = Math.max(0, Math.floor(Number(options.startSeconds?.()) || 0));
-      var openedAt = Date.now();
+      var openedAt = Date.now(), resumeBudget = false;
       function settle(value) { if (!settled) { settled = true; resolve(value); } }
       function cleanup() {
         disposed = true; clearTimeout(timer); root.removeEventListener("message", message); frame.onload = frame.onerror = null;
@@ -215,7 +215,10 @@
         if (data.event === "error") { fail(); return; }
         // Explicit pauses, autoplay restrictions and ads are not failed media.
         if (/^(?:paused|autoplaySoundProhibited|adShown|adStarted)$/.test(data.event)) { startSuppressed = true; clearTimeout(timer); return; }
-        if (/^(?:resumed|adCompleted)$/.test(data.event)) { startSuppressed = false; if (!playing) armStartTimer(); }
+        if (/^(?:resumed|adCompleted)$/.test(data.event)) {
+          startSuppressed = false;
+          if (!playing) { resumeBudget = true; armStartTimer(); }
+        }
         var time = Number(data.time);
         if (!offset && data.event === "started" || data.event === "timeupdate" && time > 0 && time >= offset - 2) {
           if (!playing) {
@@ -245,7 +248,7 @@
         if (playing) return;
         frame.dataset.playbackState = "ready";
         // The navigation and video startup share a budget, with time for a late-loading player.
-        armStartTimer(Math.max(6000, 12000 - (Date.now() - openedAt)));
+        if (!resumeBudget) armStartTimer(Math.max(6000, 12000 - (Date.now() - openedAt)));
         options.onReady();
         settle(true);
       };

@@ -120,6 +120,16 @@ const { DatabaseSync } = require("node:sqlite");
           browser.token=2;
           pending.shift()();
           assert.deepEqual(staged,[lastHunter.id],"obsolete tunes do not stage a second asset");
+          const warmKey="624:"+lastHunter.id;
+          const video={error:{code:4}},releases=[];
+          browser.iaMediaWarmers={[warmKey]:{el:video}};
+          browser.releaseIAMediaWarmer=(key,retain)=>{releases.push([key,retain]);return video;};
+          vm.runInContext(body.match(/^function takeIAMediaWarmer\([\s\S]*?^}/m)[0],browser);
+          assert.equal(browser.takeIAMediaWarmer(ch,lastHunter),null,"Next must retry a failed preload from a fresh video");
+          assert.deepEqual(releases,[[warmKey,false]]);
+          video.error=null;
+          assert.equal(browser.takeIAMediaWarmer(ch,lastHunter),video,"reuse a usable preload");
+          assert.deepEqual(releases.at(-1),[warmKey,true]);
 
           for (const {film,stale} of archiveRepairs) {
             const state = { items: [...stale, film], cursor: 0 };

@@ -90,7 +90,11 @@
   function allow(profileKey,item){
     if (profileKey === "film-noir-desk" && !noirFilmAllowed(item)) return false;
     // These retired Archive files stalled at startup. Their replacements keep the film identities.
-    if(profileKey==='ia-war-movies' && /\/(?:download|items)\/(?:what-price-glory-1926|the-last-hunter)\//i.test(String(item&&item.url||'')))return false;
+    if(profileKey==='ia-war-movies'){
+      var archiveUrl=String(item&&item.url||'');
+      if(/\/(?:download|items)\/what-price-glory-1926\//i.test(archiveUrl) ||
+        /^https:\/\/(?:www\.)?archive\.org\/download\/the-last-hunter\//i.test(archiveUrl))return false;
+    }
     if(!/^(?:ok|vimeo)-/.test(String(profileKey||''))){
       if(synthetic(item))return false;
       // A podcast named in the program title is its format. A companion

@@ -38,7 +38,6 @@ const { DatabaseSync } = require("node:sqlite");
       ["ia-war:what-price-glory-1926", ["https://archive.org/download/what-price-glory-1926/What%20Price%20Glory%20(1926).mp4"]],
       ["ia-war:the-last-hunter", [
         "https://archive.org/download/the-last-hunter/The%20Last%20Hunter.mp4",
-        "https://ia903202.us.archive.org/8/items/the-last-hunter/The%20Last%20Hunter.mp4",
       ]],
     ].map(([id, routes]) => {
       const film = reviewedWarFilms("ia-war-movies").find(item => item.id === id);
@@ -57,8 +56,8 @@ const { DatabaseSync } = require("node:sqlite");
       return {film,stale};
     });
     const lastHunter = archiveRepairs[1].film;
-    assert.equal(lastHunter.duration,5267,"catalog duration belongs to the selected cut");
-    assert.match(lastHunter.url,/^https:\/\/dn600206\.us\.archive\.org\/0\/items\/the-last-hunter-1980-film\/.+\.ia\.mp4$/);
+    assert.equal(lastHunter.duration,5788,"retain the original marked Archive cut");
+    assert.match(lastHunter.url,/^https:\/\/ia903202\.us\.archive\.org\/8\/items\/the-last-hunter\/The%20Last%20Hunter\.mp4$/);
     const firstFilms = [];
     for (const [profileKey, provider, channel] of listings) {
       for (const surface of ["desktop", "mobile"]) {
@@ -76,9 +75,52 @@ const { DatabaseSync } = require("node:sqlite");
         }
         vm.runInContext(body.match(/^function v2WarFilmOrder\([\s\S]*?^}/m)[0], browser);
         if (profileKey === "ia-war-movies") {
+          vm.runInContext(body.match(/^function v2RightsOkay\(.*$/m)[0], browser);
+          browser.v2Text = value => String(value || "");
+          assert.ok(browser.v2RightsOkay(lastHunter.rights, lastHunter.provider, lastHunter),
+            "the published replacement must also pass the browser's rights gate");
           for (const name of ["v2SourceProgramAllowed", "v2PruneSourcePrograms"]) {
             vm.runInContext(body.match(new RegExp("^function " + name + ".*$", "m"))[0], browser);
           }
+          const reset=body.match(/^function resetArchiveWarRouteRejection\([\s\S]*?^}/m);
+          assert.ok(reset,"old route failures need a one-time migration");
+          vm.runInContext(reset[0],browser);
+          const watchedKey="v2recent:Archive War Movies",failureKey="v2rejected:Archive War Movies";
+          const watchHistory=["unchanged-watch-history"],otherFailure={id:"other-failure",at:Date.now()};
+          saved.set(watchedKey,watchHistory);
+          saved.set(failureKey,[{id:lastHunter.id,at:Date.now()},otherFailure]);
+          browser.resetArchiveWarRouteRejection({profileKey,name:"Archive War Movies"});
+          assert.equal(saved.get(watchedKey),watchHistory);
+          assert.deepEqual(Array.from(saved.get(failureKey)),[otherFailure],"a retired URL cannot suppress the same film");
+          saved.set(failureKey,[{id:lastHunter.id,at:Date.now()}]);
+          browser.resetArchiveWarRouteRejection({profileKey,name:"Archive War Movies"});
+          assert.equal(saved.get(failureKey).length,1,"new route failures still have a cooldown");
+          const warm = body.match(/^function warmArchiveWarNext\([\s\S]*?^}/m);
+          assert.ok(warm, "prepare only the next reviewed Archive war film");
+          const pending = [], staged = [], released = [], ch = {num:624};
+          const active = {id:"ia-war:MissionXfeatureFilm"};
+          Object.assign(browser, {
+            token:1,powered:true,curNum:624,document:{hidden:false,body:{classList:{contains:()=>false}}},
+            v2NextFreshIndex:()=>1,
+            iaQueueKey:()=> "624",
+            iaMediaWarmKey:(_ch,item)=> "624:"+item.id,
+            iaMediaWarmByChannel:{"624":"624:stale"},iaWarmWanted:{},
+            releaseIAMediaWarmer:id=>released.push(id),
+            stageIAMediaWarmer:(_ch,item)=>staged.push(item.id),
+            setTimeout:fn=>pending.push(fn),
+          });
+          vm.runInContext(warm[0], browser);
+          const shelf = {items:[active,lastHunter],pendingId:active.id};
+          browser.warmArchiveWarNext(ch,{profileKey},shelf,active.id,1);
+          assert.deepEqual(staged,[],"foreground playback starts before background preparation");
+          pending.shift()();
+          assert.deepEqual(staged,[lastHunter.id]);
+          assert.deepEqual(released,["624:stale"]);
+          browser.warmArchiveWarNext(ch,{profileKey},shelf,active.id,1);
+          browser.token=2;
+          pending.shift()();
+          assert.deepEqual(staged,[lastHunter.id],"obsolete tunes do not stage a second asset");
+
           for (const {film,stale} of archiveRepairs) {
             const state = { items: [...stale, film], cursor: 0 };
             browser.v2PruneSourcePrograms({profileKey}, state);

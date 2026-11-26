@@ -6100,6 +6100,16 @@ function iaReviewedFileAllowed(item, channel) {
   const title = String(item.title || '');
   if (station === '108') {
     if (source.toLowerCase() === 'razor-fist-arcade-fallen-aces') return false;
+    // Feature-length documentary episodes can lack TV episode markers.
+    const documentarySource = '1-ganandose-la-confianza-del-monstruo';
+    if (source.toLowerCase() === documentarySource ||
+        id.split('::')[0].replace(/^ia:/i, '').toLowerCase() === documentarySource ||
+        /\/(?:download|items)\/1-ganandose-la-confianza-del-monstruo(?:[/?#]|$)/i.test(media.url || item.mediaUrl || item.url || '')) return false;
+    const formatTags = [item.subject, item.subjects, item.category, item.meta?.subject, item.meta?.subjects, item.meta?.category]
+      .join(';').split(/[;,|]/);
+    if (formatTags.some(tag => /^(?:(?:true crime|crime) )?(?:documentar(?:y|ies|y series)|docuseries)$|^(?:documental|serie documental)$/i.test(tag.trim()))) return false;
+    const seriesLabel = [title, media.sourceTitle, item.seriesTitle, item.meta?.title].join(' ');
+    if (/\b(?:conversations with a killer|conversaciones con un asesino serial)\b.{0,120}\b(?:tapes|cintas)\b/i.test(seriesLabel)) return false;
     if (source === 'animal-kingdom-david-michod-2010-spa' && /\)\s+SPA(?:\.|$)/i.test(file || title)) return false;
     const programLabel = [source, title, file].join(' ').replace(/[._-]+/g, ' ');
     if (/^(?:gaming|video games?|lets play)$/i.test(String(item.category || item.meta?.category || '').trim()) ||

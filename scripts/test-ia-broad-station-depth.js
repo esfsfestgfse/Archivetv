@@ -1085,6 +1085,51 @@ test('108 rejects gameplay livestreams while keeping classic, neo-noir and true-
   }
 });
 
+
+test('108 keeps a long true-crime episode out of fresh and cached film queues', async () => {
+  const {qualifyIaFileRecord}=await import('../ia_file_contract.js');
+  const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
+  const {SessionRotation}=await import('../realsignal_api_rotation.js');
+  const {rotationContext}=require('./ia-storage-test-helper.js');
+  const {stationGate}=relay(), gates=browserArchiveGates();
+  const rules={channel:'108',iaRepair:true,themeMinScore:0};
+  const source='1-ganandose-la-confianza-del-monstruo';
+  const selected='2 - Puedo tomarte una foto.mp4';
+  const title='Conversaciones con un Asesino Serial:Las Cintas de Jeffrey Dahmer';
+  const details=(parent,file,documentTitle,subject,runtime)=>({
+    identifier:parent+'::'+file,title:documentTitle,subject,
+    media:{url:'https://archive.org/download/'+parent+'/'+encodeURIComponent(file),fileName:file,
+      runtime,width:1920,height:802,type:'video',verification:'transport',verifiedAt:Date.now()},
+  });
+  const episode=details(source,selected,title+' · 2 - Puedo tomarte una foto',['true crime','documental'],3726.74);
+  const alias=details('mystery-collection','chapter-2.mp4','The Investigation',['crime','documentary series'],4100);
+  const translated=details('another-upload','second-film.mp4','Conversations with a Killer: The Jeffrey Dahmer Tapes',[],3900);
+  const classic=details('pursued-1947','Pursued (1947).ia.mp4','Pursued',['film noir','western'],6050);
+  const modern=details('the-last-seduction-1994_202608','The Last Seduction (1994).ia.mp4','The Last Seduction',['neo-noir','crime'],6600);
+  const dramatization=details('true-crime-1999','True Crime (1999).mp4','True Crime (1999)',['true crime','crime drama'],7600);
+  assert.equal(stationGate('108',{identifier:source,title,subject:episode.subject}),false,'Archive parent discovery');
+  assert.equal(stationGate('108',{identifier:'different-documentary',title:'Case Files',subject:['true crime','documental']}),false,'foreign-language documentary classification');
+  for(const [record,allowed] of [[episode,false],[alias,false],[translated,false],[classic,true],[modern,true],[dramatization,true]]){
+    assert.equal(stationGate('108',record),allowed,record.title+' relay');
+    assert.equal(catalogFallbackAllowed(record,rules),allowed,record.title+' saved API catalog');
+    assert.equal(qualifyIaFileRecord(record,rules).accepted,allowed,record.title+' prepared API');
+    for(const gate of gates)assert.equal(gate({num:108},record,{}),allowed,record.title+' browser');
+  }
+  for(const gate of gates){
+    assert.equal(gate({num:108},{id:episode.identifier,title:'Cached crime film'},{}),false,'cache retained identity alone');
+    assert.equal(gate({num:108},{title:'Old cached title',url:'https://ia801001.us.archive.org/34/items/'+source+'/'+encodeURIComponent(selected)},{}),false,'cache retained Archive transport alone');
+  }
+  const ctx=rotationContext({catalog:[episode,classic,modern],reserved:[episode.identifier],cursor:0});
+  const rotation=new SessionRotation(ctx,{});
+  const response=await rotation.fetch(new Request('https://rotation.internal/select',{
+    method:'POST',body:JSON.stringify({mode:'reserve',count:2,stationChannel:'108',rules,items:[],requirePlayable:true}),
+  }));
+  assert.equal(response.status,200);
+  const saved=await response.json();
+  assert.deepEqual(new Set(saved.items.map(row=>row.identifier)),new Set([classic.identifier,modern.identifier]),
+    'a previously reserved episode does not survive its next reservation');
+});
+
 test('564 admits whole noir features, with one ready seat per work and alternate routes retained', async () => {
   const {default:worker,catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
   const {sourceProfile,qualifySourceItem}=await import('../realsignal_source_catalog.js');

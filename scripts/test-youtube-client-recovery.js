@@ -37,16 +37,45 @@ const path = require('node:path');
     const playerCtx={window:{RealSignalYouTubeEmbed:{play(){sdkCalls++;return Promise.resolve({status:'pending'});}}},URLSearchParams,location:{search:''},token:1,powered:true,curNum:555,killMedia(){},screenArea:{innerHTML:''},performance:{now:()=>0},chanRT:{teardowns:[]},vol:.5,muted:false,playLegacyYouTubeEmbed:async()=>{legacyCalls++;return true;}};
     const enabled=html.match(/^function v2YouTubeSDKEnabled\(.*$/m);
     if(enabled)vm.runInNewContext(enabled[0],playerCtx);
-    vm.runInNewContext(html.match(/^function playV2Embed\(.*$/m)[0],playerCtx);
+    const play=html.slice(html.indexOf('function playV2Embed('),html.indexOf('async function tuneV2Preview('));
+    assert.ok(play.includes('onPending:'),file+' contains the playback status callback');
+    vm.runInNewContext(play,playerCtx);
     assert.equal(await playerCtx.playV2Embed(items[0],{num:555},null,1),null,`${file}: the verified prepared player owns normal playback`);
     assert.equal(legacyCalls,0);assert.equal(sdkCalls,1);
-    const stages=[];
-    Object.assign(playerCtx,{hideOv(){},hideBuffer(){},setSig(){},setChanStatus(){},quickBanner(){}});
+    const stages=[],signals=[],banners=[],guide=[],events=[];
+    let playerOptions,started=0;
+    Object.assign(playerCtx,{
+      hideOv(){},hideBuffer(){},setSig(state,label){signals.push(label);},
+      setChanStatus(channel,label){guide.push(label);},quickBanner(label){banners.push(label);},
+      curVideo:null,setCurItem(){started++;},showNow(){},bug:{classList:{remove(){}}},
+      V2_PREVIEW_PROFILES:{},v2PreviewState:{},refreshGuideData(){},
+    });
     playerCtx.window.__rsPlaybackAudit={source:()=> (stage,data)=>stages.push({stage,...data})};
-    playerCtx.window.RealSignalYouTubeEmbed.play=options=>{options.onReady();options.onPending({code:'startup-timeout',ready:false});return Promise.resolve({status:'pending'});};
+    playerCtx.window.__rsRelease2Telemetry={record(event){events.push(event.type);}};
+    playerCtx.window.RealSignalYouTubeEmbed.play=options=>{playerOptions=options;return Promise.resolve({status:'pending'});};
     await playerCtx.playV2Embed(items[0],{num:555},null,1);
-    assert.deepEqual(stages.map(x=>x.stage),['embed-selected','embed-ready','embed-pending'],'startup trace must distinguish selection, API readiness and blocked playback');
-    assert.equal(stages[2].ready,false);assert.equal(stages[2].code,'startup-timeout');
+    playerOptions.onPending({code:'startup-timeout',ready:false});
+    assert.equal(signals.at(-1),'CONNECTING TO YOUTUBE');
+    assert.equal(stages.at(-1).ready,false);
+    playerOptions.onReady();
+    playerOptions.onPending({code:'startup-timeout',ready:true});
+    assert.equal(signals.at(-1),'STARTING YOUTUBE');
+    assert.equal(stages.at(-1).ready,true);
+    assert.equal(stages.at(-1).code,'startup-timeout');
+    assert.deepEqual(banners,[],file+' leaves pre-roll unobstructed');
+    assert.deepEqual(guide,[],file+' does not label the channel stuck from its timer');
+    assert.equal(started,0,'timeout never counts as playing');
+    playerOptions.onStarted();
+    assert.equal(started,1,'program can start after the timeout');
+    assert.equal(signals.at(-1),'ON AIR');
+    assert.deepEqual(stages.map(row=>row.stage),['embed-selected','embed-pending','embed-ready','embed-pending','embed-clock-started']);
+    assert.deepEqual(events,['embed-pending','embed-pending','source-success']);
+
+    await playerCtx.playV2Embed(items[0],{num:555},null,1);
+    playerOptions.onPending({code:'sdk-unavailable',ready:false});
+    assert.equal(banners.at(-1),'YOUTUBE PLAYER UNAVAILABLE · USE NEXT');
+    playerOptions.onPending({code:5,ready:true});
+    assert.equal(banners.at(-1),'YOUTUBE PLAYER ERROR · USE PLAY OR NEXT');
     playerCtx.location.search='?youtubeSDK=0';
     assert.equal(await playerCtx.playV2Embed(items[0],{num:555},null,1),true);assert.equal(legacyCalls,1);
   }

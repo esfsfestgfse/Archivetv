@@ -37,50 +37,7 @@ function harness(withSDK = true) {
 }
 async function flush(){for(let i=0;i<5;i++)await Promise.resolve();}
 function handler(player,name){return player.listeners&&player.listeners.get(name)||player.events[name];}
-async function browserStartupStatus(surface) {
-  const html=fs.readFileSync(path.join(__dirname,'../the_dial_'+surface+'.html'),'utf8');
-  const start=html.indexOf('function playV2Embed(');
-  const end=html.indexOf('\nasync function tuneV2Preview',start);
-  assert.ok(start>=0&&end>start,surface+' uses the YouTube SDK callback');
-  const signals=[],banners=[],guide=[],events=[];
-  let playerOptions,started=0;
-  const play=vm.runInNewContext('('+html.slice(start,end).trim()+')',{
-    window:{
-      RealSignalYouTubeEmbed:{play(options){playerOptions=options;return Promise.resolve({status:'pending'});}},
-      __rsRelease2Telemetry:{record(event){events.push(event.type);}},
-    },
-    performance:{now:()=>100},token:1,curNum:535,powered:true,vol:0.5,muted:false,screenArea:{},
-    v2YouTubeSDKEnabled:()=>true,hideOv(){},hideBuffer(){},
-    setSig(state,label){signals.push(label);},
-    setChanStatus(channel,label){guide.push(label);},
-    quickBanner(label){banners.push(label);},setCurItem(){started++;},
-    curVideo:null,showNow(){},bug:{classList:{remove(){}}},refreshGuideData(){},
-    V2_PREVIEW_PROFILES:{},v2PreviewState:{},
-  });
-  const channel={num:535}, item={provider:'YouTube',id:'yt:RQinquBq338',url:'https://www.youtube-nocookie.com/embed/RQinquBq338'};
-  await play(item,channel,{},1);
-  playerOptions.onPending({code:'startup-timeout',ready:false});
-  assert.equal(signals.at(-1),'CONNECTING TO YOUTUBE',surface+' leaves an unconfirmed connect in progress');
-  playerOptions.onReady();
-  playerOptions.onPending({code:'startup-timeout',ready:true});
-  assert.equal(signals.at(-1),'STARTING YOUTUBE',surface+' keeps slow starts neutral');
-  assert.deepEqual(banners,[],surface+' leaves active YouTube playback unobstructed');
-  assert.deepEqual(guide,[],surface+' does not label the channel stuck from the timer');
-  assert.equal(started,0,'timeout never counts as playing');
-  playerOptions.onStarted();
-  assert.equal(started,1,'program can start after the timeout');
-  assert.equal(signals.at(-1),'ON AIR');
-  assert.deepEqual(events,['embed-pending','embed-pending','source-success']);
-
-  await play(item,channel,{},1);
-  playerOptions.onPending({code:'sdk-unavailable',ready:false});
-  assert.equal(banners.at(-1),'YOUTUBE PLAYER UNAVAILABLE · USE NEXT');
-  playerOptions.onPending({code:5,ready:true});
-  assert.equal(banners.at(-1),'YOUTUBE PLAYER ERROR · USE PLAY OR NEXT');
-}
-
 (async()=>{
-  for (const surface of ['desktop','mobile']) await browserStartupStatus(surface);
   let h=harness(),result;
   assert.equal(typeof h.api.suspend,'function','direct playback must retain the prepared transport');
   let suspendedPlay=h.api.play(h.options),suspendedPlayer=h.players[0],suspendedFrame=h.options.container.children[0];

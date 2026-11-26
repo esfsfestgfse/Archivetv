@@ -87,6 +87,12 @@
     });
     return ages;
   }
+  function archiveWarMirror(item) {
+    var filePath = '/8/items/the-last-hunter/The%20Last%20Hunter.mp4';
+    if (item?.id !== 'ia-war:the-last-hunter' || item?.provider !== 'Internet Archive' ||
+        item?.type !== 'video' || item.url !== 'https://ia903202.us.archive.org' + filePath) return null;
+    return { identifier:'the-last-hunter::The Last Hunter.mp4', url:'https://ia803202.us.archive.org' + filePath };
+  }
   function allow(profileKey,item){
     if (profileKey === "film-noir-desk" && !noirFilmAllowed(item)) return false;
     // These retired Archive files stalled at startup. Their replacements keep the film identities.
@@ -185,6 +191,6 @@
     }
     return balanced.concat(unknown);
   }
-  return {allow:allow, warFilmProfile:warFilmProfile, balanceWarFilmEras:balanceWarFilmEras,
+  return {allow:allow, warFilmProfile:warFilmProfile, balanceWarFilmEras:balanceWarFilmEras, archiveWarMirror:archiveWarMirror,
     noirFilmKey:noirFilmKey, noirFilmSeats:noirFilmSeats, noirFilmRecent:noirFilmRecent, withNoirFilmYear:withNoirFilmYear};
 });

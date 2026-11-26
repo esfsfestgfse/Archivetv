@@ -57,6 +57,18 @@ const { DatabaseSync } = require("node:sqlite");
     });
     const lastHunter = archiveRepairs[1].film;
     assert.equal(lastHunter.duration,5788,"retain the original marked Archive cut");
+    const mirror = sourcePolicy.archiveWarMirror(lastHunter);
+    assert.deepEqual(mirror,{
+      identifier:"the-last-hunter::The Last Hunter.mp4",
+      url:"https://ia803202.us.archive.org/8/items/the-last-hunter/The%20Last%20Hunter.mp4",
+    },"same exact Archive file on a second host");
+    for(const item of [
+      {...lastHunter,id:"ia-war:another-movie"},
+      {...lastHunter,url:lastHunter.url.replace("The%20Last%20Hunter.mp4","John%20Steiner.mp4")},
+      {...lastHunter,url:"https://archive.org/download/the-last-hunter/The%20Last%20Hunter.mp4"},
+      {...lastHunter,provider:"another provider"},
+    ]) assert.equal(sourcePolicy.archiveWarMirror(item),null,"only the exact reviewed film enables the mirror");
+
     assert.match(lastHunter.url,/^https:\/\/ia903202\.us\.archive\.org\/8\/items\/the-last-hunter\/The%20Last%20Hunter\.mp4$/);
     const firstFilms = [];
     for (const [profileKey, provider, channel] of listings) {
@@ -130,6 +142,33 @@ const { DatabaseSync } = require("node:sqlite");
           video.error=null;
           assert.equal(browser.takeIAMediaWarmer(ch,lastHunter),video,"reuse a usable preload");
           assert.deepEqual(releases.at(-1),[warmKey,true]);
+          const race = body.match(/^async function playArchiveWarFilm\([\s\S]*?^}/m);
+          assert.ok(race,"reuse one shared native handoff for the same-film mirror");
+          vm.runInContext(race[0],browser);
+          const handoffs=[], abandoned=[];
+          const prepared={src:mirror.url,removeAttribute:key=>abandoned.push(key),load:()=>abandoned.push("load")};
+          browser.token=3;
+          browser.playFile=async (item,_ch,_slot,_token,_fallback,handoff)=>{
+            handoffs.push({item,handoff});
+            if(handoffs.length!==1)return true;
+            handoff.prepared=prepared;
+            return false;
+          };
+          assert.equal(await browser.playArchiveWarFilm(lastHunter,ch,null,3),true);
+          assert.equal(handoffs[0].item.url,lastHunter.url);
+          assert.equal(handoffs[0].handoff.sameFileMirror.url,mirror.url);
+          assert.equal(handoffs[1].item.url,mirror.url);
+          assert.equal(handoffs[1].item.id,lastHunter.id);
+          assert.equal(handoffs[1].handoff,handoffs[0].handoff,"both routes share the startup deadline");
+
+          browser.playFile=async (_item,_ch,_slot,_token,_fallback,handoff)=>{
+            handoff.prepared=prepared;
+            browser.token=4;
+            return false;
+          };
+          assert.equal(await browser.playArchiveWarFilm(lastHunter,ch,null,3),false);
+          assert.deepEqual(abandoned,["src","load"],"release a winning mirror if a newer tune owns the screen");
+
 
           for (const {film,stale} of archiveRepairs) {
             const state = { items: [...stale, film], cursor: 0 };

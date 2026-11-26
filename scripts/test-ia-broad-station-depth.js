@@ -1105,6 +1105,7 @@ test('108 keeps a long true-crime episode out of fresh and cached film queues', 
   const chapterThree=details(source,'3 - Maligno o Loco.mp4','Chapter 3',[],3630.36);
   const masked={...episode,title:'Old cached title',subject:[]};
   const alias=details('mystery-collection','chapter-2.mp4','The Investigation',['crime','documentary series'],4100);
+  const nonfiction=details('another-crime-upload','feature-length.mp4','Inside a Case',['true crime documentaries','film noir'],3900);
   const translated=details('another-upload','second-film.mp4','Conversations with a Killer: The Jeffrey Dahmer Tapes',[],3900);
   const classic=details('pursued-1947','Pursued (1947).ia.mp4','Pursued',['film noir','western'],6050);
   const modern=details('the-last-seduction-1994_202608','The Last Seduction (1994).ia.mp4','The Last Seduction',['neo-noir','crime'],6600);
@@ -1112,7 +1113,7 @@ test('108 keeps a long true-crime episode out of fresh and cached film queues', 
   const mixedParentFeature={...modern,subject:['documentary','film noir','crime drama']};
   assert.equal(stationGate('108',{identifier:source,title,subject:episode.subject}),false,'Archive parent discovery');
   assert.equal(stationGate('108',{identifier:'different-documentary',title:'Case Files',subject:['true crime','documental']}),false,'foreign-language documentary classification');
-  for(const [record,allowed] of [[episode,false],[chapterThree,false],[masked,false],[alias,false],[translated,false],[classic,true],[modern,true],[mixedParentFeature,true],[dramatization,true]]){
+  for(const [record,allowed] of [[episode,false],[chapterThree,false],[masked,false],[alias,false],[nonfiction,false],[translated,false],[classic,true],[modern,true],[mixedParentFeature,true],[dramatization,true]]){
     assert.equal(stationGate('108',record),allowed,record.title+' relay');
     assert.equal(catalogFallbackAllowed(record,rules),allowed,record.title+' saved API catalog');
     assert.equal(qualifyIaFileRecord(record,rules).accepted,allowed,record.title+' prepared API');

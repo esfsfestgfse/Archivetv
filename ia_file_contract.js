@@ -285,7 +285,7 @@ export function iaReviewedFileAllowed(item, channel) {
         /\/(?:download|items)\/1-ganandose-la-confianza-del-monstruo(?:[/?#]|$)/i.test(media.url || item.mediaUrl || item.url || '')) return false;
     const formatTags = [item.subject, item.subjects, item.category, item.meta?.subject, item.meta?.subjects, item.meta?.category]
       .join(';').toLowerCase().split(/[;,|]/).map(tag => tag.trim());
-    if (formatTags.some(tag => /^(?:(?:true crime|crime) )?(?:documentary series|docuseries)$|^(?:true crime documentary|crime documentary|serie documental)$/.test(tag))) return false;
+    if (formatTags.some(tag => /^(?:(?:(?:true crime|crime) )?(?:documentary series|docuseries)|(?:true crime|crime) documentar(?:y|ies)|serie documental)$/.test(tag))) return false;
     // A mixed Archive upload can pass a broad Documentary tag to its feature files.
     if (formatTags.some(tag => /^(?:documentary|documentaries|documental)$/.test(tag)) &&
         !formatTags.some(tag => /^(?:film noir|neo[- ]noir|crime drama|crime thriller|fiction feature)$/.test(tag))) return false;

@@ -31,6 +31,18 @@ const FICTION_CHANNELS = new Set(['100','101','102','103','108','110','111','112
 const PERIODS = { '107': [1895,1929,/\bsilent (?:film|movie|cinema|comedy|drama|western)\b/i],
   '109': [1930,1960,/\b(?:film serial|movie serial|chapter play|cliffhanger serial)\b/i],
   '116': [1970,1985,/\b(?:blaxploitation|black exploitation)\b/i] };
+// Channel 116's core era stays strict. Later revivals need an exact reviewed Archive file.
+const BLAXPLOITATION_REVIVAL_FILES = {
+  'friday-foster-1975-1hr-29min::Pam Grier  -Moves/Jackie Brown (1997) - 2hr 34min.ia.mp4': 1997,
+  'the-return-of-dolemite-2002::The Return of Dolemite (2002).mp4': 2002,
+};
+function reviewedBlaxploitationRevival(item, year) {
+  const [parent, file] = String(item.identifier || item.id || '').replace(/^ia:/i, '').split('::');
+  const source = item.sourceIdentifier || item.media?.sourceIdentifier || parent;
+  const selected = item.fileName || item.media?.fileName || file;
+  const identity = source + '::' + selected;
+  return Object.hasOwn(BLAXPLOITATION_REVIVAL_FILES, identity) && BLAXPLOITATION_REVIVAL_FILES[identity] === year;
+}
 const BLACK_FILM = /\b(?:black (?:cinema|independent film|directed|led|exploitation)|african[ -]american (?:cinema|film)|race films?|oscar micheaux|spike lee|kasi lemmons|cheryl dunye|julie dash|john singleton|charles burnett|blaxploitation)\b/i;
 const FILM_YEAR = '(?:18[89]\\d|19\\d{2}|20\\d{2})';
 const YEAR_TAG = new RegExp('[([]\\s*(' + FILM_YEAR + ')\\s*[),\\]]');
@@ -86,7 +98,9 @@ export function archiveMovieAllowed(item, channel) {
   const segment = title.split(/\s+[·—]\s+/).at(-1);
   if (FICTION_CHANNELS.has(id) && /\b(?:documentary|movie marathon|film marathon|film history special|movie scenes compilation)\b/i.test(segment)) return false;
   const period = PERIODS[id];
-  if (period && (year ? year < period[0] || year > period[1] : !period[2].test(title + ' ' + subject))) return false;
+  if (period && (year ? year < period[0] || year > period[1] : !period[2].test(title + ' ' + subject))) {
+    if (id !== '116' || !reviewedBlaxploitationRevival(item, year)) return false;
+  }
   if (id === '105' && !BLACK_FILM.test([title, subject, item.creator].filter(Boolean).join(' '))) return false;
   if (id === '102' && /^the year \d{4}\W*$/i.test(title)) return false;
   if (id === '103' && /\bchikan densha\b|^少女惑星/i.test(title)) return false;

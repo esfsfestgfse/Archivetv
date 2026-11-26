@@ -63,6 +63,35 @@ test('the reviewed Archive feature files survive specialist channel admission', 
   }
 });
 
+test('116 permits reviewed revival files without opening the era gate to arbitrary newer movies', async () => {
+  const {archiveMovieAllowed,archiveFilmKey}=await import('../ia_movie_programs.js');
+  const {qualifyIaFileRecord}=await import('../ia_file_contract.js');
+  const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
+  const rules={channel:'116',iaRepair:true,themeMinScore:0};
+  const f=relay();
+  const seeds=f.orderedIaEmergencySeeds('116',0);
+  const wanted=['Jackie Brown (1997)','The Return of Dolemite (2002)','Super Fly (1972)',
+    'Friday Foster (1975)','Black Caesar (1973)','The Guy from Harlem (1977)'];
+  const observed=seeds.filter(item=>wanted.includes(item.title));
+  assert.deepEqual(new Set(observed.map(item=>item.title)),new Set(wanted),'new archive files must be present on the normal relay path');
+  for(const item of observed){
+    assert.ok(f.stationGate('116',item),item.title+' relay');
+    const checked={...item,media:{...item.media,verification:'transport',verifiedAt:Date.now()}};
+    assert.ok(qualifyIaFileRecord(checked,rules).accepted,item.title+' play queue');
+    assert.ok(catalogFallbackAllowed(checked,rules),item.title+' restored catalog');
+    assert.ok(archiveFilmKey(checked),item.title+' canonical film identity');
+    if(item.year>1985){
+      const wrongFile='Unreviewed edition.mp4';
+      assert.equal(archiveMovieAllowed({...item,fileName:wrongFile,media:{...item.media,fileName:wrongFile}},'116'),false,
+        'the approved parent must not admit another file in its collection');
+      assert.equal(archiveMovieAllowed({...item,identifier:'unreviewed::'+item.fileName,sourceIdentifier:'unreviewed'},'116'),false,
+        'matching title and release year alone do not bypass the period');
+    }
+  }
+  assert.equal(archiveMovieAllowed({title:'New crime drama (2018)',subject:'blaxploitation'},'116'),false);
+  assert.equal(archiveMovieAllowed({title:'Dolemite (1975)',subject:'blaxploitation'},'116'),true);
+});
+
 test('the explicitly Spanish-labelled Animal Kingdom file stays out of Noir recovery', async () => {
   const {iaReviewedFileAllowed}=await import('../ia_file_contract.js');
   const source='animal-kingdom-david-michod-2010-spa';

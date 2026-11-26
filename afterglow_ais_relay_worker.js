@@ -1799,6 +1799,18 @@ function iaDirectRecovery(identifier, sourceIdentifier, fileName, title, subject
  * duration, geometry and transport. They still pass current verification. */
 const IA_REVIEWED_ERA_FEATURES = [
   ["108","animal-kingdom-david-michod-2010-spa","Animal kingdom (David Michôd, 2010).ia.mp4","Animal Kingdom (2010)",2010,6513,720,304,"neo-noir film noir independent crime thriller film","eng"],
+  ["116","friday-foster-1975-1hr-29min","Pam Grier  -Moves/Jackie Brown (1997) - 2hr 34min.ia.mp4","Jackie Brown (1997)",1997,9262,896,480,"blaxploitation genre revival black action film crime drama feature film","eng"],
+  ["116","superfly_1972","513.mp4","Super Fly (1972)",1972,5479,1920,1072,"blaxploitation black crime film feature film","eng"],
+  ["116","the-return-of-dolemite-2002","The Return of Dolemite (2002).mp4","The Return of Dolemite (2002)",2002,4507,628,336,"blaxploitation genre revival black action comedy feature film","eng"],
+  ["116","melvin_van_peebles","515.mp4","Sweet Sweetback’s Baadasssss Song (1971)",1971,5860,1920,1024,"blaxploitation black independent action feature film","eng"],
+  ["116","friday-foster-blaxploitation","Friday Foster Blaxploitation.mp4","Friday Foster (1975)",1975,5397,1280,720,"blaxploitation black action film crime thriller feature film","eng"],
+  ["116","black.-caesar.-1973.1080p.-blu-ray.x-264-yts.-ag","Black.Caesar.1973.1080p.BluRay.x264-[YTS.AG].mp4","Black Caesar (1973)",1973,5730,1920,1024,"blaxploitation black action crime feature film","eng"],
+  ["116","The_Guy_From_Harlem","TheGuyFromHarlem.mp4","The Guy from Harlem (1977)",1977,5306,640,480,"blaxploitation black action crime feature film","eng"],
+  ["116","cool-breeze-1972-1","Cool Breeze 1972 (1).mp4","Cool Breeze (1972)",1972,6157,852,480,"blaxploitation black crime feature film","eng"],
+  ["116","hitman_1972","hitman.mp4","Hit Man (1972)",1972,5442,640,356,"blaxploitation black crime feature film","eng"],
+  ["116","sugar.-hill.-1974.1080p.-blu-ray.-h-264.-aac-rarbg","Sugar.Hill.1974.1080p.BluRay.H264.AAC-RARBG.ia.mp4","Sugar Hill (1974)",1974,5481,1920,1040,"blaxploitation black supernatural horror feature film","eng"],
+  ["116","ganja.and.-hess.-1973.1080p.-blu-ray.-h-264.-aac-rarbg","Ganja.and.Hess.1973.1080p.BluRay.H264.AAC-RARBG.ia.mp4","Ganja & Hess (1973)",1973,6804,1808,1080,"blaxploitation black independent vampire horror feature film","eng"],
+  ["116","black_devil_doll_from_hell","Black.Devil.Doll.From.Hell.Extended.1984.DVDrip.BaggerInc.mp4","Black Devil Doll from Hell (1984)",1984,5230,638,480,"blaxploitation black independent horror feature film","eng"],
   ["116","the.-mack.-1973","The.Mack.1973.DVDRip.DivX-Mkvking.com-Encoded.mp4","The Mack (1973)",1973,6584,640,356,"blaxploitation black exploitation feature film crime film","eng"],
   ["116","black-belt-jones-1974-bluray","Black Belt Jones (1974).mp4","Black Belt Jones (1974)",1974,5115,854,480,"blaxploitation black exploitation feature film martial arts action film","eng"],
   ["116","cleopatra-jones-1973-vhs-transfer","CLEOPATRA JONES 1973 VHS TRANSFER.mp4","Cleopatra Jones (1973)",1973,5371,640,480,"blaxploitation black exploitation feature film spy action film","eng"],

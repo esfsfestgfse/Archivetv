@@ -82,6 +82,12 @@ test('116 permits reviewed revival files without opening the era gate to arbitra
     assert.ok(archiveFilmKey(checked),item.title+' canonical film identity');
     if(item.year>1985){
       const wrongFile='Unreviewed edition.mp4';
+      const siblingUrl = item.media.url.replace(/\.ia\.mp4$/, '.mp4').replace(/2002\)\.mp4$/, '2002).ia.mp4');
+      assert.notEqual(siblingUrl,item.media.url,'fixture points to a different file');
+      assert.equal(catalogFallbackAllowed({...checked,media:{...checked.media,url:siblingUrl}},rules),false,
+        'a stale playback URL cannot use reviewed metadata to admit a sibling');
+      assert.equal(catalogFallbackAllowed({...checked,media:{...checked.media,alts:[siblingUrl]}},rules),false,
+        'a fallback route must refer to the same reviewed file');
       assert.equal(archiveMovieAllowed({...item,fileName:wrongFile,media:{...item.media,fileName:wrongFile}},'116'),false,
         'the approved parent must not admit another file in its collection');
       assert.equal(archiveMovieAllowed({...item,identifier:'unreviewed::'+item.fileName,sourceIdentifier:'unreviewed'},'116'),false,

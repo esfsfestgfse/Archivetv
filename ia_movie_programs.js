@@ -41,7 +41,17 @@ function reviewedBlaxploitationRevival(item, year) {
   const source = item.sourceIdentifier || item.media?.sourceIdentifier || parent;
   const selected = item.fileName || item.media?.fileName || file;
   const identity = source + '::' + selected;
-  return Object.hasOwn(BLAXPLOITATION_REVIVAL_FILES, identity) && BLAXPLOITATION_REVIVAL_FILES[identity] === year;
+  if (!Object.hasOwn(BLAXPLOITATION_REVIVAL_FILES, identity) || BLAXPLOITATION_REVIVAL_FILES[identity] !== year) return false;
+  const media = item.media || {};
+  const alternates = Array.isArray(media.alts) ? media.alts : [];
+  return [media.url || item.mediaUrl || item.url, ...alternates].every(value => {
+    try {
+      const url = new URL(value);
+      const path = url.pathname.match(/^\/(?:download\/|[^/]+\/items\/)(.+)$/);
+      return url.protocol === 'https:' && /(?:^|\.)archive\.org$/i.test(url.hostname) &&
+        path !== null && decodeURIComponent(path[1]) === source + '/' + selected;
+    } catch (_) { return false; }
+  });
 }
 const BLACK_FILM = /\b(?:black (?:cinema|independent film|directed|led|exploitation)|african[ -]american (?:cinema|film)|race films?|oscar micheaux|spike lee|kasi lemmons|cheryl dunye|julie dash|john singleton|charles burnett|blaxploitation)\b/i;
 const FILM_YEAR = '(?:18[89]\\d|19\\d{2}|20\\d{2})';

@@ -16,12 +16,12 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · Retro Cable 7.5.0</title>
+<title>REALSIGNAL · Retro Cable 7.5.1</title>
 <meta name="realsignal-ia-repair-channels" content="*">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
-<script src="assets/ok-embed-runtime.js?v=7.2.19"></script>
+<script src="assets/ok-embed-runtime.js?v=7.5.1"></script>
 <script src="assets/ia-playback-shelf.js?v=7.5.0"></script>
 <script src="assets/sports-programs.js?v=7.0.0"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
@@ -1741,7 +1741,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="7.5.0-mobile-retro-cable";
+window.__ATV_BUILD="7.5.1-mobile-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -9414,8 +9414,8 @@ function v2NoirNext(profile,state,currentId){
 function v2NextFreshIndex(profile,state,currentId){if(profile.profileKey==="film-noir-desk")return v2NoirNext(profile,state,currentId);if(profile.personalRotation===true)return window.RealSignalOKEmbed.nextEpisode(state,currentId,{ids:v2Recent(profile.name),programs:store.get("v2recentPrograms:"+profile.name,[])||[],series:v2RecentSeries(profile.name),eras:store.get("v2recentEras:"+profile.name,[])||[]});var skipped=new Set(state.nextSkipped||[]);if(window.RealSignalOKEmbed&&window.RealSignalOKEmbed.musicProfile(profile)){var eligibleTracks=state.items.filter(function(item){var id=String(item.id||"");return id!==currentId&&!skipped.has(id);});var nextTrack=v2FreshCursor(profile,{items:eligibleTracks,cursor:0},true);return nextTrack>=0?state.items.indexOf(eligibleTracks[nextTrack]):-1;}var recent=v2Recent(profile.name),series=v2RecentSeries(profile.name),seriesAware=String(profile.profileKey||"").indexOf("ok-")===0&&profile.profileKey!=="ok-movie-channel"&&!window.RealSignalOKEmbed.musicProfile(profile),length=state.items.length,start=((Number(state.cursor)||0)%Math.max(1,length)+Math.max(1,length))%Math.max(1,length),offset=currentId?1:0,indexes=Array.from({length:length},function(_,step){return(start+offset+step)%length;}),seenPrograms=seriesAware?store.get("v2recentPrograms:"+profile.name,[]):[],eligible=function(item){var id=String(item&&item.id||"");return id&&id!==currentId&&!skipped.has(id)&&recent.indexOf(id)<0&&(!Array.isArray(seenPrograms)||!seenPrograms.length||seenPrograms.indexOf(window.RealSignalOKEmbed.programKey(item))<0);},freshSeries=seriesAware?indexes.find(function(index){var item=state.items[index],key=v2OKSeriesKey(item);return eligible(item)&&key&&series.indexOf(key)<0;}):undefined;if(freshSeries!==undefined)return freshSeries;if(seriesAware&&series.length){var oldest=-1,oldestAge=-1;indexes.forEach(function(index){var item=state.items[index],key=v2OKSeriesKey(item),age=series.indexOf(key);if(eligible(item)&&age>oldestAge){oldestAge=age;oldest=index;}});if(oldest>=0)return oldest;}var next=indexes.find(function(index){return eligible(state.items[index]);});if(next===undefined&&state.catalogExhausted===true&&!/^(?:ok|vimeo)-/.test(String(profile.profileKey||""))){var oldest=-1,age=-1;indexes.forEach(function(index){var id=String(state.items[index]&&state.items[index].id||""),rank=recent.indexOf(id);if(id&&(id!==currentId||length===1)&&rank>age){age=rank;oldest=index;}});return oldest;}return next===undefined?-1:next;}
 function v2MergeCatalog(profile,prior,discovered){return v2Unique((typeof window!=="undefined"&&window.RealSignalSourcePrograms?.warFilmProfile?.(profile.profileKey))||/^(?:ok-[a-z0-9-]+|vimeo-(?:movie|tv))-channel(?:-\d{4}-\d{4})?$/.test(profile.profileKey)?discovered.concat(prior):prior.concat(discovered));}
 function v2Remember(key,item){var id=String(item&&item.id||"");if(!id)return;if(item.canonicalProgramKey&&item.provider==="OK.ru"){var era=window.RealSignalOKEmbed.decade(item),eras=store.get("v2recentEras:"+key,[]);if(era)store.set("v2recentEras:"+key,[era].concat((Array.isArray(eras)?eras:[]).filter(function(value){return value!==era;})).slice(0,24));}if(item.musicVerified&&item.musicArtistId){var artists=store.get("v2recentArtists:"+key,[]);artists=Array.isArray(artists)?artists:[];artists.unshift(item.musicArtistId);store.set("v2recentArtists:"+key,artists.slice(0,8));}var work=key==="Film Noir Desk"&&window.RealSignalSourcePrograms?.noirFilmKey?.(item);var ids=v2Recent(key).filter(function(x){return x!==id&&x!==work;});if(work)ids.unshift(work);ids.unshift(id);if(window.RealSignalSports&&/nascar classics/i.test(String(item.provider||""))){var eventKey=window.RealSignalSports.describe(item,"nascar-classics").eventId;if(eventKey){ids=ids.filter(function(x){return x!==eventKey;});ids.splice(1,0,eventKey);}}store.set("v2recent:"+key,ids.slice(0,1024));if(/^OK(?: |Cartoon)/.test(key)&&window.RealSignalOKEmbed){var program=window.RealSignalOKEmbed.programKey(item),seen=store.get("v2recentPrograms:"+key,[]),series=item&&!item.musicVerified&&item.seriesId?String(item.seriesId):"",shows=store.get("v2recentSeries:"+key,[]);shows=Array.isArray(shows)?shows:[];if(program){seen=(Array.isArray(seen)?seen:[]).filter(function(x){return x!==program;});seen.unshift(program);store.set("v2recentPrograms:"+key,seen.slice(0,1024));}if(series){shows=shows.filter(function(x){return x!==series;});shows.unshift(series);store.set("v2recentSeries:"+key,shows.slice(0,24));}}}
-function v2Rejected(key,rejectedId){var now=Date.now(),cutoff=now-6*60*60*1000,rows=store.get("v2rejected:"+key,[]);rows=(Array.isArray(rows)?rows:[]).filter(function(row){return row&&row.id&&String(row.id)!==rejectedId&&Number(row.at||0)>=cutoff;});if(rejectedId)rows.unshift({id:rejectedId,at:now});rows=rows.slice(0,48);store.set("v2rejected:"+key,rows);return rows.map(function(row){return String(row.id);});}
-function v2Reject(key,item){var id=String(item&&item.id||"");if(id)v2Rejected(key,id);}
+function v2Rejected(key,rejectedId,retryAfterMs){var now=Date.now(),cutoff=now-6*60*60*1000,rows=store.get("v2rejected:"+key,[]);rows=(Array.isArray(rows)?rows:[]).filter(function(row){return row&&row.id&&String(row.id)!==rejectedId&&Number(row.at||0)>=cutoff&&(!row.until||Number(row.until)>now);});if(rejectedId)rows.unshift(retryAfterMs?{id:rejectedId,at:now,until:now+retryAfterMs}:{id:rejectedId,at:now});rows=rows.slice(0,48);store.set("v2rejected:"+key,rows);return rows.map(function(row){return String(row.id);});}
+function v2Reject(key,item,retryAfterMs){var id=String(item&&item.id||"");if(id)v2Rejected(key,id,retryAfterMs);}
 function v2Shelf(key){var ids=store.get("v2shelf:"+key,[]);return Array.isArray(ids)?ids.map(String):[];}
 function v2WarFilmOrder(key,fresh,played){
   var policy=window.RealSignalSourcePrograms;
@@ -9560,7 +9560,7 @@ async function v2LoadProfile(ch,profile,my,force=false){
   v2PreviewInflight[key]=load;
   return playNow?state.items:load;
 }
-function v2RejectEmbed(item,ch,my){if(my!==token||!powered||curNum!==ch.num)return;var state=v2PreviewState[ch.num],profile=V2_PREVIEW_PROFILES[ch.previewKey];if(!state)return;if(profile)v2Reject(profile.name,item);var index=state.items.findIndex(function(candidate){return String(candidate&&candidate.id||"")===String(item&&item.id||"");});if(index<0)return;state.items.splice(index,1);state.pendingId="";if(String(state.currentId||"")===String(item.id||""))state.currentId="";if(state.items.length)state.cursor=state.cursor%state.items.length;state.currentTitle="";setChanStatus(ch.num,state.items.length?"SKIPPED UNAVAILABLE VIDEO · BUFFER "+Math.min(V2_SOURCE_READY_BUFFER,state.items.length)+" / "+state.items.length+" CATALOG":"SOURCE CATALOG RETRYING");quickBanner("SOURCE SUITE · SKIPPING UNAVAILABLE VIDEO");setTimeout(function(){if(my===token&&powered&&curNum===ch.num)tuneNum(ch.num);},80);}
+function v2RejectEmbed(item,ch,my,error){if(my!==token||!powered||curNum!==ch.num)return;var state=v2PreviewState[ch.num],profile=V2_PREVIEW_PROFILES[ch.previewKey];if(!state)return;var stalled=error?.reason==="startup-timeout";if(profile)v2Reject(profile.name,item,stalled?120000:undefined);var index=state.items.findIndex(function(candidate){return String(candidate&&candidate.id||"")===String(item&&item.id||"");});if(index<0)return;state.items.splice(index,1);state.pendingId="";if(String(state.currentId||"")===String(item.id||""))state.currentId="";if(state.items.length)state.cursor=state.cursor%state.items.length;state.currentTitle="";setChanStatus(ch.num,state.items.length?"SKIPPED UNAVAILABLE VIDEO · BUFFER "+Math.min(V2_SOURCE_READY_BUFFER,state.items.length)+" / "+state.items.length+" CATALOG":"SOURCE CATALOG RETRYING");quickBanner(stalled?"SOURCE SUITE · TRYING NEXT PROGRAM":"SOURCE SUITE · SKIPPING UNAVAILABLE VIDEO");setTimeout(function(){if(my===token&&powered&&curNum===ch.num)tuneNum(ch.num);},80);}
 /* A retained in-memory shelf can outlive the last-played ledger entry. Before
    tuning a channel, move off a recently played item when an unseen item is
    already available. This keeps channel changes fresh without waiting for a
@@ -9607,7 +9607,10 @@ function playOKEmbed(item,ch,sl,my){
       refreshGuideData();
     },
     onEnded:function(){if(typeof window.__v2PreviewNext==="function")window.__v2PreviewNext();},
-    onError:function(){v2RejectEmbed(item,ch,my);},
+    onError:function(error){
+      if(audit&&error?.reason==="startup-timeout")audit("embed-startup-timeout",{id:item.id});
+      v2RejectEmbed(item,ch,my,error);
+    },
     onUnavailable:function(){
       if(audit)audit("embed-unavailable",{id:item.id});
       if(state){state.currentId="";state.currentTitle="";state.currentDuration=0;}

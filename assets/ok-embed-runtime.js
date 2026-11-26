@@ -181,16 +181,17 @@
     return new Promise(function (resolve) {
       var frame = document.createElement("iframe"), disposed = false, loaded = false, playing = false, providerResponded = false, startSuppressed = false, advanced = false, settled = false, timer;
       var offset = Math.max(0, Math.floor(Number(options.startSeconds?.()) || 0));
+      var openedAt = Date.now();
       function settle(value) { if (!settled) { settled = true; resolve(value); } }
       function cleanup() {
         disposed = true; clearTimeout(timer); root.removeEventListener("message", message); frame.onload = frame.onerror = null;
         if (active === cleanup) active = null;
         settle(false);
       }
-      function armStartTimer() {
+      function armStartTimer(delay = 15000) {
         clearTimeout(timer);
         if (startSuppressed) return;
-        timer = setTimeout(function () { if (!playing) providerResponded ? fail() : unavailable(); }, 15000);
+        timer = setTimeout(function () { if (!playing) providerResponded ? fail("startup-timeout") : unavailable(); }, delay);
       }
       function unavailable() {
         if (disposed || !options.isCurrent()) return;
@@ -199,11 +200,11 @@
         frame.remove();
         if (options.onUnavailable) options.onUnavailable();
       }
-      function fail() {
+      function fail(reason) {
         if (disposed || !options.isCurrent()) return;
         var wasLoaded = loaded || playing;
         cleanup(); frame.remove();
-        if (wasLoaded) options.onError();
+        if (wasLoaded) options.onError({ reason: reason || "provider-error" });
       }
       function message(event) {
         if (disposed || !options.isCurrent() || event.source !== frame.contentWindow || event.origin !== "https://ok.ru") return;
@@ -243,7 +244,8 @@
         loaded = true;
         if (playing) return;
         frame.dataset.playbackState = "ready";
-        armStartTimer();
+        // The navigation and video startup share a budget, with time for a late-loading player.
+        armStartTimer(Math.max(6000, 12000 - (Date.now() - openedAt)));
         options.onReady();
         settle(true);
       };

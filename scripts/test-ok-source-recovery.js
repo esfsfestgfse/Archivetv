@@ -73,8 +73,23 @@ const root = path.resolve(__dirname, '..');
 
   const listeners = new Set(), timers = new Map(); let seq = 0;
   const window = { addEventListener: (_, fn) => listeners.add(fn), removeEventListener: (_, fn) => listeners.delete(fn) };
-  const frames = [];
-  const context = { window, URL, document: { createElement: () => ({ dataset: {}, contentWindow: {}, remove() { this.removed = true; } }) }, setTimeout: fn => { timers.set(++seq, fn); return seq; }, clearTimeout: id => timers.delete(id) };
+  const frames = [], deadlines = new Map();
+  let now = 0;
+  const context = {
+    window, URL, Date: { now: () => now },
+    document: { createElement: () => ({ dataset: {}, contentWindow: {}, remove() { this.removed = true; } }) },
+    setTimeout(fn, delay) { timers.set(++seq, fn); deadlines.set(seq, now + delay); return seq; },
+    clearTimeout(id) { timers.delete(id); deadlines.delete(id); }
+  };
+  function advance(ms) {
+    now += ms;
+    for (const [id, deadline] of deadlines) {
+      if (deadline > now) continue;
+      const callback = timers.get(id);
+      context.clearTimeout(id);
+      callback();
+    }
+  }
   vm.runInNewContext(fs.readFileSync(path.join(root, 'assets/ok-embed-runtime.js'), 'utf8'), context);
   assert.equal(window.RealSignalOKEmbed.qualify(movie, item), true);
   assert.equal(window.RealSignalOKEmbed.qualify(tv, legacyAnimation), false, 'the browser must reject contaminated legacy caches too');
@@ -152,6 +167,29 @@ const root = path.resolve(__dirname, '..');
   for (const fn of [...timers.values()]) fn();
   assert.equal(empty, 2, 'a loaded document without player events must also report the provider unavailable');
   assert.equal(failed, 2);
+  const stallErrors = [];
+  const stalled = window.RealSignalOKEmbed.play({ ...options, onError: error => stallErrors.push(error) });
+  const stalledFrame = frames.at(-1);
+  advance(1700);
+  stalledFrame.onload();
+  await stalled;
+  send('inited', 'https://ok.ru', stalledFrame.contentWindow);
+  advance(10299);
+  assert.equal(stallErrors.length, 0);
+  advance(1);
+  assert.equal(stalledFrame.removed, true, 'an initialized stalled embed must make way for the next program within one 12-second budget');
+  assert.equal(stallErrors[0]?.reason, 'startup-timeout', 'a startup stall is transient');
+  const late = window.RealSignalOKEmbed.play({ ...options, onError: error => stallErrors.push(error) });
+  const lateFrame = frames.at(-1);
+  advance(8500);
+  lateFrame.onload();
+  await late;
+  send('inited', 'https://ok.ru', lateFrame.contentWindow);
+  advance(5300);
+  send('started', 'https://ok.ru', lateFrame.contentWindow);
+  assert.equal(lateFrame.dataset.playbackState, 'playing', 'a slow document still has time to start its video');
+  assert.equal(stallErrors.length, 1);
+  window.RealSignalOKEmbed.stop();
   const api = fs.readFileSync(path.join(root, 'realsignal_api_v2_worker.js'), 'utf8');
   assert.ok(api.includes('metadata_json=excluded.metadata_json'), 'catalog repairs must replace stale metadata');
   for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
@@ -159,6 +197,29 @@ const root = path.resolve(__dirname, '..');
     assert.match(html, /assets\/ok-embed-runtime\.js\?v=\d+\.\d+\.\d+/);
     assert.ok(html.includes('function playOKEmbed'));
     assert.ok(html.includes('window.RealSignalOKEmbed.qualify(profile,item)'));
+    const store = new Map();
+    const one = { id: 'ok:slow' }, two = { id: 'ok:next' };
+    const state = { items: [one, two], cursor: 0, pendingId: one.id };
+    const retunes = [];
+    const dialect = {
+      Date: { now: () => now }, store: { get: key => store.get(key), set: (key, value) => store.set(key, value) },
+      v2PreviewState: { 585: state }, V2_PREVIEW_PROFILES: { 'ok-tv-channel': { name: 'OK TV' } }, V2_SOURCE_READY_BUFFER: 5,
+      token: 7, powered: true, curNum: 585, setChanStatus() {}, quickBanner() {},
+      setTimeout(fn) { fn(); }, tuneNum: channel => retunes.push(channel)
+    };
+    for (const name of ['v2Rejected','v2Reject','v2RejectEmbed']) {
+      const source = html.split(/\r?\n/).find(line => line.startsWith('function '+name+'('));
+      assert.ok(source);
+      vm.runInNewContext(source, dialect);
+    }
+    dialect.v2RejectEmbed(one, { num: 585, previewKey: 'ok-tv-channel' }, 7, { reason: 'startup-timeout' });
+    assert.deepEqual(state.items, [two], 'recovery leaves the other program ready');
+    assert.deepEqual(retunes, [585], 'recovery retunes the same channel');
+    assert.ok(dialect.v2Rejected('OK TV').includes(one.id));
+    dialect.v2Reject('OK TV', two);
+    now += 121000;
+    assert.ok(!dialect.v2Rejected('OK TV').includes(one.id), 'a slow file becomes eligible again after the short cooldown');
+    assert.ok(dialect.v2Rejected('OK TV').includes(two.id), 'confirmed provider errors retain the normal cooldown');
     assert.match(html, /V2_SOURCE_CACHE_VERSION=(?:6[4-9]|[7-9]\d|[1-9]\d{2,})/);
   }
   console.log('OK source recovery passed: title metadata, runtime/genre/cache gates, fair hydration, official iframe, actual EOF, spoof rejection and cleanup.');

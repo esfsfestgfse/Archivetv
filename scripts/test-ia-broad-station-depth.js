@@ -88,6 +88,8 @@ test('116 permits reviewed revival files without opening the era gate to arbitra
         'a stale playback URL cannot use reviewed metadata to admit a sibling');
       assert.equal(catalogFallbackAllowed({...checked,media:{...checked.media,alts:[siblingUrl]}},rules),false,
         'a fallback route must refer to the same reviewed file');
+      assert.equal(catalogFallbackAllowed({...checked,alts:[siblingUrl]},rules),false,
+        'legacy top-level fallback routes also require the same reviewed file');
       assert.equal(archiveMovieAllowed({...item,fileName:wrongFile,media:{...item.media,fileName:wrongFile}},'116'),false,
         'the approved parent must not admit another file in its collection');
       assert.equal(archiveMovieAllowed({...item,identifier:'unreviewed::'+item.fileName,sourceIdentifier:'unreviewed'},'116'),false,

@@ -43,8 +43,8 @@ function reviewedBlaxploitationRevival(item, year) {
   const identity = source + '::' + selected;
   if (!Object.hasOwn(BLAXPLOITATION_REVIVAL_FILES, identity) || BLAXPLOITATION_REVIVAL_FILES[identity] !== year) return false;
   const media = item.media || {};
-  const alternates = Array.isArray(media.alts) ? media.alts : [];
-  return [media.url || item.mediaUrl || item.url, ...alternates].every(value => {
+  const urls = [media.url || item.mediaUrl || item.url].concat(media.alts || [], item.alts || []);
+  return urls.every(value => {
     try {
       const url = new URL(value);
       const path = url.pathname.match(/^\/(?:download\/|[^/]+\/items\/)(.+)$/);

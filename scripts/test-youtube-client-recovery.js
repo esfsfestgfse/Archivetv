@@ -37,7 +37,7 @@ const path = require('node:path');
     const playerCtx={window:{RealSignalYouTubeEmbed:{play(){sdkCalls++;return Promise.resolve({status:'pending'});}}},URLSearchParams,location:{search:''},token:1,powered:true,curNum:555,killMedia(){},screenArea:{innerHTML:''},performance:{now:()=>0},chanRT:{teardowns:[]},vol:.5,muted:false,playLegacyYouTubeEmbed:async()=>{legacyCalls++;return true;}};
     const enabled=html.match(/^function v2YouTubeSDKEnabled\(.*$/m);
     if(enabled)vm.runInNewContext(enabled[0],playerCtx);
-    const play=html.slice(html.indexOf('function playV2Embed('),html.indexOf('async function tuneV2Preview('));
+    const play=html.slice(html.indexOf('function v2RecoverDocumentaryEmbed('),html.indexOf('async function tuneV2Preview('));
     assert.ok(play.includes('onPending:'),file+' contains the playback status callback');
     vm.runInNewContext(play,playerCtx);
     assert.equal(await playerCtx.playV2Embed(items[0],{num:555},null,1),null,`${file}: the verified prepared player owns normal playback`);
@@ -76,6 +76,28 @@ const path = require('node:path');
     assert.equal(banners.at(-1),'YOUTUBE PLAYER UNAVAILABLE · USE NEXT');
     playerOptions.onPending({code:5,ready:true});
     assert.equal(banners.at(-1),'YOUTUBE PLAYER ERROR · USE PLAY OR NEXT');
+    const failed={...items[0],id:'yt:failed'},seen={id:'pt:seen',type:'video',provider:'PeerTube',url:'https://example.net/seen.mp4'},fresh={...seen,id:'pt:fresh'};
+    const documentary={num:539,previewKey:'documentary-desk'},documentaryState={items:[failed,seen,fresh],cursor:0,currentId:seen.id,pendingId:failed.id};
+    const recovered=[],cooldowns=[];
+    Object.assign(playerCtx,{curNum:539,token:2,V2_PREVIEW_PROFILES:{'documentary-desk':{name:'Documentary Desk',profileKey:'documentary-desk'}},v2PreviewState:{539:documentaryState},
+      v2DocumentaryPilot:()=>null,v2Recent:()=>[seen.id],v2Rejected:()=>[],v2SourceProgramAllowed:()=>true,
+      v2Reject:(key,item,delay)=>cooldowns.push([key,item.id,delay]),tuneNum:(...args)=>{recovered.push(args);playerCtx.token++;},
+    });
+    playerCtx.window.RealSignalYouTubeEmbed.stop=()=>{};
+    await playerCtx.playV2Embed(failed,documentary,null,2);
+    playerOptions.onPending({code:'startup-timeout',ready:true});
+    assert.deepEqual(recovered,[],file+' leaves an ambiguous YouTube wait with the official player');
+    playerOptions.onPending({code:'sdk-unavailable',ready:false});
+    assert.equal(recovered.length,1,file+' recovers from confirmed SDK failure to an unseen native documentary');
+    assert.deepEqual(recovered[0].slice(0,2),[539,fresh.id]);
+    assert.equal(documentaryState.pendingId,fresh.id);
+    assert.equal(documentaryState.items[documentaryState.cursor].id,fresh.id);
+    assert.ok(!documentaryState.items.includes(failed));
+    assert.equal(cooldowns[0][1],failed.id);
+    assert.ok(cooldowns[0][2]>0&&cooldowns[0][2]<=120000);
+    playerOptions.onPending({code:'sdk-unavailable',ready:false});
+    assert.equal(recovered.length,1,'superseded SDK callback cannot tune again');
+    playerCtx.curNum=555;playerCtx.token=1;
     playerCtx.location.search='?youtubeSDK=0';
     assert.equal(await playerCtx.playV2Embed(items[0],{num:555},null,1),true);assert.equal(legacyCalls,1);
   }

@@ -102,7 +102,7 @@ test('Documentary Desk reviewed direct copies keep the official YouTube program 
  const pilot=policy.documentaryPilot;
  assert.ok(pilot,'the reviewed pilot catalog is available to both dials');
  const items=pilot.items(),profile=sourceProfile({profileKey:'documentary-desk'});
- assert.equal(items.length,2);
+ assert.deepEqual(Array.from(items,row=>row.id).sort(),['yt:3Wc5ts7m9iE','yt:DL8Ql0p2qzo','yt:SgYrj5zJAKQ','yt:xhLkDOEPWzA']);
  for(const official of items){
   assert.ok(qualifySourceItem(profile,official));
   const direct=pilot.direct(official);
@@ -123,6 +123,18 @@ test('Documentary Desk reviewed direct copies keep the official YouTube program 
   const calls=[],scope={window:{RealSignalSourcePrograms:policy},URLSearchParams,location:{search:''},token:18,powered:true,curNum:539,V2_PREVIEW_PROFILES:{"documentary-desk":profile},
    document:{body:{classList:{contains:()=>false}}},playFile(...args){calls.push(args);return Promise.resolve(true);}};
   vm.runInNewContext(enabled[0]+'\n'+play[0],scope);
+  const next=html.match(/^function v2NextFreshIndex\(.*$/m);
+  assert.ok(next);
+  const watched=[items[0].id];
+  Object.assign(scope,{v2Recent:()=>watched,v2RecentSeries:()=>[]});
+  scope.window.RealSignalOKEmbed={musicProfile:()=>false};
+  vm.runInNewContext(next[0],scope);
+  scope.location.search='?documentaryDirect=1';
+  const nextState={items:[items[2],items[0],{id:'yt:ordinary'}],cursor:1};
+  assert.equal(scope.v2NextFreshIndex(profile,nextState,items[0].id),0,'a catalog refill cannot strand a verified unseen direct copy before the playing cursor');
+  watched.push(items[2].id);
+  assert.equal(scope.v2NextFreshIndex(profile,nextState,items[0].id),2,'the ordinary catalog continues after the seen direct copies');
+  scope.location.search='';
   const ch={num:539,previewKey:'documentary-desk'},item=items[0];
   assert.equal(await scope.playDocumentaryPilot(item,ch,{},18),null);
   scope.location.search='?documentaryDirect=1';

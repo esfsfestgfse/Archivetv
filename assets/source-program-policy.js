@@ -93,13 +93,18 @@
         item?.type !== 'video' || item.url !== 'https://ia903202.us.archive.org' + filePath) return null;
     return { identifier:'the-last-hunter::The Last Hunter.mp4', url:'https://ia803202.us.archive.org' + filePath };
   }
-  // NASA's Apollo anniversary page links these official embeds. Each public
-  // PeerTube mirror identifies the same upload and retains the full NASA film.
+  // NASA's film catalogs link these official embeds. Each public PeerTube mirror
+  // identifies the same upload and retains the full NASA film.
   var documentaryPilotRows = [
     {youtubeId:'SgYrj5zJAKQ',title:'Apollo 16: Nothing So Hidden',year:1972,duration:1705,
       peerId:'97c3d401-1358-4c85-b1de-935d77e6d9a1',playlist:'6d65dc08-2825-4d27-a290-c587b4eb62ef'},
     {youtubeId:'DL8Ql0p2qzo',title:'Apollo 17: On the Shoulders of Giants',year:1973,duration:1710,
-      peerId:'39627eba-bc8e-4091-a0b7-bbf6f65a272c',playlist:'110dd1b8-c91f-4866-ad55-f82696689c5e'}
+      peerId:'39627eba-bc8e-4091-a0b7-bbf6f65a272c',playlist:'110dd1b8-c91f-4866-ad55-f82696689c5e'},
+    {youtubeId:'xhLkDOEPWzA',title:'Apollo 15: In the Mountains of the Moon',year:1971,duration:1671,
+      peerId:'144ae7fb-cae3-4e47-bafe-572095c334e4',playlist:'302174ce-cdf5-436d-b052-fa14444a949e'},
+    {youtubeId:'3Wc5ts7m9iE',title:'Apollo 11: The Goddard Connection',year:1989,duration:942,
+      credit:'NASA Goddard Space Flight Center',
+      peerId:'b32c2edf-48d4-4823-936c-fe63c2638ddb',playlist:'6130ea97-8002-4099-84f0-4808f16ada56'}
   ];
   var documentaryPeer = 'https://peertube.dngr.us';
   function documentaryPilotRow(id) {
@@ -108,10 +113,10 @@
   var documentaryPilot = {
     items:function(){
       return documentaryPilotRows.map(function(row){
-        var embed='https://www.youtube-nocookie.com/embed/'+row.youtubeId;
+        var embed='https://www.youtube-nocookie.com/embed/'+row.youtubeId,credit=row.credit||'NASA Johnson Space Center';
         return {id:'yt:'+row.youtubeId,title:row.title,year:row.year,duration:row.duration,
-          description:'NASA Johnson Space Center spaceflight history documentary. Original English-language NASA film.',
-          account:'NASA Johnson Space Center',language:'en',aspectRatio:4/3,genreVerified:true,recoveryVerified:true,
+          description:credit+' spaceflight history documentary. Original English-language NASA film.',
+          account:credit,language:'en',aspectRatio:4/3,genreVerified:true,recoveryVerified:true,
           provider:'YouTube',type:'embed',url:embed,embedUrl:embed,embedAllowed:true,
           sourceUrl:'https://www.youtube.com/watch?v='+row.youtubeId,rights:'Standard YouTube license'};
       });
@@ -129,7 +134,7 @@
         copyId:'pt:peertube.dngr.us/'+row.peerId,meta:Object.assign({},item.meta,{source:'PeerTube'}),
         url:documentaryPeer+'/static/streaming-playlists/hls/'+row.peerId+'/'+row.playlist+'-master.m3u8',
         sourceUrl:documentaryPeer+'/videos/watch/'+row.peerId,
-        rights:'Public domain U.S. government work; NASA Johnson Space Center'});
+        rights:'Public domain U.S. government work; '+(row.credit||'NASA Johnson Space Center')});
     }
   };
   function allow(profileKey,item){

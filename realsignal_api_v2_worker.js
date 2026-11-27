@@ -459,6 +459,7 @@ function compactCatalogItem(item) {
   return {
     id,
     provider,
+    ...(provider === "Internet Archive" && item.collection ? { collection: String(item.collection).slice(0, 500) } : {}),
     sourceIdentifier: String(item.sourceIdentifier || item.identifier || id).slice(0, 500),
     title: String(item.title || "Untitled").slice(0, 500),
     description: String(item.description || "").slice(0, 2000),

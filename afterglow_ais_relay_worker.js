@@ -6259,15 +6259,33 @@ function iaReviewedFileAllowed(item, channel) {
   const station = String(channel);
   const title = String(item.title || '');
   if (station === '14') {
-    // An anime about personal computers is still a TV drama.
+    // Require original collection provenance or a reviewed companion upload.
+    const collections = [item.collection, item.collections, item.meta?.collection, item.meta?.collections]
+      .join(';').toLowerCase().split(/[,;|\s]+/);
+    const reviewed = [
+      'themacin1985', 'amigaand1985', 'unix1985', 'lowendco1985', 'cc1301_windows_95', 'cc1232_internet',
+      'windows30', 'dvd1011999', 'smarttv95', 'midimusic', 'osbrowse2002', 'wireless2001', 'mp3secre2001',
+      'preventi2002', 'easywebc2001', 'cc1337', 'cc1339', 'atarikeepingintouch',
+      'engineering6_microcomputer_interface', 'john-brandstetter-aka-johnny-turbo',
+      'vcf5johntoolecomputerhistorymuseum', 'terminal-madness-a-1980-documentary-about-personal-computers',
+      'the-apple-iie-the-most-personal-computer-1983', 'vcf5jeriellsworth--commodoreone',
+      'stateoftheartofcomputeranimation1988', 'vcf5-brucedamer-birthofthegui', 'kansasfest1998keynote-mikewesterfield',
+      'kansasfest1998introduction', 'the-machine-that-changed-the-world-5',
+    ];
+    if (!collections.includes('computerchronicles') && !reviewed.includes(source.toLowerCase())) return false;
     const label = [source, title, file].join(' ').replace(/[_-]+/g, ' ');
     const tags = [item.subject, item.subjects, item.meta?.subject, item.meta?.subjects].join(';').split(/[,;|]/);
     if (/\b(?:serial experiments lain|pax (?:east|west|prime)|lectures?|in hindi)\b/i.test(label) ||
         tags.some(tag => /^\s*(?:anime|anime vhs|retro anime|anime (?:series|episode))\s*$/i.test(tag))) return false;
   }
   if (station === '17') {
-    const label = [source, title, file].join(' ').replace(/[_-]+/g, ' ');
-    if (/\b(?:jackson['’]?s variety|variety 77 the year in entertainment)\b/i.test(label)) return false;
+    // Topics such as "interview" can match almost anything. Use a broadcast's
+    // series or credited host from its actual title or source filename.
+    const label = [title, file, source, item.seriesTitle, item.meta?.title, media.sourceTitle]
+      .join(' ').toLowerCase().replace(/[^a-z0-9]+/g, ' ');
+    const series = /\b(?:dick cavett show|merv griffin show|mike douglas show|arsenio hall show|roseanne show|phil donahue show|graham norton show|tomorrow (?:show|with tom snyder)|later with bob costas|jimmy kimmel live|politically incorrect with bill maher|(?:the )?daily show with (?:jon stewart|craig kilborn))\b/;
+    const creditedHost = /\b(?:late night|late show|late late show|tonight show|tonight) (?:with|starring) (?:steve allen|jack paar|johnny carson|jay leno|conan o brien|david letterman|tom snyder|craig kilborn|craig ferguson|jimmy fallon|seth meyers|stephen colbert)\b/;
+    if ((!series.test(label) && !creditedHost.test(label)) || /\b(?:jackson s? variety|jacksons variety|variety 77 the year in entertainment|creepshow)\b/.test(label)) return false;
   }
   // This exact cable-access upload decoded but displayed a black screen in Chrome.
   if (station === '15' && source.toLowerCase() === 'kellytv-episode6formanhattanneighborhoodnetworkkellytv263') return false;
@@ -11882,6 +11900,7 @@ async function getIaQueue(request, url, env, ctx) {
   const diversity = safeDiversity(body && body.diversity);
   const count = Math.max(1, Math.min(5, Number(body && body.count) || 5));
   if (!safeChannel(channel) || !queries) return json({ error: "invalid queue request" }, 400);
+  if (channel === "14") queries = ["collection:computerchronicles AND mediatype:movies"];
   if (requiredTitleTerms.length) {
     const titles = requiredTitleTerms.map(term => '"' + term.replace(/[()"\\]/g, " ") + '"').join(" OR ");
     queries = queries.map(query => "(" + query + ") AND title:(" + titles + ")");
@@ -11925,8 +11944,9 @@ async function getIaQueue(request, url, env, ctx) {
     ...(["131", "502", "575", "709"].includes(channel) ? { reviewedArchiveFiles: ["502", "709"].includes(channel) ? "743" : "742" } : {}),
     ...(["2", "3", "10"].includes(channel) ? { stationPolicy: "classic-broadcast-catalog-760" } : {}),
     ...(["11", "12", "13"].includes(channel) ? { stationPolicy: "reruns-games-commercials-762" } : {}),
-    ...(channel === "14" ? { stationPolicy: "computing-programs-765" } : {}),
-    ...(["15", "17"].includes(channel) ? { stationPolicy: "computer-access-latenight-763" } : {}),
+    ...(channel === "14" ? { stationPolicy: "computing-provenance-766" } : {}),
+    ...(channel === "17" ? { stationPolicy: "late-night-series-766" } : {}),
+    ...(channel === "15" ? { stationPolicy: "computer-access-latenight-763" } : {}),
     ...(channel === "22" ? { stationPolicy: "adult-game-shows-2" } : {}) };
   const familyFingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count, contentPolicy: IA_GLOBAL_VIDEO_POLICY_VERSION, ...fileContract });
   const lastGoodDigest = await stableKey(familyFingerprint);

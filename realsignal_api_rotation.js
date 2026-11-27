@@ -233,7 +233,7 @@ function archiveFamilyId(item, channel) {
     const label = normalizedFamily([item.title, item.subject, item.subjects, item.meta?.subject].filter(Boolean).join(' '));
     if (/\btake it to the auction\b/.test(label) || /^(?:00\d{2}\s*auction|bcmmev auction\s*\d+)$/.test(source)) return 'take it to the auction';
     if (/\ba new vaudeville revue\b/.test(label) || /^0\d{2} vaudeville(?: ?20\d{2})?$/.test(source)) return 'a new vaudeville revue';
-    if (/\bcoffee (?:and )?connections\b/.test(source + ' ' + label)) return 'coffee and connections';
+    if (/\bcoffee (?:and )?connections\b/.test(source + ' ' + label) || /^0\d{2} cnc (?:with )?town planner\b/.test(source)) return 'coffee and connections';
   }
   if (channel === '502') return archiveVhsSeries(item) || familyId(item);
   if (channel === '929') {

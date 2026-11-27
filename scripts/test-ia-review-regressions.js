@@ -1052,8 +1052,8 @@ for (const [channel, variants, subject] of [
   const f = await fixture();
   f.incoming([...variants.map(([identifier, title]) =>
     row(identifier+'.mp4',{identifier:identifier+'::'+identifier+'.mp4',title,media:{...row(identifier+'.mp4').media,url:'https://archive.org/download/'+identifier+'/'+identifier+'.mp4'},subject:subject || (channel==='15'?'Take it to the Auction; community cable':'television talk show')})),
-    row('one.mp4',{title:'Distinct broadcast one',seriesTitle:'Series one'}),
-    row('two.mp4',{title:'Distinct broadcast two',seriesTitle:'Series two'}),
+    row('one.mp4',{title:channel==='17'?'The Dick Cavett Show · distinct broadcast':'Distinct broadcast one',seriesTitle:'Series one'}),
+    row('two.mp4',{title:channel==='17'?'The Merv Griffin Show · distinct broadcast':'Distinct broadcast two',seriesTitle:'Series two'}),
   ]);
   const response = await f.request('queue',{channel,iaRepair:true,serverCatalog:true,sessionId:'variety-'+channel,count:3,mediaTypes:['movies']});
   const shelf = await response.json();

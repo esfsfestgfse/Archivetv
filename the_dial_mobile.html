@@ -9020,6 +9020,8 @@ function guidePlaybackSnapshot(ch,viewing){
         v2PruneSourcePrograms(profile,preview);
         currentId=String(preview.pendingId||preview.currentId||currentId);
       }
+      // Next leaves an in-flight program behind even before its first frame.
+      if(ch.num===curNum&&preview.pendingId)currentId=String(preview.pendingId);
       var index=v2NextFreshIndex(profile,preview,currentId);
       if(index>=0)preview.cursor=index;
       if(index>=0)queue=(profile.personalRotation===true?[preview.items[index]]:preview.items.slice(index).concat(preview.items.slice(0,index))).filter(function(item){return !(item&&item.meta&&item.meta.verification&&item.meta.verification.playback===false);});

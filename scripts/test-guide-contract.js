@@ -210,6 +210,22 @@ for (const file of ['the_dial_mobile.html', 'the_dial_desktop.html']) {
     assert.equal(api.snapshot(source).next.id, 'two');
     assert.equal(JSON.stringify(context.__v2PreviewState), before);
   });
+  test(file + ': Source Suite Up Next skips the program already selected during pre-roll', () => {
+    const { api, context } = browserAdapter(file);
+    const source = { num:535, nm:'Comedy Circuit', source:'v2preview', previewKey:'example' };
+    context.curNum = 535;
+    context.curItem = null;
+    context.__v2PreviewState[535] = {
+      cursor:0, pendingId:'loading',
+      items:[{id:'loading',title:'Performance loading',url:'https://example.org/1'},
+        {id:'next',title:'Next performance',url:'https://example.org/2'}],
+    };
+    const before = JSON.stringify(context.__v2PreviewState);
+    const snapshot = api.snapshot(source);
+    assert.equal(snapshot.current, null, 'the ad does not count as the performance starting');
+    assert.equal(snapshot.next.id,'next');
+    assert.equal(JSON.stringify(context.__v2PreviewState),before);
+  });
   test(file + ': Cookhouse Up Next uses the same canonical and era-aware decision as manual Next', () => {
     const { api, context, calls } = browserAdapter(file);
     const cookhouse = { num:608, nm:'OK Cookhouse', source:'v2preview', previewKey:'ok-cookhouse-channel' };

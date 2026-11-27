@@ -67,7 +67,7 @@
       var value = state(key);
       if (value.inflight) return value.inflight;
       var sessionRefill = value.items.length > 0;
-      var overlap = wholeLineup && sessionRefill && ['2', '3', '10'].includes(String(key));
+      var overlap = wholeLineup && sessionRefill && (['2', '3', '10'].includes(String(key)) || reviewedBroadcastChannel(key));
       var revision;
       value.inflight = waitForReports(value, overlap).then(function () {
         revision = value.revision;
@@ -220,14 +220,18 @@
     return enabled && query.get('iaProgramIdentity') === '1' && query.get('castReceiver') !== '1' &&
       ['150', '502', '929'].includes(String(channel));
   }
+  function reviewedBroadcastChannel(channel) { return ['14', '15', '17'].includes(String(channel)); }
   function readyBackup(channel) {
-    if (['2', '3', '10', '108'].includes(String(channel))) {
+    if (['2', '3', '10', '108'].includes(String(channel)) || reviewedBroadcastChannel(channel)) {
       return enabled && (wholeLineup || optIn === '1' || promoted.includes(String(channel))) && query.get('castReceiver') !== '1';
     }
     return String(channel) === '502' && identityPilot(channel);
   }
+  function tracksFallbackHistory(channel) {
+    return identityPilot(channel) || (enabled && wholeLineup && reviewedBroadcastChannel(channel) && query.get('castReceiver') !== '1');
+  }
   function repeatInIdentityFallback(channel, id) {
-    return identityPilot(channel) && fallbackUntil[channel] > Date.now() &&
+    return tracksFallbackHistory(channel) && fallbackUntil[channel] > Date.now() &&
       typeof id === 'string' && iaViewerRecentIds('identity:' + channel).includes(id);
   }
   function enabledForChannel(channel) {
@@ -284,7 +288,7 @@
   }
   window.RealSignalIAShelf = {
     enabled: enabled, fullRollout: wholeLineup, enabledForChannel: enabledForChannel, beginTune: beginTune, fallbackForChannel: fallbackForChannel, create: create, lifecycle: lifecycle, sameFileAlternate: sameFileAlternate,
-    identityPilot: identityPilot, repeatInIdentityFallback: repeatInIdentityFallback, readyBackup: readyBackup,
+    identityPilot: identityPilot, tracksFallbackHistory: tracksFallbackHistory, repeatInIdentityFallback: repeatInIdentityFallback, readyBackup: readyBackup,
     tracksRoutes: tracksRoutes, rankedMedia: rankedMedia, recordRoute: recordRoute, warmMirror: warmMirror,
     queue: function (body) {
       var prepared = query.get('iaPrepared');

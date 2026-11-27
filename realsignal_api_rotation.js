@@ -128,13 +128,15 @@ function episodeKey(item) {
 
 const MONTHS = 'jan feb mar apr may jun jul aug sep oct nov dec'.split(' ');
 
-function classicBroadcastDate(text) {
-  const iso = text.match(/\b(19[4-7]\d)\s+(0[1-9]|1[0-2])\s+(0[1-9]|[12]\d|3[01])\b/);
-  if (iso) return iso.slice(1).join('-');
-  for (const match of text.matchAll(/\b(?:([a-z]{3,9})\s+(0?[1-9]|[12]\d|3[01]),?|(0?[1-9]|[12]\d|3[01])\s+([a-z]{3,9}))\s+(19[4-7]\d)\b/gi)) {
+function classicBroadcastDate(text, lastYear = 1979) {
+  for (const match of text.matchAll(/\b(19[4-9]\d|20[0-2]\d)\s*(0[1-9]|1[0-2])\s*(0[1-9]|[12]\d|3[01])\b/g)) {
+    const [year, month, day] = match.slice(1).map(Number);
+    if (year <= lastYear && day <= new Date(Date.UTC(year, month, 0)).getUTCDate()) return match.slice(1).join('-');
+  }
+  for (const match of text.matchAll(/\b(?:([a-z]{3,9})\s+(0?[1-9]|[12]\d|3[01]),?|(0?[1-9]|[12]\d|3[01])\s+([a-z]{3,9}))\s+(19[4-9]\d|20[0-2]\d)\b/gi)) {
     const month = MONTHS.indexOf((match[1] || match[4]).slice(0, 3).toLowerCase()) + 1;
     const year = Number(match[5]), day = Number(match[2] || match[3]);
-    if (month && day <= new Date(Date.UTC(year, month, 0)).getUTCDate()) {
+    if (month && year <= lastYear && day <= new Date(Date.UTC(year, month, 0)).getUTCDate()) {
       return [year, String(month).padStart(2, '0'), String(day).padStart(2, '0')].join('-');
     }
   }
@@ -196,7 +198,33 @@ function archiveVhsSeries(item) {
   return '';
 }
 
+// Prefer the label on the selected file over a mixed host's collection title.
+function lateNightHost(item) {
+  const id = itemId(item).split('::');
+  const source = item.sourceIdentifier || id[0];
+  const patterns = [
+    ['steve allen', /\b(?:tonight (?:starring|with) steve allen|steve allen show)\b/],
+    ['jack paar', /\b(?:tonight (?:starring|with) jack paar|jack paar show)\b/],
+    ['johnny carson', /\b(?:tonight show ?(?:starring|with) johnny carson|johnny carson show)\b/],
+    ['jay leno', /\btonight show (?:with|starring) jay leno\b/],
+    ['conan o brien', /\b(?:late night|tonight show) (?:with|starring) conan o brien\b/],
+    ['david letterman', /\b(?:late night|late show) with david letterman\b/],
+    ['dick cavett', /\bdick cavett (?:show|interview)\b/],
+    ['merv griffin', /\bmerv griffin show\b/],
+    ['mike douglas', /\bmike douglas show\b/],
+    ['tom snyder', /\b(?:tom snyder|tomorrow (?:monsters and movies|show))\b/],
+    ['arsenio hall', /\barsenio(?: hall(?: show)?|199[0-9])\b/],
+  ];
+  for (const value of [item.media?.fileName || item.fileName || id[1], item.title, source]) {
+    const label = normalizedFamily(value).split(/\bs\d{1,2}e\d{1,3}\b/)[0];
+    const match = patterns.find(([, pattern]) => pattern.test(label));
+    if (match) return match[0];
+  }
+  return '';
+}
+
 function archiveFamilyId(item, channel) {
+  if (channel === '17') return lateNightHost(item) || familyId(item);
   if (channel === '502') return archiveVhsSeries(item) || familyId(item);
   if (channel === '929') {
     // Title prefixes and credited performers are supplied by the recording
@@ -237,6 +265,12 @@ function archiveProgramKey(record, channel) {
       const take = normalizedFamily([fileName,record.title].join(' ')).match(/\btake\s+(\d+)\b/)?.[1];
       return ['archive','78',side[1].replace(/^rca /,''),side[2]+side[3],take||''].join(':');
     }
+  }
+  if (channel === '17') {
+    const host = lateNightHost(record);
+    const text = [fileName, record.title].join(' ').replace(/[_.-]+/g, ' ');
+    const date = host && !/\b(?:compilation|marathon|highlights|bonus|promo)\b/i.test(text) && classicBroadcastDate(text, 2026);
+    if (date) return ['archive', 'talk', host, date].join(':');
   }
   if (channel === '3') return archiveFilmKey(record) || logicalId;
   return ['2', '10', '11', '12', '150'].includes(channel) ? classicProgramKey(record,channel) : logicalId;
@@ -443,7 +477,7 @@ export class SessionRotation {
     const classic = ['2', '10', '11', '12', '150'].includes(channel);
     const pilot = archiveIdentityPilot(channel, body.archiveProgramIdentity || body.rules?.archiveProgramIdentity);
     const movie = channel === '3' || archiveMovieChannel(channel);
-    const copyAware = pilot || movie;
+    const copyAware = pilot || movie || channel === '17';
     const families = new Map();
     const familyFor = copyAware ? item => {
       const id = itemId(item);

@@ -1013,3 +1013,17 @@ test('upscale and reviewed Archive stations keep mislabeled, off-genre files out
     }
   }
 });
+
+test('late-night rotation identifies a dated broadcast by its actual host', async () => {
+  const { archiveProgramIdentity } = await import('../realsignal_api_rotation.js');
+  const allen = { identifier:'the-tonight-show-starring-johnny-carson::1954-09-27 - NBC Tonight Starring Steve Allen - S01E01.mp4',
+    title:'The Tonight Show Starring Johnny Carson · NBC Tonight Starring Steve Allen' };
+  const allenCopy = { identifier:'nbc-tonight::Tonight with Steve Allen 1954.09.27.mp4',
+    title:'Tonight with Steve Allen' };
+  const cavett = { identifier:'dick-cavett-show-decades::Dick Cavett Show 1970-04-09 Paul Simon.mp4',
+    title:'The Dick Cavett Show · Paul Simon' };
+  const cavettCopy = { identifier:'different-upload::Paul Simon, Mickey Mantle.mp4', title:'The Dick Cavett Show · April 9, 1970' };
+  assert.equal(archiveProgramIdentity(allen,'17'),archiveProgramIdentity(allenCopy,'17'));
+  assert.equal(archiveProgramIdentity(cavett,'17'),archiveProgramIdentity(cavettCopy,'17'));
+  assert.notEqual(archiveProgramIdentity(cavett,'17'),archiveProgramIdentity({...cavett,identifier:cavett.identifier.replace('04-09','04-10')},'17'));
+});

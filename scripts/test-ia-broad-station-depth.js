@@ -1380,3 +1380,16 @@ test('564 Worker SQLite writes real IDs and suppresses inactive editions on retu
     assert.equal(returning.candidateItems.length,5,'only the five unseen works are available to the fresh dial');
   }finally{sql.close();}
 });
+
+test('browser labels use the selected late-night host and credit the original computer festival', () => {
+  const labels = [
+    [17,'The Up-All-Night',{identifier:'the-tonight-show-starring-johnny-carson::1954-09-27 - NBC Tonight Starring Steve Allen - S01E01 - National Premiere.mp4',title:'The Tonight Show Starring Johnny Carson · NBC Tonight Starring Steve Allen'},'Tonight! with Steve Allen · National Premiere'],
+    [14,'Computer Chronicles',{identifier:'VCF5JohnTooleComputerHistoryMuseum::John Toole, Computer History Museum.mp4',title:'Computer Chronicles · John Toole'},'Vintage Computer Festival · John Toole'],
+  ];
+  for (const file of ['the_dial_desktop.html','the_dial_mobile.html']) {
+    const source=fs.readFileSync(path.join(root,file),'utf8'), scope={};
+    vm.createContext(scope);
+    vm.runInContext(source.slice(source.indexOf('function iaDisplayTitle('),source.indexOf('function adoptIAResolvedMedia(')),scope);
+    for(const [num,nm,item,expected] of labels) assert.equal(scope.iaDisplayTitle(item,{num,nm}),expected,file);
+  }
+});

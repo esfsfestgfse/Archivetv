@@ -16,13 +16,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · Retro Cable 7.6.2</title>
+<title>REALSIGNAL · Retro Cable 7.6.3</title>
 <meta name="realsignal-ia-repair-channels" content="*">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=7.5.10"></script>
-<script src="assets/ia-playback-shelf.js?v=7.6.0-3"></script>
+<script src="assets/ia-playback-shelf.js?v=7.6.3"></script>
 <script src="assets/sports-programs.js?v=7.0.0"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
 <script src="assets/youtube-embed-runtime.js?v=7.2.19"></script>
@@ -1741,7 +1741,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="7.6.2-mobile-retro-cable";
+window.__ATV_BUILD="7.6.3-mobile-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -8629,6 +8629,15 @@ async function iaQueueRequest(ch,sl,count){
 }
 function iaArchiveDirectURL(url){return /(?:dn|ia)\d+\.[a-z0-9.-]*archive\.org\/\d+\/items\//i.test(String(url||""));}
 function iaDisplayTitle(it,ch){var title=String((it&&((it.title)||(it.meta&&it.meta.title)))||"").trim(),name=String((ch&&ch.nm)||"").trim(),low=title.toLowerCase();var identity=String((it&&(it.identifier||it.id))||""),parts=title.split(/\s+·\s+/);
+  if(name==="Computer Chronicles"){
+    if(/^VCF5JohnTooleComputerHistoryMuseum::/i.test(identity))return "Vintage Computer Festival · John Toole";
+    if(/^VCF5JeriEllsworth--CommodoreOne::/i.test(identity))return "Vintage Computer Festival · Commodore One";
+  }
+  if(name==="The Up-All-Night"){
+    var selectedFile=identity.split("::")[1]||"";
+    var allen=selectedFile.match(/\bNBC Tonight Starring Steve Allen\s+-\s+S\d+E\d+\s+-\s+(.+?)(?:\.ia)?\.mp4$/i);
+    if(allen)return "Tonight! with Steve Allen · "+allen[1].replace(/^['’]Tonight!['’]\s+/i,"");
+  }
   if(ch&&Number(ch.num)===10&&parts.length===3&&parts[1]==="Complete Episode Collection"){
     var series=parts[0].trim(),episode=parts[2].split("/").pop().replace(/(?:\.ia)?\.(?:mp4|m4v|webm|ogv|mov)$|\.ia$/i,"").replace(/_/g," ").trim();
     if(episode.toLowerCase().startsWith(series.toLowerCase()+" "))episode=episode.slice(series.length).replace(/^[\s-]+/,"");
@@ -11054,7 +11063,7 @@ function setCurItem(it,ch,sl,decoded){
            embedded:!!it.embedded,isAudio:(it.type==="audio"||ch.audio),captions:it.captions||null,
            ch:ch.num,chName:ch.nm,isAd:!!it.isAd,isSignoff:!!it.isSignoff,duration:Number(it.runtime||it.duration||it.meta&&it.meta.media&&it.meta.media.runtime)||null};
   markSeen(curItem.id); /* ads still markSeen (no repeat spots within 3h) but stay out of stats + dedup */
-  if(decoded!==false&&!ch.source&&!it.isAd&&!it.isSignoff&&curItem.id&&window.RealSignalIAShelf?.identityPilot?.(ch.num)){
+  if(decoded!==false&&!ch.source&&!it.isAd&&!it.isSignoff&&curItem.id&&window.RealSignalIAShelf?.tracksFallbackHistory?.(ch.num)){
     iaViewerRecentIds("identity:"+ch.num,curItem.id);
   }
   if(iaRepairEnabled(ch)){if(decoded!==false)iaRepairEvent(ch,it,"started");}else iaReportPlayed(ch,it);

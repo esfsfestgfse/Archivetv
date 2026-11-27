@@ -1993,12 +1993,12 @@ async function handleQueue(request, env, ctx, id) {
       return prepared;
     }
   }
-  const hasReadyBackup = ['2', '3', '10', '108'].includes(String(body.channel)) || (String(body.channel) === '502' && archiveIdentityPilot(body.channel, body.archiveProgramIdentity));
+  const hasReadyBackup = ['2', '3', '10', '14', '15', '17', '108'].includes(String(body.channel)) || (String(body.channel) === '502' && archiveIdentityPilot(body.channel, body.archiveProgramIdentity));
   const warmDeferredIds = body.iaRepair === true && body.sourceCatalog !== true && body.sessionRefill === true &&
     hasReadyBackup && Array.isArray(body.warmDeferredIds)
     ? [...new Set(body.warmDeferredIds.slice(0,32).filter(id => typeof id === 'string' && id.length > 0 && id.length <= 500 && !/[\r\n]/.test(id)))] : [];
   const pendingPlaybackIds = body.iaRepair === true && body.sourceCatalog !== true && body.sessionRefill === true &&
-    ["2", "3", "10"].includes(String(body.channel)) && Array.isArray(body.pendingPlaybackIds)
+    ["2", "3", "10", "14", "15", "17"].includes(String(body.channel)) && Array.isArray(body.pendingPlaybackIds)
     ? [...new Set(body.pendingPlaybackIds.slice(0, 32).filter(id => typeof id === "string" && id.length > 0 && id.length <= 500 && !/[\r\n]/.test(id)))] : [];
   body = { ...body, warmDeferredIds, pendingPlaybackIds };
   const requestedServerCatalog = body.serverCatalog === true;
@@ -2026,8 +2026,8 @@ async function handleQueue(request, env, ctx, id) {
       upstreamBody.hydrationPreferredIds = state.reservationIds || [];
       // Fast skips already have a qualified catalog in the session. Serving
       // it directly keeps a fresh Archive discovery request off that path.
-      const classicBatch = ["2", "3", "10"].includes(String(body.channel));
-      const hasDeepSession = classicBatch ? state.catalogSize >= 16 : warmDeferredIds.length > 0 || (preparedStart
+      const reviewedBroadcastBatch = ["2", "3", "10", "14", "15", "17"].includes(String(body.channel));
+      const hasDeepSession = reviewedBroadcastBatch ? state.catalogSize >= 16 : warmDeferredIds.length > 0 || (preparedStart
         ? state.catalogSize > IA_PREPARED_START_MAX_ITEMS : String(body.channel) === "150");
       const readyTarget = warmDeferredIds.length ? 2 : count;
       if (body.sessionRefill === true && hasDeepSession && state.exhaustion?.unseenBeforeSelection >= readyTarget) {

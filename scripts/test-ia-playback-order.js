@@ -861,7 +861,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file 
   assert.equal(await scope.playFile(watched, ch), true, 'the normal fallback keeps its current behavior');
 });
 
-for (const [channel, query] of [['502', '?iaProgramIdentity=1'], ['108', ''], ['2', ''], ['3', ''], ['10', '']]) test(channel + ': opens with three reservations and fills backup slots in the background', async () => {
+for (const [channel, query] of [['502', '?iaProgramIdentity=1'], ['108', ''], ['2', ''], ['3', ''], ['10', ''], ['14', ''], ['15', ''], ['17', '']]) test(channel + ': opens with three reservations and fills backup slots in the background', async () => {
   const requests = [];
   const pilot = runtime(query, '*');
   assert.equal(runtime('?castReceiver=1', '*').readyBackup(channel), false);
@@ -943,4 +943,14 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file 
   scope.releaseIAReadyBackups(502);
   assert.equal(el.src,undefined);
   assert.equal(scope.iaMediaWarmers['502:vhs-backup'],undefined);
+});
+
+test('reviewed local-access recovery excludes programs already shown to this viewer', () => {
+  const watched = 'cable-access::episode.mp4';
+  const shelf = runtime('', '*', undefined, undefined, Date,
+    key => key === 'identity:15' ? [watched] : []);
+  assert.equal(shelf.repeatInIdentityFallback('15', watched), false);
+  assert.equal(shelf.fallbackForChannel('15'), true);
+  assert.equal(shelf.repeatInIdentityFallback('15', watched), true);
+  assert.equal(shelf.repeatInIdentityFallback('15', 'another-episode.mp4'), false);
 });

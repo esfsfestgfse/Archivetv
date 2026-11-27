@@ -148,7 +148,7 @@ function classicProgramKey(item, channel) {
   if (!series || series === normalizedFamily(sourceIdentifier)) return logicalId;
   const text = [fileName, title].join(' ').replace(/[_.-]+/g, ' ');
   if (/\b(?:(?:part|disc|volume)\s+\d+|compilation|marathon|double feature)\b/i.test(text)) return logicalId;
-  if (channel === '12') {
+  if (channel === '2' || channel === '12') {
     const date = classicBroadcastDate(text);
     if (date) return ['classic', channel, series, date].join(':');
   }
@@ -234,7 +234,8 @@ function archiveProgramKey(record, channel) {
       return ['archive','78',side[1].replace(/^rca /,''),side[2]+side[3],take||''].join(':');
     }
   }
-  return channel === '10' || channel === '12' || channel === '150' ? classicProgramKey(record,channel) : logicalId;
+  if (channel === '3') return archiveFilmKey(record) || logicalId;
+  return ['2', '10', '12', '150'].includes(channel) ? classicProgramKey(record,channel) : logicalId;
 }
 
 function firstCopyPerProgram(rows, keyFor, preferred = new Map()) {
@@ -435,9 +436,9 @@ export class SessionRotation {
   async reservation(body) {
     const current = await this.state(MAX_RESERVATION_ITEMS);
     const channel = String(body.rules?.channel || body.stationChannel || '');
-    const classic = channel === '10' || channel === '12' || channel === '150';
+    const classic = ['2', '10', '12', '150'].includes(channel);
     const pilot = archiveIdentityPilot(channel, body.archiveProgramIdentity || body.rules?.archiveProgramIdentity);
-    const movie = archiveMovieChannel(channel);
+    const movie = channel === '3' || archiveMovieChannel(channel);
     const copyAware = pilot || movie;
     const families = new Map();
     const familyFor = copyAware ? item => {

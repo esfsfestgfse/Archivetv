@@ -26,6 +26,19 @@ const verified = { identifier: 'series::episode.mp4', sourceIdentifier: 'series'
   language: 'eng', media: { type: 'video', url: 'https://archive.org/download/series/episode.mp4',
     runtime: 1320, width: 640, height: 480, verifiedAt: Date.now(), verification: 'transport' } };
 
+test('the first three channels have distinct reviewed broadcasts behind the opening shelf', () => {
+  const { recoverySeeds, iaStationQualityGate } = relay();
+  const broadcasts = recoverySeeds('2', 0).filter(item => item.rights && /^https?:\/\/creativecommons\.org\//.test(item.rights));
+  assert.ok(new Set(broadcasts.map(item => item.seriesTitle).filter(Boolean)).size >= 6);
+  assert.ok(broadcasts.every(item => iaStationQualityGate('2', item) && item.year >= 1950 && item.year <= 1969));
+  const films = recoverySeeds('3', 0).filter(item => item.rights && item.media.runtime >= 3600);
+  assert.ok(films.length >= 10);
+  assert.ok(films.some(item => item.year < 1940));
+  assert.ok(films.some(item => item.year >= 1955));
+  const sitcoms = recoverySeeds('10', 0).filter(item => item.rights);
+  assert.ok(new Set(sitcoms.map(item => item.seriesTitle).filter(Boolean)).size >= 4);
+});
+
 test('Auto Racing cold recovery contains actual race broadcasts before it can report a ready shelf', () => {
   const r=relay(),items=r.recoverySeeds('54',7);
   assert.ok(items.length>=5);
@@ -66,6 +79,16 @@ test('reviewed editorial admission rejects the reproduced contamination in every
   const {iaReviewedFileAllowed,qualifyIaFileRecord}=await import('../ia_file_contract.js');
   const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
   const checks=[
+    ['2',{identifier:"000_20240906_202409::KMJS Igan's health story/000.mp4",title:"KMJS: Arnold Clavio's health story | TV REPLAY",subject:'television'},false],
+    ['2',{identifier:'000_20240321::24 Oras 20th anniversary episode [15-MARCH-2024]/000.mp4',title:'24 Oras 20th anniversary',subject:'classic television',genreVerified:true},false],
+    ['2',{identifier:'000_20240314::BBM Inauguration/[TS]2022-06-30.01.31.19-GMA-83/000.mp4',title:'BBM Inauguration',subject:'television',year:1960},false],
+    ['2',{identifier:'collection::New Show 2010.mp4',title:'Classic Television Archive · New Show 2010',subject:'classic television',year:1962},false],
+    ['2',{identifier:'old-movie',title:'Old Crime Feature',year:1962,subject:'classic television; feature film'},false],
+    ['2',{identifier:'beattheclock1956::beattheclock1956flash.mp4',title:'Beat the Clock — circa August 1956'},true],
+    ['2',{identifier:'IMarriedJoan::Talent Scout.mp4',title:'I Married Joan · Talent Scout',year:1953,subject:'classic television sitcom'},true],
+    ['2',{identifier:'FourStarPlayhouse-48Episodes::Backstage.mp4',title:'Four Star Playhouse · Backstage',year:1954},true],
+    ['2',{identifier:'new-newsreel',title:'Public Affairs: 2024 Elections',subject:'classic television public affairs',year:2024},false],
+    ['2',{identifier:'tv-without-dates::Episode1.mp4',title:'An Episode',subject:'classic television'},false],
     ['54',{identifier:'indy-1995',title:'1995 Indianapolis 500 Full Race'},true],
     ['54',{identifier:'suzuka-2005',title:'Formula 1 2005 Japanese Grand Prix Full Race'},true],
     ['54',{identifier:'nhra-2005',title:'NHRA US Nationals 2005 Full Event'},true],

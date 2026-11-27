@@ -55,19 +55,33 @@ const assert = require('node:assert/strict');
 const {test} = require('node:test');
 function guideRuntime(file) {
   const source = fs.readFileSync(path.join(root, file), 'utf8');
-  const context = {window:{},location:{search:''},URLSearchParams,console,sportsEra:'all',favOnly:false,
+  const context = {window:{},location:{search:''},URLSearchParams,console,sportsEra:'all',favOnly:false,isFav:()=>false,
     localStorage:{getItem:()=>null,setItem:()=>{}}};
   vm.createContext(context);
   const marker = source.indexOf('window.__atvIAManifest=function()');
   const end = source.indexOf('\nif(new URLSearchParams(location.search)',marker);
   vm.runInContext(source.slice(source.indexOf('\nconst FNOT=')+1,end),context);
   vm.runInContext(source.slice(source.indexOf('var catFilter='),source.indexOf('window.__chanStatus=window.__chanStatus||{};')),context);
-  return (query,category='all')=>{
+  vm.runInContext(fs.readFileSync(path.join(root, 'assets/guide-contract-client.js'), 'utf8'),context);
+  const browse = (query,category='all')=>{
     context.window.__gQuery=query;context.catFilter=category;
     return Array.from(vm.runInContext('visibleChannels().map(ch=>ch.num)',context));
   };
+  browse.directory = () => Array.from(vm.runInContext('window.RealSignalPresentation.directory().map(ch=>ch.number)',context));
+  return browse;
 }
 for (const file of files) {
+  test(file+': full guide, filtered guide and public directory are in ascending channel order', () => {
+    const search = guideRuntime(file);
+    const expected = search('').sort((a,b)=>a-b);
+    assert.deepEqual(expected.slice(0,3),[2,3,10]);
+    assert.deepEqual(search(''),expected);
+    assert.deepEqual(search.directory(),expected);
+    for(const rows of [search('television'), search('','tv'), search('','sports')]) {
+      assert.ok(rows.length>1);
+      assert.deepEqual(rows,[...rows].sort((a,b)=>a-b));
+    }
+  });
   test(file+': merged guide cards are searchable by their displayed canonical label',()=>{
     const search=guideRuntime(file);
     for(const [query,number] of [['Courtroom TV',20],['Cooking & Food',201],['Travel & People',206],

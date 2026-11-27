@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · Retro Cable 7.5.10</title>
+<title>REALSIGNAL · Retro Cable 7.6.0</title>
 <meta name="realsignal-ia-repair-channels" content="*">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
@@ -1741,7 +1741,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="7.5.10-mobile-retro-cable";
+window.__ATV_BUILD="7.6.0-mobile-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -2760,7 +2760,7 @@ const CHANNEL_META={
 "Christmas Cartoon & TV":{desc:"SOURCE SUITE · long-form Christmas cartoons and family TV specials — no music-only or short-form clips.",rel:["Holiday Cartoon & TV Club","Family TV Club"]},
 "Halloween Movie House":{desc:"SOURCE SUITE · long-form Halloween, monster and seasonal horror movies.",rel:["Horror House","Holiday Movie House"]},
 "Halloween Cartoon & TV":{desc:"SOURCE SUITE · long-form Halloween cartoons and spooky family television specials.",rel:["Cartoon Time Machine","Halloween Movie House"]},
-"Channel 2 Network":{desc:"Full-service network affiliate: cartoons at dawn, matinees at noon, primetime at night.",best:"all day",rel:["Nite-Owl 3","Classic Rerun TV"]},
+"Channel 2 Network":{desc:"American network television from 1950 to 1969, including sitcoms, variety, anthology drama, quizzes, and public affairs.",best:"all day",rel:["Nite-Owl 3","Classic Rerun TV"]},
 "Nite-Owl 3":{desc:"The overnight-flavored sister station. Noir, mystery and late movies lean heavier here.",best:"late night",rel:["Channel 2 Network","Noir & Mystery"]},
 "Classic Cartoons":{desc:"Golden-age theatrical animation, 1930s-1972.",best:"mornings",rel:["Classic Cartoons","Anime Alley"]},
 "Anime Alley":{desc:"Japanese animation from early classics to the VHS-dub era.",best:"evenings",rel:["Classic Cartoons","VHS Vault"]},
@@ -7979,6 +7979,23 @@ function iaReviewedFileAllowed(item, channel) {
 
   const station = String(channel);
   const title = String(item.title || '');
+  if (station === '2') {
+    // A collection tag cannot turn a modern broadcast into vintage network TV.
+    const meta = item.meta || {};
+    const selected = String(title || meta.title || '').split(/\s+·\s+/).pop();
+    const path = String(media.fileName || item.fileName || id.split('::')[1] || file);
+    const yearsIn = value => String(value || '').match(/(?:19|20)\d{2}(?=\d{4}(?:\D|$)|\D|$)/g) || [];
+    const fileYears = yearsIn([selected, path].join(' '));
+    const dateYears = yearsIn(item.broadcastYear || meta.broadcastYear || item.year || meta.year || item.date || meta.date);
+    const sourceYears = yearsIn(source);
+    const years = fileYears.length ? fileYears : dateYears.length ? dateYears : sourceYears;
+    if (!years.length || years.some(year => Number(year) < 1950 || Number(year) > 1969)) return false;
+    if (/(?:^|[_-])20\d{6}(?=[_-]|$)/.test(source) && !fileYears.length) return false;
+    const program = [title || meta.title, path, item.seriesTitle, meta.seriesTitle].join(' ').replace(/[_-]+/g, ' ');
+    const evidence = [program, item.subject, item.subjects, meta.subject, meta.subjects].filter(Boolean).join(' ');
+    if (/\b(?:feature film|training film|industrial film|commercial compilation|color bars|reactions?|podcasts?|fan[ -]?made|tv retrospective|title sequence)\b/i.test(evidence)) return false;
+    if (!/\b(?:classic (?:television|tv)|network television|television series|sitcom|situation comedy|(?:television )?variety show|television variety|anthology (?:series|drama)|live television|game show|quiz show|public affairs|newsreel|jack benny|burns and allen|i married joan|four star playhouse|you asked for it|your hit parade|garry moore show|beat the clock|price is right|strike it rich|what['’]s my line|i['’]ve got a secret|to tell the truth|password)\b/i.test(evidence)) return false;
+  }
   if (station === '108') {
     if (source.toLowerCase() === 'razor-fist-arcade-fallen-aces') return false;
     // Feature-length documentary episodes can lack TV episode markers.
@@ -8592,7 +8609,13 @@ async function iaQueueRequest(ch,sl,count){
   }catch(e){nlog("queue",false,"director unavailable: "+(e&&e.message||e)+"; using local shelf");var fallback=await iaLocalQueueFallback(ch,sl);if(!fallback.length)fallback=await iaLocalQueueFallbackMode(ch,sl,true);fallback.localFallback=true;fallback.partial=true;return fallback;}
 }
 function iaArchiveDirectURL(url){return /(?:dn|ia)\d+\.[a-z0-9.-]*archive\.org\/\d+\/items\//i.test(String(url||""));}
-function iaDisplayTitle(it,ch){var title=String((it&&((it.title)||(it.meta&&it.meta.title)))||"").trim(),name=String((ch&&ch.nm)||"").trim(),low=title.toLowerCase();var identity=String((it&&(it.identifier||it.id))||""),parts=title.split(/\s+·\s+/);if(identity.indexOf("::")>=0&&parts.length>2){var actual=identity.split("::").pop();try{actual=decodeURIComponent(actual);}catch(e){}actual=actual.split("/").pop().replace(/(?:\.ia)?\.(?:mp4|m4v|webm|ogv|mov)$/i,"").replace(/[._]+/g," ").replace(/\s+/g," ").trim();if(actual.length>12&&(actual.match(/[a-z]{3,}/gi)||[]).length>=2&&!/^vts\b|^video ts\b/i.test(actual)&&parts[parts.length-1].trim().toLowerCase()===actual.toLowerCase())title=actual;}if(!title||low===name.toLowerCase()||low==="classic cartoons"){
+function iaDisplayTitle(it,ch){var title=String((it&&((it.title)||(it.meta&&it.meta.title)))||"").trim(),name=String((ch&&ch.nm)||"").trim(),low=title.toLowerCase();var identity=String((it&&(it.identifier||it.id))||""),parts=title.split(/\s+·\s+/);
+  if(ch&&Number(ch.num)===10&&parts.length===3&&parts[1]==="Complete Episode Collection"){
+    var series=parts[0].trim(),episode=parts[2].split("/").pop().replace(/(?:\.ia)?\.(?:mp4|m4v|webm|ogv|mov)$|\.ia$/i,"").replace(/_/g," ").trim();
+    if(episode.toLowerCase().startsWith(series.toLowerCase()+" "))episode=episode.slice(series.length).replace(/^[\s-]+/,"");
+    if(episode&&!/^(?:episode|ep|video|vts|part)?[\s_\d-]*$/i.test(episode))return series+" · "+episode;
+  }
+  if(identity.indexOf("::")>=0&&parts.length>2){var actual=identity.split("::").pop();try{actual=decodeURIComponent(actual);}catch(e){}actual=actual.split("/").pop().replace(/(?:\.ia)?\.(?:mp4|m4v|webm|ogv|mov)$/i,"").replace(/[._]+/g," ").replace(/\s+/g," ").trim();if(actual.length>12&&(actual.match(/[a-z]{3,}/gi)||[]).length>=2&&!/^vts\b|^video ts\b/i.test(actual)&&parts[parts.length-1].trim().toLowerCase()===actual.toLowerCase())title=actual;}if(!title||low===name.toLowerCase()||low==="classic cartoons"){
   var raw=String((it&&(it.identifier||it.id))||"").split("::").pop();try{raw=decodeURIComponent(raw);}catch(e){}raw=raw.replace(/\.(?:mp4|m4v|webm|ogv|mov|m3u8)$/i,"").replace(/[._]+/g," ").replace(/\s+/g," ").trim();if(raw&&!/^[a-z0-9]{20,}$/i.test(raw)&&raw.toLowerCase()!==name.toLowerCase())title=raw;
 }return title||name;}
 function adoptIAResolvedMedia(ch,sl,id,expected,editorial,pl){delete iaProgramPendingAt[id];if(!pl){iaMarkProgramFailed(id);setTimeout(function(){if(powered)refillIAQueue(ch,sl);},160);}var current=(iaProgramQueues[iaQueueKey(ch)]||[]).find(function(x){return x&&x.identifier===id;});if(pl){pl.title=pl.title||editorial.title||iaDisplayTitle(current||{identifier:id},ch);pl.year=pl.year||editorial.year||(current&&current.year)||"";pl.meta=Object.assign({},pl.meta||{},editorial);if(current)current.media={type:pl.type||expected,url:pl.url,alts:pl.alts||[]};if(!fastTuneGet(ch.num))fastTunePut(ch.num,Object.assign({},pl,{type:pl.type||expected}));iaReadyShelfSave(ch);}iaProgramMedia[id]=pl;warmIAQueueHead(ch);return pl;}
@@ -8910,24 +8933,8 @@ function visibleChannels(){let l=guideBrowsePool();
       return hay.indexOf(q)>-1;
     });
   }
-  /* QA FIX: the guide previously rendered channels in raw CH-array order. That array was built
-     across many editing sessions and each category ended up scattered in ~34 separate blocks
-     (Movies, then TV, then Movies again, then Toon, then Documentary...) even though each
-     category's OWN channel numbers happened to already be individually clean. The guide looked
-     broken -- genres out of order, numbers jumping around -- despite the underlying data being
-     fine. Sorted for display only: real category order first, channel number second within it.
-     Nothing about CH itself changes, so tuning/search/everything else is unaffected. */
-  var catPos={}; GUIDE_CATEGORIES.forEach(function(c,i){catPos[c.id]=i;});
-  l=l.slice().sort(function(a,b){
-    /* The guide is organized like a cable directory: browse families first, then the
-       persistent tuning number. The number itself is never changed, so favorites, remotes,
-       Cast packets, and saved last-channel state remain compatible across releases. */
-    var pa=catPos[a.guideGroup], pb=catPos[b.guideGroup];
-    if(pa==null) pa=999; if(pb==null) pb=999;
-    if(pa!==pb) return pa-pb;
-    return a.num-b.num||String(a.nm).localeCompare(String(b.nm));
-  });
-  return l;}
+  return l.slice().sort(function(a,b){return a.num-b.num||String(a.nm).localeCompare(String(b.nm));});
+}
 window.__chanStatus=window.__chanStatus||{};
 /* mount a channel bug into any container. opts: {ident, getMain, getSub}. Returns an update()
    you call whenever fresh data is computed -- no polling, no extra fetches, reuses whatever the
@@ -16504,7 +16511,7 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
 <script src="assets/release2-runtime.js?v=7.2.3"></script>
 <script src="assets/release31-runtime.js?v=7.2.3"></script>
 <script src="assets/guide-contract.js?v=7.2.1"></script>
-<script src="assets/guide-contract-client.js?v=7.2.3"></script>
+<script src="assets/guide-contract-client.js?v=7.6.0"></script>
 <script src="assets/v6-watching-shell.js?v=7.5.0"></script>
 <script src="assets/v6-guide.js?v=7.2.19"></script>
 </body>

@@ -276,6 +276,23 @@ export function iaReviewedFileAllowed(item, channel) {
 
   const station = String(channel);
   const title = String(item.title || '');
+  if (station === '2') {
+    // A collection tag cannot turn a modern broadcast into vintage network TV.
+    const meta = item.meta || {};
+    const selected = String(title || meta.title || '').split(/\s+·\s+/).pop();
+    const path = String(media.fileName || item.fileName || id.split('::')[1] || file);
+    const yearsIn = value => String(value || '').match(/(?:19|20)\d{2}(?=\d{4}(?:\D|$)|\D|$)/g) || [];
+    const fileYears = yearsIn([selected, path].join(' '));
+    const dateYears = yearsIn(item.broadcastYear || meta.broadcastYear || item.year || meta.year || item.date || meta.date);
+    const sourceYears = yearsIn(source);
+    const years = fileYears.length ? fileYears : dateYears.length ? dateYears : sourceYears;
+    if (!years.length || years.some(year => Number(year) < 1950 || Number(year) > 1969)) return false;
+    if (/(?:^|[_-])20\d{6}(?=[_-]|$)/.test(source) && !fileYears.length) return false;
+    const program = [title || meta.title, path, item.seriesTitle, meta.seriesTitle].join(' ').replace(/[_-]+/g, ' ');
+    const evidence = [program, item.subject, item.subjects, meta.subject, meta.subjects].filter(Boolean).join(' ');
+    if (/\b(?:feature film|training film|industrial film|commercial compilation|color bars|reactions?|podcasts?|fan[ -]?made|tv retrospective|title sequence)\b/i.test(evidence)) return false;
+    if (!/\b(?:classic (?:television|tv)|network television|television series|sitcom|situation comedy|(?:television )?variety show|television variety|anthology (?:series|drama)|live television|game show|quiz show|public affairs|newsreel|jack benny|burns and allen|i married joan|four star playhouse|you asked for it|your hit parade|garry moore show|beat the clock|price is right|strike it rich|what['’]s my line|i['’]ve got a secret|to tell the truth|password)\b/i.test(evidence)) return false;
+  }
   if (station === '108') {
     if (source.toLowerCase() === 'razor-fist-arcade-fallen-aces') return false;
     // Feature-length documentary episodes can lack TV episode markers.

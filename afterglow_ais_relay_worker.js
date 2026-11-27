@@ -3671,7 +3671,7 @@ const IA_TARGETED_RECOVERY_BANKS = Object.freeze({
     iaDirectRecovery("ebW-8zxTAMg::Hatin' Satan_ Christian Metal Show from the 1990s 480.mp4", "ebW-8zxTAMg", "Hatin' Satan_ Christian Metal Show from the 1990s 480.mp4", "Hatin’ Satan · Christian metal show", "public access television community television local cable access", 1993, "video", 3539, 640, 480),
     iaDirectRecovery("ThePublicAccessShowQuestionsAboutTheCCTVBoard07803::2820 The public Access Show Questions about the CCTV Board 07803.m4v", "ThePublicAccessShowQuestionsAboutTheCCTVBoard07803", "2820 The public Access Show Questions about the CCTV Board 07803.m4v", "The Public Access Show · Questions About the CCTV Board", "public access television community television local cable access", 2003, "video", 1839, 635, 480),
     iaDirectRecovery("satilla::satilla.ia.mp4", "satilla", "satilla.ia.mp4", "Satilla Talks · Waycross community television", "public access television community television local cable access", null, "video", 1730, 640, 480),
-    iaDirectRecovery("KELLYTV-EPISODE6FORMANHATTANNEIGHBORHOODNETWORKKELLYTV263::KELLYTV-EPISODE6FORMANHATTANNEIGHBORHOODNETWORKKELLYTV263_512kb.mp4", "KELLYTV-EPISODE6FORMANHATTANNEIGHBORHOODNETWORKKELLYTV263", "KELLYTV-EPISODE6FORMANHATTANNEIGHBORHOODNETWORKKELLYTV263_512kb.mp4", "Kelly TV · Episode 6", "public access television community television local cable access", null, "video", 1800, 320, 240),
+    iaDirectRecovery("Inside_New_York_with_Stu_Wechsler_01-25_9a_16_Manhattan_Neighborhood_Network::Inside_New_York_with_Stu_Wechsler_01-25_9a_16_Manhattan_Neighborhood_Network.mp4", "Inside_New_York_with_Stu_Wechsler_01-25_9a_16_Manhattan_Neighborhood_Network", "Inside_New_York_with_Stu_Wechsler_01-25_9a_16_Manhattan_Neighborhood_Network.mp4", "Inside New York with Stu Wechsler", "public access television community television Manhattan Neighborhood Network", null, "video", 1755, 712, 480),
   ],
   "17": [
     iaDirectRecovery("dick-cavett-show-decades::Dick Cavett Show 1970-04-09 Paul Simon, Mickey Mantle, Whitey Ford, Marcel Marceau.ia.mp4", "dick-cavett-show-decades", "Dick Cavett Show 1970-04-09 Paul Simon, Mickey Mantle, Whitey Ford, Marcel Marceau.ia.mp4", "The Dick Cavett Show · Paul Simon, Mickey Mantle, Whitey Ford, Marcel Marceau (1970-04-09)", "late night talk show television interviews", 1970, "video", 2794, 640, 480),
@@ -6258,6 +6258,8 @@ function iaReviewedFileAllowed(item, channel) {
 
   const station = String(channel);
   const title = String(item.title || '');
+  // This exact cable-access upload decoded but displayed a black screen in Chrome.
+  if (station === '15' && source.toLowerCase() === 'kellytv-episode6formanhattanneighborhoodnetworkkellytv263') return false;
   if (station === '11') {
     // Use the original broadcast year, which can differ from the upload date.
     const year = Number(item.broadcastYear || item.meta?.broadcastYear || item.year || item.meta?.year);

@@ -7979,6 +7979,8 @@ function iaReviewedFileAllowed(item, channel) {
 
   const station = String(channel);
   const title = String(item.title || '');
+  // This exact cable-access upload decoded but displayed a black screen in Chrome.
+  if (station === '15' && source.toLowerCase() === 'kellytv-episode6formanhattanneighborhoodnetworkkellytv263') return false;
   if (station === '11') {
     // Use the original broadcast year, which can differ from the upload date.
     const year = Number(item.broadcastYear || item.meta?.broadcastYear || item.year || item.meta?.year);

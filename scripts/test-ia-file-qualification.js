@@ -230,6 +230,7 @@ test('reviewed editorial admission rejects the reproduced contamination in every
     ['905',{identifier:'talking-blues',title:'Talking Blues',type:'audio',language:'fra',subject:'blues music'},true],
     ['905',{identifier:'PinkFloyd-LiveBootlegSampler::119TheFinalCut_RadioAdvert.mp3',title:'Pink Floyd - Live Bootleg Sampler · The Final Cut Radio Advert',type:'audio'},false],
     ['905',{identifier:'blues-radio-concert',title:'Muddy Waters — Radio Session Concert',type:'audio',subject:'blues music'},true],
+    ['15',{identifier:'KELLYTV-EPISODE6FORMANHATTANNEIGHBORHOODNETWORKKELLYTV263::KELLYTV-EPISODE6FORMANHATTANNEIGHBORHOODNETWORKKELLYTV263_512kb.mp4',title:'Kelly TV · Episode 6'},false],
     ['11',{identifier:'DateWithTheAngels-1950sFamilySitcom-ChristmasEpisode::BettyWhiteChristmas.ia.mp4',title:'Date with the Angels - 1950s Family Sitcom - Christmas Episode'},false],
     ['11',{identifier:'period-comedy::Episode.mp4',title:'A Period Sitcom',meta:{broadcastYear:'1979',subject:'television series'}},false],
     ['11',{identifier:'that-70s-show::That 70s Show S01E01.mp4',title:'That 70s Show - Pilot',broadcastYear:1998,subject:'television series'},true],

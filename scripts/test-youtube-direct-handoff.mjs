@@ -19,7 +19,7 @@ for(const file of ['the_dial_desktop.html','the_dial_mobile.html']) {
   const yt={stop(){stops++;frame.remove();},suspend(){suspends++;return frame;}};
   const context={window:{RealSignalYouTubeEmbed:yt,__rsCastIsConnected:()=>kind==='cast',__rsCastPublishMedia(){published++;return true;}},screenArea:stage,
    v2CanPrepareYouTube:()=>kind!=='ok',V2_PREVIEW_PROFILES:{fixture:{providers:['youtube','peertube']}},
-   powered:true,token:7,curVideo:null,takeIAMediaWarmer:()=>null,soundBlocked:false,
+   powered:true,token:7,curNum:516,curVideo:null,takeIAMediaWarmer:()=>null,soundBlocked:false,
    iaReviewedFileAllowed:()=>true,iaCachedProgramAllowed:()=>true,
    stopTVPlayback(){},hideOv(){},hideBuffer(){},clearStall(){},setSig(){},setCurItem(){},showNow(){},
    audioScreen:{classList:{add(){}}},bug:{classList:{remove(){}}}};

@@ -118,7 +118,7 @@ const { DatabaseSync } = require("node:sqlite");
             iaMediaWarmKey:(_ch,item)=> "624:"+item.id,
             iaMediaWarmByChannel:{"624":"624:stale"},iaWarmWanted:{},
             releaseIAMediaWarmer:id=>released.push(id),
-            stageIAMediaWarmer:(_ch,item)=>staged.push(item.id),
+            stageIAMediaWarmer:(_ch,item,media)=>staged.push({id:item.id,url:media.url}),
             setTimeout:fn=>pending.push(fn),
           });
           vm.runInContext(warm[0], browser);
@@ -126,12 +126,12 @@ const { DatabaseSync } = require("node:sqlite");
           browser.warmArchiveWarNext(ch,{profileKey},shelf,active.id,1);
           assert.deepEqual(staged,[],"foreground playback starts before background preparation");
           pending.shift()();
-          assert.deepEqual(staged,[lastHunter.id]);
+          assert.deepEqual(staged,[{id:lastHunter.id,url:mirror.url}],"give the alternate route a head start under the same program ID");
           assert.deepEqual(released,["624:stale"]);
           browser.warmArchiveWarNext(ch,{profileKey},shelf,active.id,1);
           browser.token=2;
           pending.shift()();
-          assert.deepEqual(staged,[lastHunter.id],"obsolete tunes do not stage a second asset");
+          assert.deepEqual(staged,[{id:lastHunter.id,url:mirror.url}],"obsolete tunes do not stage a second asset");
           const warmKey="624:"+lastHunter.id;
           const video={error:{code:4}},releases=[];
           browser.iaMediaWarmers={[warmKey]:{el:video}};

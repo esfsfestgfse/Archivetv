@@ -276,7 +276,14 @@ export function iaReviewedFileAllowed(item, channel) {
 
   const station = String(channel);
   const title = String(item.title || '');
+  if (station === '11') {
+    // Use the original broadcast year, which can differ from the upload date.
+    const year = Number(item.broadcastYear || item.meta?.broadcastYear || item.year || item.meta?.year);
+    if (Number.isInteger(year) && year >= 1900 && year < 1980) return false;
+    if (!year && /\b19[0-7]0s\s+(?:(?:american|family|british|television|tv)\s+){0,2}(?:sitcom|television series|tv series)\b/i.test(title)) return false;
+  }
   if (station === '12') {
+    if (String(media.type || item.type).toLowerCase() === 'audio' || /\baudio only\b/i.test([source, title, file].join(' ').replace(/[_-]+/g, ' '))) return false;
     // A numismatic video used the name of the actual game show in its title.
     const selected = [title, file, item.meta?.title].filter(Boolean).join(' ').replace(/[_-]+/g, ' ');
     if (/\b(?:strike it rich with (?:these|your) coins|coin collecting|coin roll hunting|(?:washington )?quarters? worth (?:huge )?money)\b/i.test(selected)) return false;

@@ -6203,7 +6203,14 @@ function iaReviewedFileAllowed(item, channel) {
 
   const station = String(channel);
   const title = String(item.title || '');
+  if (station === '11') {
+    // Use the original broadcast year, which can differ from the upload date.
+    const year = Number(item.broadcastYear || item.meta?.broadcastYear || item.year || item.meta?.year);
+    if (Number.isInteger(year) && year >= 1900 && year < 1980) return false;
+    if (!year && /\b19[0-7]0s\s+(?:(?:american|family|british|television|tv)\s+){0,2}(?:sitcom|television series|tv series)\b/i.test(title)) return false;
+  }
   if (station === '12') {
+    if (String(media.type || item.type).toLowerCase() === 'audio' || /\baudio only\b/i.test([source, title, file].join(' ').replace(/[_-]+/g, ' '))) return false;
     // A numismatic video used the name of the actual game show in its title.
     const selected = [title, file, item.meta?.title].filter(Boolean).join(' ').replace(/[_-]+/g, ' ');
     if (/\b(?:strike it rich with (?:these|your) coins|coin collecting|coin roll hunting|(?:washington )?quarters? worth (?:huge )?money)\b/i.test(selected)) return false;
@@ -11849,7 +11856,7 @@ async function getIaQueue(request, url, env, ctx) {
     ...(["77","78","79"].includes(channel) ? { stationSportsPolicy: channel === "79" ? "recreation-matches-6131" : "final-sports-programs-6130" } : {}),
     ...(["131", "502", "575", "709"].includes(channel) ? { reviewedArchiveFiles: ["502", "709"].includes(channel) ? "743" : "742" } : {}),
     ...(["2", "3", "10"].includes(channel) ? { stationPolicy: "classic-broadcast-catalog-760" } : {}),
-    ...(["11", "12", "13"].includes(channel) ? { stationPolicy: "reruns-games-commercials-761" } : {}),
+    ...(["11", "12", "13"].includes(channel) ? { stationPolicy: "reruns-games-commercials-762" } : {}),
     ...(channel === "22" ? { stationPolicy: "adult-game-shows-2" } : {}) };
   const familyFingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count, contentPolicy: IA_GLOBAL_VIDEO_POLICY_VERSION, ...fileContract });
   const lastGoodDigest = await stableKey(familyFingerprint);

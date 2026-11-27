@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · Retro Cable 7.5.7</title>
+<title>REALSIGNAL · Retro Cable 7.5.8</title>
 <meta name="realsignal-ia-repair-channels" content="*">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
@@ -1727,7 +1727,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
 <script src="assets/weather-networks.js?v=7.0.0"></script>
 <link rel="stylesheet" href="assets/weather-local.css?v=7.0.0">
 <script src="assets/weather-local.js?v=7.0.0"></script>
-<script src="assets/source-program-policy.js?v=7.5.7"></script>
+<script src="assets/source-program-policy.js?v=7.5.8"></script>
 <script src="assets/peertube-media.js?v=7.0.0"></script>
 </head>
 <body>
@@ -1741,7 +1741,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="7.5.7-mobile-retro-cable";
+window.__ATV_BUILD="7.5.8-mobile-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -9509,6 +9509,8 @@ async function v2ServerSourceCatalog(profile,rotation,force){
   var base=String(typeof IA_API_BASE!=="undefined"?IA_API_BASE:"").replace(/\/$/,"");
   if(!/^https?:\/\//i.test(base))return {provider:"Server Catalog",items:[],health:{skipped:true,reason:"source API unavailable"}};
   var recent=v2Recent(profile.name).slice(0,1024),body={profileKey:profile.profileKey,count:5,rotation:Number(rotation)||0,recentIds:recent,recentSeries:v2RecentSeries(profile.name).slice(0,24),playedIds:(profile.profileKey==="film-noir-desk"?recent.filter(function(id){return !/^noir:/.test(id);}):recent).slice(0,8),minimumReady:12,staleReady:1};
+  // The opt-in pilot has local history until its titles enter the server catalog.
+  if(profile.profileKey==="documentary-desk")body.playedIds=body.playedIds.filter(id=>!window.RealSignalSourcePrograms?.documentaryPilot?.has(id));
   if(profile.personalRotation===true)body.recentProgramKeys=store.get("v2recentPrograms:"+profile.name,[]);
   if(force)body.refresh=true;
   try{
@@ -9535,18 +9537,28 @@ function resetArchiveWarRouteRejection(profile){
   }
   store.set("v2archive-war-last-hunter-direct",true);
 }
+function v2DocumentaryPilot(profile){return profile?.profileKey==="documentary-desk"&&new URLSearchParams(location.search).get("documentaryDirect")==="1"&&!document.body.classList.contains("cast-receiver")&&!window.__rsCastIsConnected?.()?window.RealSignalSourcePrograms?.documentaryPilot:null;}
+async function playDocumentaryPilot(item,ch,sl,my){
+  var pilot=v2DocumentaryPilot(V2_PREVIEW_PROFILES[ch.previewKey]);
+  var direct=pilot?.direct(item);
+  if(!direct)return null;
+  var started=await playFile(direct,ch,sl,my,false,{startDeadline:Date.now()+5500,privateStart:true});
+  return started&&my===token&&powered&&curNum===ch.num&&!window.__rsCastIsConnected?.()?direct:null;
+}
 async function v2LoadProfile(ch,profile,my,force=false){
   if(profile.profileKey==="ia-war-movies")resetArchiveWarRouteRejection(profile);
   var key=profile.name,state=v2PreviewState[ch.num]||(v2PreviewState[ch.num]={items:[],cursor:0,currentTitle:"",provider:"SOURCE PILOT"});
   var sourceAudit=window.__rsPlaybackAudit&&window.__rsPlaybackAudit.source(ch.num);
   if(sourceAudit)sourceAudit("load-enter",{items:state.items.length,inflight:!!v2PreviewInflight[key]});
   if(v2PreviewInflight[key])return v2PreviewInflight[key];
+  var pilot=profile.profileKey==="documentary-desk"?v2DocumentaryPilot(profile):null;
+  var catalogKey="v2source:"+key+(pilot?":direct-pilot":"");
   v2PruneSourcePrograms(profile,state);
 
   var isOK=/^ok-/.test(profile.profileKey),isVimeo=/^vimeo-/.test(profile.profileKey);
   function qualify(items,fromCache){
     return items.map(function(item){return isOK?window.RealSignalOKEmbed.normalize(item):item;}).filter(function(item){
-      return item&&(!isOK||window.RealSignalOKEmbed.qualify(profile,item))&&(!isVimeo||v2VimeoVerified(profile,item))&&
+      return item&&!pilot?.isCopy(item)&&(!isOK||window.RealSignalOKEmbed.qualify(profile,item))&&(!isVimeo||v2VimeoVerified(profile,item))&&
         (!fromCache||isOK||isVimeo||v2CandidateRelevant(profile,item))&&
         v2SourceProgramAllowed(profile,item)&&v2Landscape(item)&&v2ProfileRuntimeOkay(item,profile);
     });
@@ -9556,6 +9568,11 @@ async function v2LoadProfile(ch,profile,my,force=false){
     return items.some(function(item){return !recent.has(String(item.id||""));});
   }
   function install(items){
+    if(pilot){
+      var recent=new Set(v2Recent(key));
+      var unseenPilot=items.filter(function(item){return pilot.has(item.id)&&!recent.has(item.id);});
+      items=v2Unique(unseenPilot.concat(items));
+    }
     var current=String(state.pendingId||state.items[Number(state.cursor||0)%state.items.length]?.id||state.currentId||"");
     if(isOK)items=window.RealSignalOKEmbed.order(profile,items);
     var cursor=items.findIndex(function(item){return String(item.id||"")===current;});
@@ -9575,15 +9592,16 @@ async function v2LoadProfile(ch,profile,my,force=false){
     state.okStartupItems=v2Unique((state.okStartupItems||[]).concat(items)).filter(function(item){return cooling.has(String(item.id));});
     return state.okStartupItems;
   }
-  var cached=store.get("v2source:"+key,null),cacheValid=!!cached&&Number(cached.version||0)===V2_SOURCE_CACHE_VERSION;
+  var cached=store.get(catalogKey,null)||(pilot?store.get("v2source:"+key,null):null),cacheValid=!!cached&&Number(cached.version||0)===V2_SOURCE_CACHE_VERSION;
   var cachedItems=Array.isArray(cached&&cached.items)?qualify(cached.items,true):[];
   if(cacheValid&&isOK)keepCoolingItems(cachedItems);
   var cachePruned=Array.isArray(cached?.items)&&cachedItems.length!==cached.items.length;
   var cacheFresh=!force&&cacheValid&&!(cachePruned&&profile.profileKey==="ia-war-movies")&&cachedItems.length>=V2_SOURCE_MIN_CATALOG&&Date.now()-Number(cached.at||0)<V2_SOURCE_CACHE_TTL;
   if(sourceAudit)sourceAudit("cache-read",{retained:cachedItems.length,stateItems:state.items.length,fresh:cacheFresh});
   if(cachePruned)
-    store.set("v2source:"+key,Object.assign({},cached,{items:cachedItems}));
-  if(cacheValid&&!state.items.length&&unseen(cachedItems)){
+    store.set(catalogKey,Object.assign({},cached,{items:cachedItems}));
+  if(pilot)cachedItems=v2Unique(pilot.items().concat(cachedItems));
+  if((cacheValid||pilot)&&!state.items.length&&unseen(cachedItems)){
     var ready=v2CatalogOrder(key,cachedItems.slice(),profile.profileKey);
     if(unseen(ready)){
       install(ready);
@@ -9604,7 +9622,7 @@ async function v2LoadProfile(ch,profile,my,force=false){
     if((!isOK&&!isVimeo||profile.personalRotation===true)&&!result?.health?.error)state.catalogExhausted=catalogExhausted;
     if(items.length&&(state.items.length||unseen(items)||catalogExhausted)){
       install(items);
-      if(discovered.length)store.set("v2source:"+key,{version:V2_SOURCE_CACHE_VERSION,at:Date.now(),items:cooling.length?state.items.slice(0,readyLimit).concat(cooling):state.items,health:state.health});
+      if(discovered.length)store.set(catalogKey,{version:V2_SOURCE_CACHE_VERSION,at:Date.now(),items:cooling.length?state.items.slice(0,readyLimit).concat(cooling):state.items,health:state.health});
       refreshGuideData();
       if(sourceAudit)sourceAudit("catalog-published",{count:state.items.length,provider:result.provider});
     }
@@ -9737,7 +9755,10 @@ async function tuneV2Preview(ch,sl,my,requestedProgramId){
   }
   var attempts=0;
   function v2CastItem(item){return item&&item.type==="embed"?Object.assign({},item,{type:"video",embedded:true,castEmbed:true}):item;}
-while(state.items.length&&attempts<Math.min(V2_SOURCE_READY_BUFFER+3,state.items.length)){if(my!==token)return;var index=state.cursor%state.items.length,item=state.items[index],pl=item.type==="archive"?await resolvePlayable(item.id):item;if(pl&&/peertube/i.test(String(item.provider||""))&&window.RealSignalPeerTubeMedia&&window.RealSignalPeerTubeMedia.fragment(pl.url)){try{pl=await window.RealSignalPeerTubeMedia.resolve(pl,function(url){return withTO(fetch(url,{mode:"cors"}).then(function(r){if(!r.ok)throw Error("PeerTube metadata "+r.status);return r.json();}),3500);});if(my!==token)return;item.url=pl.url;}catch(e){pl=null;}}if(my!==token)return;if(pl){state.pendingId=String(item.id||"");pl.title=item.title;pl.year=item.year;pl.id=pl.id||item.id;pl.meta=Object.assign({},pl.meta||{},item.meta||{source:item.provider});var played=item.type==="embed"&&!(typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected())?await playV2Embed(pl,ch,sl,my):await (profile.profileKey==="ia-war-movies"?playArchiveWarFilm:playFile)(v2CastItem(pl),ch,sl,my,false);if(my!==token)return;if(played===null)return;state.pendingId="";if(played){if(item.provider!=="Vimeo"&&item.provider!=="OK.ru"&&(item.provider!=="YouTube"||!v2YouTubeSDKEnabled()||typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected()))v2Remember(profile.name,item);state.currentTitle=item.title;state.currentDuration=Number(item.duration)||0;state.currentId=item.id||"";state.provider=item.provider;if(profile.profileKey==="ia-war-movies")warmArchiveWarNext(ch,profile,state,state.currentId,my);refreshGuideData();setChanStatus(ch.num,"BUFFER "+Math.min(V2_SOURCE_READY_BUFFER,state.items.length)+" / "+state.items.length+" CATALOG · "+item.provider);return;}}if(profile)v2Reject(profile.name,item);if(item&&item.meta){item.meta.verification=Object.assign({},item.meta.verification||{},{playback:false,failedAt:Date.now()});}var failedIndex=state.items.findIndex(function(candidate){return String(candidate&&candidate.id||"")===String(item&&item.id||"");});if(failedIndex<0)failedIndex=index;state.items.splice(failedIndex,1);if(state.items.length)state.cursor=state.cursor%state.items.length;attempts++;if(profile.personalRotation===true&&v2FreshCursor(profile,state)<0)break;}
+while(state.items.length&&attempts<Math.min(V2_SOURCE_READY_BUFFER+3,state.items.length)){if(my!==token)return;var index=state.cursor%state.items.length,item=state.items[index],pl=item.type==="archive"?await resolvePlayable(item.id):item;if(pl&&/peertube/i.test(String(item.provider||""))&&window.RealSignalPeerTubeMedia&&window.RealSignalPeerTubeMedia.fragment(pl.url)){try{pl=await window.RealSignalPeerTubeMedia.resolve(pl,function(url){return withTO(fetch(url,{mode:"cors"}).then(function(r){if(!r.ok)throw Error("PeerTube metadata "+r.status);return r.json();}),3500);});if(my!==token)return;item.url=pl.url;}catch(e){pl=null;}}if(my!==token)return;if(pl){state.pendingId=String(item.id||"");pl.title=item.title;pl.year=item.year;pl.id=pl.id||item.id;pl.meta=Object.assign({},pl.meta||{},item.meta||{source:item.provider});var direct=profile.profileKey==="documentary-desk"?await playDocumentaryPilot(pl,ch,sl,my):null;
+    if(my!==token)return;
+    var activeProvider=direct?.provider||item.provider;
+    var played=direct?true:item.type==="embed"&&!(typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected())?await playV2Embed(pl,ch,sl,my):await (profile.profileKey==="ia-war-movies"?playArchiveWarFilm:playFile)(v2CastItem(pl),ch,sl,my,false);if(my!==token)return;if(played===null)return;state.pendingId="";if(played){if(activeProvider!=="Vimeo"&&activeProvider!=="OK.ru"&&(activeProvider!=="YouTube"||!v2YouTubeSDKEnabled()||typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected()))v2Remember(profile.name,item);state.currentTitle=item.title;state.currentDuration=Number(item.duration)||0;state.currentId=item.id||"";state.provider=activeProvider;if(profile.profileKey==="ia-war-movies")warmArchiveWarNext(ch,profile,state,state.currentId,my);refreshGuideData();setChanStatus(ch.num,"BUFFER "+Math.min(V2_SOURCE_READY_BUFFER,state.items.length)+" / "+state.items.length+" CATALOG · "+activeProvider);return;}}if(profile)v2Reject(profile.name,item);if(item&&item.meta){item.meta.verification=Object.assign({},item.meta.verification||{},{playback:false,failedAt:Date.now()});}var failedIndex=state.items.findIndex(function(candidate){return String(candidate&&candidate.id||"")===String(item&&item.id||"");});if(failedIndex<0)failedIndex=index;state.items.splice(failedIndex,1);if(state.items.length)state.cursor=state.cursor%state.items.length;attempts++;if(profile.personalRotation===true&&v2FreshCursor(profile,state)<0)break;}
   state.currentTitle="";setChanStatus(ch.num,state.items.length?"QUEUE RETRYING · BUFFER "+Math.min(V2_SOURCE_READY_BUFFER,state.items.length)+" / "+state.items.length+" CATALOG":"SOURCE CATALOG RETRYING");showOv("SOURCE SUITE","RECONNECTING","The source catalog is retrying — no permanent channel failure.");clearTimeout(retryTimer);retryTimer=setTimeout(function(){if(my===token&&powered)tuneNum(curNum);},2500);
 }
 function v2TuneRefreshed(ch,state,profile,currentId,my){var key=profile.name;if(v2PreviewAdvance[key])return v2PreviewAdvance[key];var load=v2LoadProfile(ch,profile,my,true),settled=v2PreviewInflight[key]||load,run=settled.then(function(){if(my!==token||!powered||curNum!==ch.num)return;var recent=v2Recent(profile.name),next=typeof v2NextFreshIndex==="function"?v2NextFreshIndex(profile,state,currentId):state.items.findIndex(function(item){var id=String(item&&item.id||"");return id&&id!==currentId&&recent.indexOf(id)<0;});if(next<0&&window.RealSignalOKEmbed.musicProfile(profile)&&state.items.some(function(item){return String(item&&item.id||"")!==currentId;})){window.__v2PreviewNext(true);return;}if(next<0){quickBanner("SOURCE SUITE · STILL FINDING NEXT PROGRAM");clearTimeout(retryTimer);retryTimer=setTimeout(function(){if(my===token&&powered&&curNum===ch.num)v2TuneRefreshed(ch,state,profile,currentId,my).catch(function(){});},2500);return;}state.cursor=next;state.currentTitle="";quickBanner("SOURCE SUITE · NEXT");tuneNum(curNum,String(state.items[next].id));});v2PreviewAdvance[key]=run.finally(function(){delete v2PreviewAdvance[key];});return v2PreviewAdvance[key];}
@@ -10367,7 +10388,7 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl,archiveHandoff){retur
   }else{try{outgoing.muted=true;}catch(e){}}
   // A pending war-film player stays private until it owns the screen.
   const warStart=archiveHandoff?.sameFileMirror;
-  const av=acquireVideo(staged,preservePicture||!!warStart), v=av.v, sig=av.sig; /* stage cold media behind the outgoing picture, then swap atomically */
+  const av=acquireVideo(staged,preservePicture||!!warStart||archiveHandoff?.privateStart===true), v=av.v, sig=av.sig; /* stage cold media behind the outgoing picture, then swap atomically */
   const sourceHls=!staged&&!isAudio&&ch&&ch.source==="v2preview"&&/peertube|nascar classics/i.test(String(it.provider||""))&&/\.m3u8(?:[?#]|$)/i.test(it.url)&&window.RealSignalPeerTubeMedia;
   if(!sourceHls&&(!staged||(learnRoute&&staged.readyState<2&&staged.src!==it.url)))v.src=it.url; v.autoplay=true; v.controls=!isAudio; v.playsInline=true; v.setAttribute("playsinline","");v.setAttribute("webkit-playsinline","");
   v.muted=muted||((Date.now()-lastGesture)>4000); /* 1.2.2: fresh gesture -> audible start; stale -> deliberate muted start, healed below */

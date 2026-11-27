@@ -93,6 +93,45 @@
         item?.type !== 'video' || item.url !== 'https://ia903202.us.archive.org' + filePath) return null;
     return { identifier:'the-last-hunter::The Last Hunter.mp4', url:'https://ia803202.us.archive.org' + filePath };
   }
+  // NASA's Apollo anniversary page links these official embeds. Each public
+  // PeerTube mirror identifies the same upload and retains the full NASA film.
+  var documentaryPilotRows = [
+    {youtubeId:'SgYrj5zJAKQ',title:'Apollo 16: Nothing So Hidden',year:1972,duration:1705,
+      peerId:'97c3d401-1358-4c85-b1de-935d77e6d9a1',playlist:'6d65dc08-2825-4d27-a290-c587b4eb62ef'},
+    {youtubeId:'DL8Ql0p2qzo',title:'Apollo 17: On the Shoulders of Giants',year:1973,duration:1710,
+      peerId:'39627eba-bc8e-4091-a0b7-bbf6f65a272c',playlist:'110dd1b8-c91f-4866-ad55-f82696689c5e'}
+  ];
+  var documentaryPeer = 'https://peertube.dngr.us';
+  function documentaryPilotRow(id) {
+    return documentaryPilotRows.find(function(row){return id==='yt:'+row.youtubeId;});
+  }
+  var documentaryPilot = {
+    items:function(){
+      return documentaryPilotRows.map(function(row){
+        var embed='https://www.youtube-nocookie.com/embed/'+row.youtubeId;
+        return {id:'yt:'+row.youtubeId,title:row.title,year:row.year,duration:row.duration,
+          description:'NASA Johnson Space Center spaceflight history documentary. Original English-language NASA film.',
+          account:'NASA Johnson Space Center',language:'en',aspectRatio:4/3,genreVerified:true,recoveryVerified:true,
+          provider:'YouTube',type:'embed',url:embed,embedUrl:embed,embedAllowed:true,
+          sourceUrl:'https://www.youtube.com/watch?v='+row.youtubeId,rights:'Standard YouTube license'};
+      });
+    },
+    has:function(id){return !!documentaryPilotRow(id);},
+    isCopy:function(item){return documentaryPilotRows.some(function(row){
+      return item?.id==='pt:peertube.dngr.us/'+row.peerId;
+    });},
+    direct:function(item){
+      var row=documentaryPilotRow(item?.id);
+      if(!row||item.provider!=='YouTube'||item.type!=='embed')return null;
+      var official='https://www.youtube-nocookie.com/embed/'+row.youtubeId;
+      if(item.url!==official||(item.embedUrl&&item.embedUrl!==official))return null;
+      return Object.assign({},item,{provider:'PeerTube',type:'video',embedUrl:'',embedAllowed:false,
+        copyId:'pt:peertube.dngr.us/'+row.peerId,meta:Object.assign({},item.meta,{source:'PeerTube'}),
+        url:documentaryPeer+'/static/streaming-playlists/hls/'+row.peerId+'/'+row.playlist+'-master.m3u8',
+        sourceUrl:documentaryPeer+'/videos/watch/'+row.peerId,
+        rights:'Public domain U.S. government work; NASA Johnson Space Center'});
+    }
+  };
   function allow(profileKey,item){
     if (profileKey === "film-noir-desk" && !noirFilmAllowed(item)) return false;
     // These retired Archive files stalled at startup. Their replacements keep the film identities.
@@ -201,6 +240,6 @@
     }
     return balanced.concat(unknown);
   }
-  return {allow:allow, warFilmProfile:warFilmProfile, balanceWarFilmEras:balanceWarFilmEras, archiveWarMirror:archiveWarMirror,
+  return {allow:allow, warFilmProfile:warFilmProfile, balanceWarFilmEras:balanceWarFilmEras, archiveWarMirror:archiveWarMirror, documentaryPilot:documentaryPilot,
     noirFilmKey:noirFilmKey, noirFilmSeats:noirFilmSeats, noirFilmRecent:noirFilmRecent, withNoirFilmYear:withNoirFilmYear};
 });

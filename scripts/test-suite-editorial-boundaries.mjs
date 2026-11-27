@@ -98,6 +98,42 @@ test('Comedy Circuit admits the performance itself across discovery, saved catal
   assert.deepEqual(Array.from(state.items,x=>x.id),expected);assert.equal(state.currentId,'');assert.equal(state.pendingId,'');
  }
 });
+test('Documentary Desk reviewed direct copies keep the official YouTube program identity',async()=>{
+ const pilot=policy.documentaryPilot;
+ assert.ok(pilot,'the reviewed pilot catalog is available to both dials');
+ const items=pilot.items(),profile=sourceProfile({profileKey:'documentary-desk'});
+ assert.equal(items.length,2);
+ for(const official of items){
+  assert.ok(qualifySourceItem(profile,official));
+  const direct=pilot.direct(official);
+  assert.ok(direct);
+  assert.equal(direct.id,official.id);assert.equal(direct.title,official.title);
+  assert.equal(direct.provider,'PeerTube');assert.equal(direct.type,'video');
+  assert.equal(direct.embedUrl,'');
+  assert.ok(direct.rights.includes('Public domain'));
+  assert.equal(pilot.direct({...official,url:'https://example.com/substitute.mp4'}),null);
+  assert.ok(pilot.isCopy({id:direct.copyId}));
+  assert.ok(!pilot.isCopy({id:official.id}));
+ }
+ for(const file of ['the_dial_desktop.html','the_dial_mobile.html']){
+  const html=fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
+  const enabled=html.match(/^function v2DocumentaryPilot\(.*$/m);
+  const play=html.match(/^async function playDocumentaryPilot\([\s\S]*?^}/m);
+  assert.ok(enabled&&play);
+  const calls=[],scope={window:{RealSignalSourcePrograms:policy},URLSearchParams,location:{search:''},token:18,powered:true,curNum:539,V2_PREVIEW_PROFILES:{"documentary-desk":profile},
+   document:{body:{classList:{contains:()=>false}}},playFile(...args){calls.push(args);return Promise.resolve(true);}};
+  vm.runInNewContext(enabled[0]+'\n'+play[0],scope);
+  const ch={num:539,previewKey:'documentary-desk'},item=items[0];
+  assert.equal(await scope.playDocumentaryPilot(item,ch,{},18),null);
+  scope.location.search='?documentaryDirect=1';
+  assert.equal((await scope.playDocumentaryPilot(item,ch,{},18)).id,item.id);
+  assert.equal(calls[0][0].provider,'PeerTube');assert.ok(calls[0][5].startDeadline>Date.now());
+  scope.playFile=async()=>false;
+  assert.equal(await scope.playDocumentaryPilot(item,ch,{},18),null,'native failure leaves the official program available');
+  scope.window.__rsCastIsConnected=()=>true;
+  assert.equal(await scope.playDocumentaryPilot(item,ch,{},18),null);
+ }
+});
 for(const [key,title] of observed)test(key+': observed podcast cannot enter fresh or cached playback',()=>{
  const item=program(title);assert.equal(policy.allow(key,item),false);
  assert.equal(qualifySourceItem(sourceProfile({profileKey:key}),item),null);

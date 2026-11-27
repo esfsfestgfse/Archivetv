@@ -9552,8 +9552,9 @@ async function v2LoadProfile(ch,profile,my,force=false){
   if(sourceAudit)sourceAudit("load-enter",{items:state.items.length,inflight:!!v2PreviewInflight[key]});
   if(v2PreviewInflight[key])return v2PreviewInflight[key];
   var pilot=profile.profileKey==="documentary-desk"?v2DocumentaryPilot(profile):null;
-  var catalogKey="v2source:"+key+(pilot?":direct-pilot":"");
-  var cacheVersion=V2_SOURCE_CACHE_VERSION+(window.RealSignalSourcePrograms?.warFilmProfile?.(profile.profileKey)?1:0);
+  // Refill old war shelves once from the viewer-specific catalog.
+  var warCatalog=window.RealSignalSourcePrograms?.warFilmProfile?.(profile.profileKey);
+  var catalogKey="v2source:"+key+(pilot?":direct-pilot":warCatalog?":personal-era":"");
   v2PruneSourcePrograms(profile,state);
 
   var isOK=/^ok-/.test(profile.profileKey),isVimeo=/^vimeo-/.test(profile.profileKey);
@@ -9593,7 +9594,7 @@ async function v2LoadProfile(ch,profile,my,force=false){
     state.okStartupItems=v2Unique((state.okStartupItems||[]).concat(items)).filter(function(item){return cooling.has(String(item.id));});
     return state.okStartupItems;
   }
-  var cached=store.get(catalogKey,null)||(pilot?store.get("v2source:"+key,null):null),cacheValid=!!cached&&Number(cached.version||0)===cacheVersion;
+  var cached=store.get(catalogKey,null)||(pilot?store.get("v2source:"+key,null):null),cacheValid=!!cached&&Number(cached.version||0)===V2_SOURCE_CACHE_VERSION;
   var cachedItems=Array.isArray(cached&&cached.items)?qualify(cached.items,true):[];
   if(cacheValid&&isOK)keepCoolingItems(cachedItems);
   var cachePruned=Array.isArray(cached?.items)&&cachedItems.length!==cached.items.length;
@@ -9623,7 +9624,7 @@ async function v2LoadProfile(ch,profile,my,force=false){
     if((!isOK&&!isVimeo||profile.personalRotation===true)&&!result?.health?.error)state.catalogExhausted=catalogExhausted;
     if(items.length&&(state.items.length||unseen(items)||catalogExhausted)){
       install(items);
-      if(discovered.length)store.set(catalogKey,{version:cacheVersion,at:Date.now(),items:cooling.length?state.items.slice(0,readyLimit).concat(cooling):state.items,health:state.health});
+      if(discovered.length)store.set(catalogKey,{version:V2_SOURCE_CACHE_VERSION,at:Date.now(),items:cooling.length?state.items.slice(0,readyLimit).concat(cooling):state.items,health:state.health});
       refreshGuideData();
       if(sourceAudit)sourceAudit("catalog-published",{count:state.items.length,provider:result.provider});
     }

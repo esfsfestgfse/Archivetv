@@ -45,13 +45,13 @@ async function catalogFixture(rows) {
   return f;
 }
 
-// Queue-policy fixtures use the general TV lane; the race-only lane must reject Benson.
+// Queue mechanics use an unrestricted station so genre admission cannot obscure the behavior under test.
 test('standard IA fast catalogs reject cached podcasts, fan productions and portraits without requiring unknown metadata',async()=>{
   const bad=[row('podcast.mp4',{title:'A Bud & A Bowl Show HD 420 Podcast Winter Camping'}),row('fan.mp4',{title:'A Fanmade Movie'}),
     row('portrait.mp4',{title:'Police vs Fire Boxing Tourny #shorts',media:{type:'video',url:'https://archive.org/download/boxing/short.mp4',runtime:1320,width:360,height:640}})];
   const unknown=row('unknown.mp4',{title:'Original full sports program',media:{type:'video',url:'https://archive.org/download/benson/unknown.mp4'}});
   const f=await catalogFixture([...bad,unknown,...Array.from({length:18},(_,i)=>row('good-'+i+'.mp4'))]);
-  const p=await(await f.request('queue',{channel:'2',serverCatalog:true,sessionId:'global-video-policy',count:3,viewerRecentIds:[]})).json();
+  const p=await(await f.request('queue',{channel:'205',serverCatalog:true,sessionId:'global-video-policy',count:3,viewerRecentIds:[]})).json();
   assert.equal(p.items.length,3);assert.ok(p.candidateItems.every(item=>!bad.some(b=>b.identifier===item.identifier)),'old D1 rows cannot bypass global TV policy');
   assert.ok(p.candidateItems.some(item=>item.identifier===unknown.identifier),'missing metadata is not proof of forbidden content');
   await Promise.all(f.pending);
@@ -134,9 +134,9 @@ test('qualification does not mistake studio satire or a collection folder called
 });
 
 test('standard IA rotation prunes forbidden rows already stored in its durable catalog',async()=>{
-  const f=await catalogFixture(Array.from({length:18},(_,i)=>row('clean-'+i+'.mp4'))),old=f.env.ROTATION.getByName('session:old-podcast:channel:2');
+  const f=await catalogFixture(Array.from({length:18},(_,i)=>row('clean-'+i+'.mp4'))),old=f.env.ROTATION.getByName('session:old-podcast:channel:205');
   await old.ctx.storage.put('rotation',{catalog:[row('podcast.mp4',{title:'Motor Sport Video Podcast'})],seen:[],cursor:0});
-  const p=await(await f.request('queue',{channel:'2',serverCatalog:true,sessionId:'old-podcast',count:3,viewerRecentIds:[]})).json();
+  const p=await(await f.request('queue',{channel:'205',serverCatalog:true,sessionId:'old-podcast',count:3,viewerRecentIds:[]})).json();
   assert.equal(p.items.length,3);assert.ok(p.candidateItems.every(item=>! /podcast/i.test(item.title)));
   await Promise.all(f.pending);
 });
@@ -713,11 +713,11 @@ test('large IA session catalogs preserve the seen ledger within real storage val
   for(const value of ctx.data.values())assert.ok(Buffer.byteLength(JSON.stringify(value))<128*1024);
 });
 
-// Queue mechanics use the Benson fixture on a general TV lane, not NFL-only Hard Count.
+// Keep the queue mechanics fixtures separate from station-specific admission.
 test('resolved upstream IA shelf survives a separate metadata-only candidate list',async()=>{
   const f=await fixture(),items=[row('ready-A.mp4'),row('ready-B.mp4'),row('ready-C.mp4')];
   f.env.RELAY.fetch=async()=>Response.json({ready:3,items,candidateItems:Array.from({length:96},(_,i)=>row('pending-'+i+'.mp4',{media:{type:'video',url:''}}))});
-  const payload=await(await f.request('queue',{channel:'2',serverCatalog:true,sessionId:'separate-ready',count:3})).json();
+  const payload=await(await f.request('queue',{channel:'205',serverCatalog:true,sessionId:'separate-ready',count:3})).json();
   assert.equal(payload.ready,3);assert.deepEqual(new Set(payload.items.map(x=>x.identifier)),new Set(items.map(x=>x.identifier)));
   await Promise.all(f.pending);
 });
@@ -725,7 +725,7 @@ test('resolved upstream IA shelf survives a separate metadata-only candidate lis
 test('one resolved IA item stays playable during rotation outage without padding readiness with metadata',async()=>{
   const f=await fixture();delete f.env.ROTATION;
   f.incoming([row('A-pending.mp4',{media:{type:'video',url:''}}),row('B-pending.mp4',{media:{type:'video',url:''}}),row('Z-ready.mp4')]);
-  const payload=await (await f.request('queue',{channel:'2',serverCatalog:true,sessionId:'outage',count:3})).json();
+  const payload=await (await f.request('queue',{channel:'205',serverCatalog:true,sessionId:'outage',count:3})).json();
   assert.equal(payload.ready,1);
   assert.deepEqual(payload.items.map(x=>x.identifier),['benson::Z-ready.mp4']);
   assert.equal(payload.candidateItems.length,3);
@@ -735,7 +735,7 @@ test('one resolved IA item stays playable during rotation outage without padding
 test('outage fallback prefers a resolved recent item over an unresolved unseen catalog',async()=>{
   const f=await fixture();delete f.env.ROTATION;
   f.incoming([...Array.from({length:4},(_,i)=>row('pending-'+i+'.mp4',{media:{type:'video',url:''}})),row('ready.mp4')]);
-  const payload=await(await f.request('queue',{channel:'2',serverCatalog:true,sessionId:'recent-outage',recentIds:['benson::ready.mp4'],count:3})).json();
+  const payload=await(await f.request('queue',{channel:'205',serverCatalog:true,sessionId:'recent-outage',recentIds:['benson::ready.mp4'],count:3})).json();
   assert.equal(payload.ready,1);assert.equal(payload.items[0].identifier,'benson::ready.mp4');
   await Promise.all(f.pending);
 });
@@ -753,7 +753,7 @@ test('standard IA shelves balance available series instead of selecting three ep
   const rows=['show-A','show-B','show-C'].flatMap(seriesId=>Array.from({length:8},(_,i)=>row(seriesId+'-'+i+'.mp4',{seriesId})));
   f.incoming(rows);const seen=new Set();
   for(let rotation=0;rotation<4;rotation++){
-    const payload=await(await f.request('queue',{channel:'2',serverCatalog:true,sessionId:'standard-series',count:3,rotation,diversity:{maxPerFamily:1}})).json();
+    const payload=await(await f.request('queue',{channel:'205',serverCatalog:true,sessionId:'standard-series',count:3,rotation,diversity:{maxPerFamily:1}})).json();
     assert.equal(payload.items.length,3);assert.equal(new Set(payload.items.map(x=>x.seriesId)).size,3);
     for(const item of payload.items){assert.ok(!seen.has(item.identifier));seen.add(item.identifier);}
   }
@@ -777,7 +777,7 @@ test('generic non-IA rotation retains its existing selection when given diversit
 test('an unresolved-only IA catalog reports zero ready without discarding discovery',async()=>{
   const f=await fixture();
   f.incoming([row('A.mp4',{media:{type:'video',url:''}}),row('B.mp4',{media:{type:'video',url:''}})]);
-  const payload=await (await f.request('queue',{channel:'2',serverCatalog:true,sessionId:'pending-only',count:3})).json();
+  const payload=await (await f.request('queue',{channel:'205',serverCatalog:true,sessionId:'pending-only',count:3})).json();
   assert.equal(payload.ready,0);assert.equal(payload.items.length,0);assert.equal(payload.candidateItems.length,2);
   await Promise.all(f.pending);
 });

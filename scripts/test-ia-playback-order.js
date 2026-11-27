@@ -831,7 +831,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file 
   assert.equal(await scope.playFile(watched, ch), true, 'the normal fallback keeps its current behavior');
 });
 
-for (const [channel, query] of [['502', '?iaProgramIdentity=1'], ['108', '']]) test(channel + ': opens with three reservations and fills backup slots in the background', async () => {
+for (const [channel, query] of [['502', '?iaProgramIdentity=1'], ['108', ''], ['2', ''], ['3', ''], ['10', '']]) test(channel + ': opens with three reservations and fills backup slots in the background', async () => {
   const requests = [];
   const pilot = runtime(query, '*');
   assert.equal(runtime('?castReceiver=1', '*').readyBackup(channel), false);

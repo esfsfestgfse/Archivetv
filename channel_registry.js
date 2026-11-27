@@ -425,7 +425,7 @@ export const CHANNEL_META={
 "Christmas Cartoon & TV":{desc:"SOURCE SUITE · long-form Christmas cartoons and family TV specials — no music-only or short-form clips.",rel:["Holiday Cartoon & TV Club","Family TV Club"]},
 "Halloween Movie House":{desc:"SOURCE SUITE · long-form Halloween, monster and seasonal horror movies.",rel:["Horror House","Holiday Movie House"]},
 "Halloween Cartoon & TV":{desc:"SOURCE SUITE · long-form Halloween cartoons and spooky family television specials.",rel:["Cartoon Time Machine","Halloween Movie House"]},
-"Channel 2 Network":{desc:"Full-service network affiliate: cartoons at dawn, matinees at noon, primetime at night.",best:"all day",rel:["Nite-Owl 3","Classic Rerun TV"]},
+"Channel 2 Network":{desc:"American network television from 1950 to 1969, including sitcoms, variety, anthology drama, quizzes, and public affairs.",best:"all day",rel:["Nite-Owl 3","Classic Rerun TV"]},
 "Nite-Owl 3":{desc:"The overnight-flavored sister station. Noir, mystery and late movies lean heavier here.",best:"late night",rel:["Channel 2 Network","Noir & Mystery"]},
 "Classic Cartoons":{desc:"Golden-age theatrical animation, 1930s-1972.",best:"mornings",rel:["Classic Cartoons","Anime Alley"]},
 "Anime Alley":{desc:"Japanese animation from early classics to the VHS-dub era.",best:"evenings",rel:["Classic Cartoons","VHS Vault"]},

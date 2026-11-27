@@ -465,13 +465,13 @@ export class SessionRotation {
     };
     const fileIds = rows => new Map([...current.catalog, ...rows].map(item => [itemId(item),anExactFile(item)]));
     let canonicalIds = copyAware ? fileIds(incoming) : null;
-    const canonicalId = id => canonicalIds.get(id) || id;
+    const canonicalId = id => canonicalIds?.get(id) || id;
     const copyKey = item => {
       const raw = typeof item === 'string' ? item : itemId(item);
       return copyAware ? canonicalId(raw) : keyFor(canonicalId(raw));
     };
     const requestedDeferrals = body.rules?.warmDeferredIds || body.warmDeferredIds;
-    const deferred = new Set((channel === '108' || pilot && channel === '502') && body.mode === 'reserve' && Array.isArray(requestedDeferrals)
+    const deferred = new Set((['2', '3', '10', '108'].includes(channel) || pilot && channel === '502') && body.mode === 'reserve' && Array.isArray(requestedDeferrals)
       ? requestedDeferrals.slice(0,32).filter(id => typeof id === 'string' && id.length > 0 && id.length <= 500).map(copyKey)
       : []);
     const rejectionKey = copyAware ? copyKey : keyFor;
@@ -497,7 +497,7 @@ export class SessionRotation {
       : id => catalog.find(item => keyFor(item) === keyFor(id));
     const reservedRows = (current.reserved || []).map(findCopy).filter(item => {
       const id = itemId(item);
-      return item && (copyAware ? available(item) && !deferred.has(copyKey(item)) : !cooldowns[keyFor(canonicalId(id))])
+      return item && !deferred.has(copyKey(item)) && (copyAware ? available(item) : !cooldowns[keyFor(canonicalId(id))])
         && keyFor(canonicalId(id)) !== keyFor(canonicalId(current.playing)) && !hasSeen(id);
     });
     let reserved = copyAware ? [...firstCopyPerProgram(reservedRows,keyFor).values()].map(itemId)
@@ -539,9 +539,9 @@ export class SessionRotation {
     }
     const count = Math.max(1, Math.min(5, Number(body.count) || 3));
     const recent = new Set((Array.isArray(body.recentIds) ? body.recentIds : []).map(id => keyFor(canonicalId(id))));
-    const playable = catalog.filter(item => keyFor(item) !== keyFor(canonicalId(current.playing)) && available(item));
+    const playable = catalog.filter(item => keyFor(item) !== keyFor(canonicalId(current.playing)) && available(item) && !deferred.has(copyKey(item)));
     const preferred = new Map(reserved.map(id => [keyFor(id),id]));
-    const eligible = copyAware ? [...firstCopyPerProgram(playable.filter(item => !deferred.has(copyKey(item))),keyFor,preferred).values()] : playable;
+    const eligible = copyAware ? [...firstCopyPerProgram(playable,keyFor,preferred).values()] : playable;
     let fresh = eligible.filter(item => !hasSeen(itemId(item)));
     /* Exact-episode freshness is necessary but not sufficient for television.
        A 500-item catalog can still feel repetitive when the next shelf chooses

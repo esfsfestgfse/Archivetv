@@ -276,6 +276,17 @@ export function iaReviewedFileAllowed(item, channel) {
 
   const station = String(channel);
   const title = String(item.title || '');
+  if (station === '12') {
+    // A numismatic video used the name of the actual game show in its title.
+    const selected = [title, file, item.meta?.title].filter(Boolean).join(' ').replace(/[_-]+/g, ' ');
+    if (/\b(?:strike it rich with (?:these|your) coins|coin collecting|coin roll hunting|(?:washington )?quarters? worth (?:huge )?money)\b/i.test(selected)) return false;
+  }
+  if (station === '13') {
+    // A complete show can carry original ads without being an ad reel.
+    const selected = [title, file, item.meta?.title].filter(Boolean).join(' ').replace(/[_-]+/g, ' ');
+    if (/\b(?:full (?:episode|broadcast|game|match|film|movie)|with (?:original )?commercials|commercials included)\b/i.test(selected)
+      && !/\b(?:(?:commercial|advertising|ad) (?:breaks?|blocks?|reels?|compilation)|compilation of (?:tv )?commercials)\b/i.test(selected)) return false;
+  }
   if (station === '2') {
     if (/^brian-hendersons-bandstand(?:-|$)/i.test(source)) return false;
     // A collection tag cannot turn a modern broadcast into vintage network TV.

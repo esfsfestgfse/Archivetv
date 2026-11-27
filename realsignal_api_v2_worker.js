@@ -2073,7 +2073,9 @@ async function handleQueue(request, env, ctx, id) {
       const fastCatalog = await catalogFallback(env, body, catalogLimit, { ignoreFreshness: true });
       const fastDepthFloor = IA_BROAD_STATION_FAST_DEPTH.get(String(body.channel)) || IA_MIN_ROLLING_CATALOG_DEPTH;
       const fastDepth = Array.isArray(fastCatalog && fastCatalog.candidateItems) ? fastCatalog.candidateItems.filter(queueItemPlayable).length : 0;
-      const emergencyShelfOnly = fastDepth > 0 && fastDepth <= count + 1;
+      // Commercials used to recycle a three-title D1 emergency shelf indefinitely.
+      const deepenCommercials = String(body.channel) === "13" && body.sessionRefill === true;
+      const emergencyShelfOnly = fastDepth > 0 && fastDepth <= count + 1 && !deepenCommercials;
       if (fastCatalog && Array.isArray(fastCatalog.items) && fastCatalog.items.length
         && Array.isArray(fastCatalog.candidateItems) && (emergencyShelfOnly || fastDepth >= fastDepthFloor)) {
         // Fifteen ready records prove availability, not catalog completeness.

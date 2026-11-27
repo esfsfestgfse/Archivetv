@@ -145,7 +145,7 @@ function classicProgramKey(item, channel) {
   const { sourceIdentifier, fileName, logicalId } = item;
   const title = String(item.title || '');
   const series = familyId(item);
-  if (!series || series === normalizedFamily(sourceIdentifier)) return logicalId;
+  if (!series || series === normalizedFamily(sourceIdentifier) && !(channel === '11' && normalizedFamily(item.seriesTitle) === series)) return logicalId;
   const text = [fileName, title].join(' ').replace(/[_.-]+/g, ' ');
   if (/\b(?:(?:part|disc|volume)\s+\d+|compilation|marathon|double feature)\b/i.test(text)) return logicalId;
   if (channel === '2' || channel === '12') {
@@ -164,7 +164,11 @@ function classicProgramKey(item, channel) {
   return logicalId;
 }
 
-function classicDecade(item) {
+function classicDecade(item, channel) {
+  if (channel === '11' || channel === '13') {
+    const year = Number(item.broadcastYear || item.year);
+    return Number.isInteger(year) && year >= 1930 && year <= 2026 ? Math.floor(year / 10) * 10 : 0;
+  }
   const text = [item.broadcastYear, item.fileName, item.title, item.year].join(' ');
   const year = Number(text.match(/(?:^|[^0-9])(19[2-8]\d)(?=[^0-9]|$)/)?.[1]);
   return year ? Math.floor(year / 10) * 10 : 0;
@@ -235,7 +239,7 @@ function archiveProgramKey(record, channel) {
     }
   }
   if (channel === '3') return archiveFilmKey(record) || logicalId;
-  return ['2', '10', '12', '150'].includes(channel) ? classicProgramKey(record,channel) : logicalId;
+  return ['2', '10', '11', '12', '150'].includes(channel) ? classicProgramKey(record,channel) : logicalId;
 }
 
 function firstCopyPerProgram(rows, keyFor, preferred = new Map()) {
@@ -436,7 +440,7 @@ export class SessionRotation {
   async reservation(body) {
     const current = await this.state(MAX_RESERVATION_ITEMS);
     const channel = String(body.rules?.channel || body.stationChannel || '');
-    const classic = ['2', '10', '12', '150'].includes(channel);
+    const classic = ['2', '10', '11', '12', '150'].includes(channel);
     const pilot = archiveIdentityPilot(channel, body.archiveProgramIdentity || body.rules?.archiveProgramIdentity);
     const movie = channel === '3' || archiveMovieChannel(channel);
     const copyAware = pilot || movie;
@@ -575,15 +579,15 @@ export class SessionRotation {
         pools = pools.map(pool => pool.filter(item => !slow(item)))
           .concat(pools.map(pool => pool.filter(slow)));
       }
-      if (classic) {
+      if (classic || channel === '13') {
         const lastDecade = new Map();
         [...seen].forEach((id, index) => {
           const item = catalogByEpisode.get(keyFor(id));
-          const decade = item && classicDecade(item);
+          const decade = item && classicDecade(item, channel);
           if (decade) lastDecade.set(decade, index);
         });
         const eraPriority = item => {
-          const decade = classicDecade(item);
+          const decade = classicDecade(item, channel);
           return decade ? lastDecade.get(decade) ?? -1 : seen.size + 1;
         };
         for (const pool of pools) pool.sort((a,b) => eraPriority(a) - eraPriority(b));

@@ -881,6 +881,34 @@ test('Source Suite personal history can reach older unseen rows even without ser
   }finally{f.db.close();}
 });
 
+test('different Archive copies of the same Modern Rerun TV episode share one identity', async () => {
+  const { archiveProgramIdentity } = await import('../realsignal_api_rotation.js');
+  const first = { identifier:'freakylinks::FreakyLinks S01E04.mp4', title:'FreakyLinks · Subject Coelacanth', seriesTitle:'FreakyLinks' };
+  const anotherCopy = { ...first, identifier:'freakylinks-complete-series-2000::Freakylinks S01E04.ia.mp4' };
+  const sibling = { ...first, identifier:'freakylinks-complete-series-2000::FreakyLinks S01E05.mp4' };
+  assert.equal(archiveProgramIdentity(first,'11'),archiveProgramIdentity(anotherCopy,'11'));
+  assert.notEqual(archiveProgramIdentity(first,'11'),archiveProgramIdentity(sibling,'11'));
+});
+
+test('Vintage Commercials imports unseen spots before recycling a three-item D1 shelf', async () => {
+  const commercial = i => row('ad-'+i+'.mp4',{title:'Television Commercial Break '+i,subject:'vintage television commercial',
+    year:1960+i,media:{type:'video',url:'https://archive.org/download/benson/ad-'+i+'.mp4',
+      runtime:30,width:640,height:480,verification:'transport',verifiedAt:Date.now()}});
+  const initial = [0,1,2].map(commercial);
+  const f = await catalogFixture(initial);
+  const body = {channel:'13',iaRepair:true,serverCatalog:true,sessionId:'commercial-refill',mediaTypes:['movies'],count:3};
+  const opening = await (await f.request('queue',body)).json();
+  assert.equal(opening.ready,3);
+  await f.request('playback',{...body,id:opening.items[0].identifier,event:'started'});
+  const prior = f.queueBodies.length;
+  f.incoming(Array.from({length:12},(_,i)=>commercial(i+3)));
+  const refill = await (await f.request('queue',{...body,sessionRefill:true})).json();
+  assert.equal(f.queueBodies.length,prior+1);
+  assert.ok(refill.v2.catalogSize>=12);
+  assert.ok(refill.items.some(item=>!initial.some(old=>old.identifier===item.identifier)));
+  assert.equal(refill.v2.cycleReset,false);
+});
+
 test('Nite-Owl refills past a pending film and still accepts its late acknowledgement', async () => {
   const f = await fixture();
   const first = row('Sabotage.mp4',{title:'Sabotage (1936)',year:1936});

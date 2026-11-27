@@ -186,7 +186,7 @@ test('fast skip cannot outrun the started commit; queue prepares no watched even
   assert.deepEqual(order, ['queue', 'started', 'skipped', 'queue']);
 });
 
-test('a continuing channel can apply a refill while an ordered playback report is still in transit', {timeout: 1500}, async () => {
+for (const channel of ['2', '3', '10']) test('CH '+channel+': a continuing channel can apply a refill while an ordered playback report is still in transit', {timeout: 1500}, async () => {
   const calls = [], reports = [];
   let release, failTimer;
   const delayed = new Promise(resolve => { release = resolve; });
@@ -198,15 +198,15 @@ test('a continuing channel can apply a refill while an ordered playback report i
     },
     report: async packet => { reports.push(packet.event); await delayed; return {cycleGeneration:1}; },
   });
-  await api.reserve('2', {});
-  const started = api.event('2', item('A'), 'started');
-  const skipped = api.event('2', item('A'), 'skipped');
+  await api.reserve(channel, {});
+  const started = api.event(channel, item('A'), 'started');
+  const skipped = api.event(channel, item('A'), 'skipped');
   try {
-    await Promise.race([api.reserve('2', {}), new Promise((_, reject) => {
+    await Promise.race([api.reserve(channel, {}), new Promise((_, reject) => {
       failTimer = setTimeout(() => reject(Error('refill was blocked by a pending playback report')), 1000);
     })]);
     assert.deepEqual(Array.from(calls[1].pendingPlaybackIds), ['A']);
-    assert.equal(api.peek('2').identifier, 'B', 'a stale generation cannot make the pending program play again');
+    assert.equal(api.peek(channel).identifier, 'B', 'a stale generation cannot make the pending program play again');
     assert.deepEqual(reports, ['started']);
   } finally {
     clearTimeout(failTimer);

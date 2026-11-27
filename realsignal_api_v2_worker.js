@@ -1998,7 +1998,7 @@ async function handleQueue(request, env, ctx, id) {
     hasReadyBackup && Array.isArray(body.warmDeferredIds)
     ? [...new Set(body.warmDeferredIds.slice(0,32).filter(id => typeof id === 'string' && id.length > 0 && id.length <= 500 && !/[\r\n]/.test(id)))] : [];
   const pendingPlaybackIds = body.iaRepair === true && body.sourceCatalog !== true && body.sessionRefill === true &&
-    ["2", "3"].includes(String(body.channel)) && Array.isArray(body.pendingPlaybackIds)
+    ["2", "3", "10"].includes(String(body.channel)) && Array.isArray(body.pendingPlaybackIds)
     ? [...new Set(body.pendingPlaybackIds.slice(0, 32).filter(id => typeof id === "string" && id.length > 0 && id.length <= 500 && !/[\r\n]/.test(id)))] : [];
   body = { ...body, warmDeferredIds, pendingPlaybackIds };
   const requestedServerCatalog = body.serverCatalog === true;

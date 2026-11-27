@@ -480,7 +480,7 @@ export class SessionRotation {
     const catalog = reservationCatalog(current.catalog.filter(qualified), incoming.filter(qualified), current.seen, keyFor, copyAware);
     if (!copyAware) canonicalIds = fileIds(catalog);
     const pending = body.rules?.pendingPlaybackIds;
-    const pendingPrograms = new Set(['2', '3'].includes(channel) && ['reserve', 'peek'].includes(body.mode) && Array.isArray(pending)
+    const pendingPrograms = new Set(['2', '3', '10'].includes(channel) && ['reserve', 'peek'].includes(body.mode) && Array.isArray(pending)
       ? pending.map(id => keyFor(canonicalId(id))) : []);
     const deferredForSelection = item => deferred.has(copyKey(item)) || pendingPrograms.has(keyFor(item));
     const byId = new Map(catalog.map(item => [itemId(item),item]));

@@ -67,7 +67,7 @@
       var value = state(key);
       if (value.inflight) return value.inflight;
       var sessionRefill = value.items.length > 0;
-      var overlap = wholeLineup && sessionRefill && ['2', '3'].includes(String(key));
+      var overlap = wholeLineup && sessionRefill && ['2', '3', '10'].includes(String(key));
       var revision;
       value.inflight = waitForReports(value, overlap).then(function () {
         revision = value.revision;
@@ -273,7 +273,7 @@
     var timeout = wholeLineup && path === '/ia/queue' ? 5500 : 12000;
     var controller = new AbortController(), timer = setTimeout(function () { controller.abort(); }, timeout);
     try {
-      var response = await fetch(apiBase() + path, { method: 'POST', mode: 'cors', headers: { 'content-type': 'application/json', 'x-realsignal-session': iaSessionId() }, body: JSON.stringify(sessionBody), signal: controller.signal, priority: ['2', '3'].includes(String(body.channel)) ? 'high' : 'auto', keepalive: path === '/ia/playback' });
+      var response = await fetch(apiBase() + path, { method: 'POST', mode: 'cors', headers: { 'content-type': 'application/json', 'x-realsignal-session': iaSessionId() }, body: JSON.stringify(sessionBody), signal: controller.signal, priority: ['2', '3', '10'].includes(String(body.channel)) ? 'high' : 'auto', keepalive: path === '/ia/playback' });
       if (!response.ok) {
         var error = Error('IA repair ' + response.status);
         error.status = response.status;

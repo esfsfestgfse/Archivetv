@@ -1027,3 +1027,18 @@ test('late-night rotation identifies a dated broadcast by its actual host', asyn
   assert.equal(archiveProgramIdentity(cavett,'17'),archiveProgramIdentity(cavettCopy,'17'));
   assert.notEqual(archiveProgramIdentity(cavett,'17'),archiveProgramIdentity({...cavett,identifier:cavett.identifier.replace('04-09','04-10')},'17'));
 });
+
+test('a return to Public Access TV excludes the last program actually shown in legacy recovery', async () => {
+  const f = await fixture();
+  const rows = ['retune.mp4','council.mp4','studio.mp4','festival.mp4'].map((filename,i) =>
+    row(filename,{title:'Community cable episode '+i,seriesTitle:'Community show '+i}));
+  f.incoming(rows);
+  const body = {channel:'15',iaRepair:true,serverCatalog:true,sessionId:'public-access-return',
+    count:3,mediaTypes:['movies']};
+  const opening = await (await f.request('queue',body)).json();
+  const fallbackStart = opening.items[0].identifier;
+  const returning = await (await f.request('queue',{...body,viewerRecentIds:[fallbackStart]})).json();
+  assert.equal(returning.ready,3);
+  assert.ok(!returning.items.some(row=>row.identifier===fallbackStart));
+  assert.equal(returning.v2.cycleReset,false);
+});

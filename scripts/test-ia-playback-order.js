@@ -866,7 +866,8 @@ for (const [channel, query] of [['502', '?iaProgramIdentity=1'], ['108', ''], ['
   const pilot = runtime(query, '*');
   assert.equal(runtime('?castReceiver=1', '*').readyBackup(channel), false);
   assert.equal(runtime('?iaRepair=0', '*').readyBackup(channel), false);
-  const shelf = pilot.create({ queue: async body => {
+  const shelf = pilot.create({ viewerRecentIds: key => [key+'-watched'], queue: async body => {
+    if (['14','15','17'].includes(channel)) assert.deepEqual(Array.from(body.viewerRecentIds), [channel+'-watched']);
     requests.push([body.count, body.sessionRefill]);
     return { items: [item('opening')] };
   } });

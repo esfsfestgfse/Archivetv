@@ -74,6 +74,7 @@
         var count = String(key) === '53' || sessionRefill && readyBackup(key) ? 5 : 3;
         var request = { channel: String(key), count: count, iaRepair: true, sessionRefill: sessionRefill };
         if (overlap) request.pendingPlaybackIds = pendingPlaybackIds(value);
+        if (tracksFallbackHistory(key) && reviewedBroadcastChannel(key)) request.viewerRecentIds = options.viewerRecentIds?.(key) || [];
         return options.queue(Object.assign({}, body, request));
       }).then(async function (payload) {
         if (overlap) flush(value).catch(function () {});
@@ -295,6 +296,6 @@
       var preparedStart = prepared !== '0' && (wholeLineup || (prepared === '1' && ['10', '53', '150'].includes(String(body.channel))));
       return request('/ia/queue', Object.assign({}, body, { iaRepair: true, serverCatalog: true }, preparedStart ? { preparedStart: true } : {}));
     },
-    client: function () { return client || (client = create({ journal: startJournal, queue: function (body) { return window.RealSignalIAShelf.queue(body); }, report: function (body) { return request('/ia/playback', body); } })); }
+    client: function () { return client || (client = create({ journal: startJournal, viewerRecentIds: function (key) { return iaViewerRecentIds("identity:" + key); }, queue: function (body) { return window.RealSignalIAShelf.queue(body); }, report: function (body) { return request('/ia/playback', body); } })); }
   };
 })();

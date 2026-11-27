@@ -6258,6 +6258,17 @@ function iaReviewedFileAllowed(item, channel) {
 
   const station = String(channel);
   const title = String(item.title || '');
+  if (station === '14') {
+    // An anime about personal computers is still a TV drama.
+    const label = [source, title, file].join(' ').replace(/[_-]+/g, ' ');
+    const tags = [item.subject, item.subjects, item.meta?.subject, item.meta?.subjects].join(';').split(/[,;|]/);
+    if (/\b(?:serial experiments lain|pax (?:east|west|prime)|lectures?|in hindi)\b/i.test(label) ||
+        tags.some(tag => /^\s*(?:anime|anime vhs|retro anime|anime (?:series|episode))\s*$/i.test(tag))) return false;
+  }
+  if (station === '17') {
+    const label = [source, title, file].join(' ').replace(/[_-]+/g, ' ');
+    if (/\b(?:jackson['’]?s variety|variety 77 the year in entertainment)\b/i.test(label)) return false;
+  }
   // This exact cable-access upload decoded but displayed a black screen in Chrome.
   if (station === '15' && source.toLowerCase() === 'kellytv-episode6formanhattanneighborhoodnetworkkellytv263') return false;
   if (station === '11') {
@@ -11914,7 +11925,8 @@ async function getIaQueue(request, url, env, ctx) {
     ...(["131", "502", "575", "709"].includes(channel) ? { reviewedArchiveFiles: ["502", "709"].includes(channel) ? "743" : "742" } : {}),
     ...(["2", "3", "10"].includes(channel) ? { stationPolicy: "classic-broadcast-catalog-760" } : {}),
     ...(["11", "12", "13"].includes(channel) ? { stationPolicy: "reruns-games-commercials-762" } : {}),
-    ...(["14", "15", "17"].includes(channel) ? { stationPolicy: "computer-access-latenight-763" } : {}),
+    ...(channel === "14" ? { stationPolicy: "computing-programs-765" } : {}),
+    ...(["15", "17"].includes(channel) ? { stationPolicy: "computer-access-latenight-763" } : {}),
     ...(channel === "22" ? { stationPolicy: "adult-game-shows-2" } : {}) };
   const familyFingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count, contentPolicy: IA_GLOBAL_VIDEO_POLICY_VERSION, ...fileContract });
   const lastGoodDigest = await stableKey(familyFingerprint);

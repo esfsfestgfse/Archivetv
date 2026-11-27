@@ -1043,13 +1043,15 @@ test('a return to Public Access TV excludes the last program actually shown in l
   assert.equal(returning.v2.cycleReset,false);
 });
 
-for (const [channel, variants] of [
+for (const [channel, variants, subject] of [
   ['15', [['0017_Auction','0017 Auction'], ['0016_auction','0016 auction'], ['Auction116','Auction116']]],
+  ['15', [['002_vaudeville','002 vaudeville'], ['003_vaudeville','003 vaudeville'], ['005-Vaudeville2011','005-Vaudeville2011']], 'A New Vaudeville Revue; community cable'],
+  ['15', [['0017_Coffee_and_Connections_Police_August_2018','0017 Coffee and Connections Police August 2018'], ['00001_Coffee_and_Connections_with_Parks_Recreation_November_2017','00001 Coffee and Connections with Parks & Recreation November 2017'], ['0019_Coffee_and_Connections_Police_October_2018','0019 Coffee and Connections Police October 2018']], 'public access television'],
   ['17', [['roseanne-michelle','The Roseanne Show - Michelle Kwan (1998)'], ['roseanne-ruby','The Roseanne Show - Ruby Dee (1998)'], ['roseanne-tammy','The Roseanne Show - Tammy Faye Bakker (1998)']]],
 ]) test('channel '+channel+' preserves variety across separately uploaded episodes of one show', async () => {
   const f = await fixture();
   f.incoming([...variants.map(([identifier, title]) =>
-    row(identifier+'.mp4',{identifier:identifier+'::'+identifier+'.mp4',title,media:{...row(identifier+'.mp4').media,url:'https://archive.org/download/'+identifier+'/'+identifier+'.mp4'},subject:channel==='15'?'Take it to the Auction; community cable':'television talk show'})),
+    row(identifier+'.mp4',{identifier:identifier+'::'+identifier+'.mp4',title,media:{...row(identifier+'.mp4').media,url:'https://archive.org/download/'+identifier+'/'+identifier+'.mp4'},subject:subject || (channel==='15'?'Take it to the Auction; community cable':'television talk show')})),
     row('one.mp4',{title:'Distinct broadcast one',seriesTitle:'Series one'}),
     row('two.mp4',{title:'Distinct broadcast two',seriesTitle:'Series two'}),
   ]);

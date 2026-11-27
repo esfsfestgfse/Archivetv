@@ -276,6 +276,17 @@ export function iaReviewedFileAllowed(item, channel) {
 
   const station = String(channel);
   const title = String(item.title || '');
+  if (station === '14') {
+    // An anime about personal computers is still a TV drama.
+    const label = [source, title, file].join(' ').replace(/[_-]+/g, ' ');
+    const tags = [item.subject, item.subjects, item.meta?.subject, item.meta?.subjects].join(';').split(/[,;|]/);
+    if (/\b(?:serial experiments lain|pax (?:east|west|prime)|lectures?|in hindi)\b/i.test(label) ||
+        tags.some(tag => /^\s*(?:anime|anime vhs|retro anime|anime (?:series|episode))\s*$/i.test(tag))) return false;
+  }
+  if (station === '17') {
+    const label = [source, title, file].join(' ').replace(/[_-]+/g, ' ');
+    if (/\b(?:jackson['’]?s variety|variety 77 the year in entertainment)\b/i.test(label)) return false;
+  }
   // This exact cable-access upload decoded but displayed a black screen in Chrome.
   if (station === '15' && source.toLowerCase() === 'kellytv-episode6formanhattanneighborhoodnetworkkellytv263') return false;
   if (station === '11') {

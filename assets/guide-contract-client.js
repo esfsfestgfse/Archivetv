@@ -17,7 +17,6 @@
       var recent = [];
       try { recent = typeof store !== 'undefined' ? store.get('realsignal:guide-recent', []) : []; } catch (_) {}
       recent = Array.isArray(recent) ? recent.map(String) : [];
-      var categories = api.categories().map(function (group) { return group.id; });
       return (typeof publicLineupChannels === 'function' ? publicLineupChannels() : []).filter(function (ch) {
         return typeof isHiddenConsolidatedMember !== 'function' || !isHiddenConsolidatedMember(ch);
       }).map(function (ch) {
@@ -25,9 +24,7 @@
         return { number: Number(ch.num), key: String(ch.key || ch.num), name: canonicalChannelLabel(ch),
           categoryId: String(group.id), categoryLabel: String(group.label), description: String(meta.desc || ''),
           favorite: isFav(ch.num), recentIndex: recent.indexOf(String(ch.num)) };
-      }).sort(function (a, b) {
-        return categories.indexOf(a.categoryId) - categories.indexOf(b.categoryId) || a.number - b.number;
-      });
+      }).sort(function (a, b) { return a.number - b.number; });
     },
     snapshot: function (channel) {
       var ch = channel && typeof channel === 'object' ? channel : byNum(Number(channel == null ? curNum : channel));

@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 7.5.10</title>
+<title>REALSIGNAL · Retro Cable 7.5.11</title>
 <meta name="realsignal-ia-repair-channels" content="*">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
@@ -1702,7 +1702,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="7.5.10-desktop-retro-cable";
+window.__ATV_BUILD="7.5.11-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -8870,24 +8870,8 @@ function visibleChannels(){let l=guideBrowsePool();
       return hay.indexOf(q)>-1;
     });
   }
-  /* QA FIX: the guide previously rendered channels in raw CH-array order. That array was built
-     across many editing sessions and each category ended up scattered in ~34 separate blocks
-     (Movies, then TV, then Movies again, then Toon, then Documentary...) even though each
-     category's OWN channel numbers happened to already be individually clean. The guide looked
-     broken -- genres out of order, numbers jumping around -- despite the underlying data being
-     fine. Sorted for display only: real category order first, channel number second within it.
-     Nothing about CH itself changes, so tuning/search/everything else is unaffected. */
-  var catPos={}; GUIDE_CATEGORIES.forEach(function(c,i){catPos[c.id]=i;});
-  l=l.slice().sort(function(a,b){
-    /* The guide is organized like a cable directory: browse families first, then the
-       persistent tuning number. The number itself is never changed, so favorites, remotes,
-       Cast packets, and saved last-channel state remain compatible across releases. */
-    var pa=catPos[a.guideGroup], pb=catPos[b.guideGroup];
-    if(pa==null) pa=999; if(pb==null) pb=999;
-    if(pa!==pb) return pa-pb;
-    return a.num-b.num||String(a.nm).localeCompare(String(b.nm));
-  });
-  return l;}
+  return l.slice().sort(function(a,b){return a.num-b.num||String(a.nm).localeCompare(String(b.nm));});
+}
 window.__chanStatus=window.__chanStatus||{};
 function mountChanBug(hostId,opts){
   var host=$(hostId); if(!host) return null;
@@ -16375,7 +16359,7 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
 <script src="assets/release2-runtime.js?v=7.2.3"></script>
 <script src="assets/release31-runtime.js?v=7.2.3"></script>
 <script src="assets/guide-contract.js?v=7.2.1"></script>
-<script src="assets/guide-contract-client.js?v=7.2.3"></script>
+<script src="assets/guide-contract-client.js?v=7.5.11"></script>
 <script src="assets/v6-watching-shell.js?v=7.5.0"></script>
 <script src="assets/v6-guide.js?v=7.2.19"></script>
 </body>

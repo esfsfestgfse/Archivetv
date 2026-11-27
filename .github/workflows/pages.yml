@@ -32,9 +32,37 @@ jobs:
   validate-ia:
     runs-on: ubuntu-latest
     timeout-minutes: 8
+    env:
+      PAGES_ARTIFACT: github-pages-${{ github.run_attempt }}
+    outputs:
+      artifact_name: ${{ steps.site.outputs.artifact_name }}
     steps:
       - name: Check out source
         uses: actions/checkout@v6
+
+      - name: Assemble public site
+        id: site
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _site/assets
+          cp index.html _site/index.html
+          cp the_dial_desktop.html _site/the_dial_desktop.html
+          cp the_dial_mobile.html _site/the_dial_mobile.html
+          cp realsignal_cast_receiver.html _site/realsignal_cast_receiver.html
+          cp roku_remote.html _site/roku_remote.html
+          cp sw.js manifest.json icon-192.png icon-512.png _site/
+          cp assets/* _site/assets/
+          printf 'artifact_name=%s\n' "$PAGES_ARTIFACT" >> "$GITHUB_OUTPUT"
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          name: ${{ env.PAGES_ARTIFACT }}
+          path: _site
 
       - name: Set up Node.js
         uses: actions/setup-node@v5
@@ -96,39 +124,12 @@ jobs:
   deploy:
     needs: validate-ia
     runs-on: ubuntu-latest
-    env:
-      PAGES_ARTIFACT: github-pages-${{ github.run_attempt }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Check out source
-        uses: actions/checkout@v6
-
-      - name: Assemble public site
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p _site/assets
-          cp index.html _site/index.html
-          cp the_dial_desktop.html _site/the_dial_desktop.html
-          cp the_dial_mobile.html _site/the_dial_mobile.html
-          cp realsignal_cast_receiver.html _site/realsignal_cast_receiver.html
-          cp roku_remote.html _site/roku_remote.html
-          cp sw.js manifest.json icon-192.png icon-512.png _site/
-          cp assets/* _site/assets/
-
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload site artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          name: ${{ env.PAGES_ARTIFACT }}
-          path: _site
-
       - name: Deploy site
         id: deployment
         uses: actions/deploy-pages@v4
         with:
-          artifact_name: ${{ env.PAGES_ARTIFACT }}
+          artifact_name: ${{ needs.validate-ia.outputs.artifact_name }}

@@ -881,6 +881,26 @@ test('Source Suite personal history can reach older unseen rows even without ser
   }finally{f.db.close();}
 });
 
+test('a shallow Classic Rerun session imports verified programs before its ready shelf is exhausted', async () => {
+  const f = await fixture(), first = Array.from({length:6},(_,i)=>row('first-'+i+'.mp4'));
+  const later = Array.from({length:15},(_,i)=>row('later-'+i+'.mp4'));
+  const body = { channel:'10', iaRepair:true, serverCatalog:true, sessionId:'rerun-refill-before-empty', count:5 };
+  f.incoming(first);
+  const opening = await (await f.request('queue',body)).json();
+  assert.equal(opening.ready,5);
+  await f.request('playback',{...body,id:opening.items[0].identifier,event:'started'});
+  const before = f.queueBodies.length;
+  f.incoming(later);
+  const refill = await (await f.request('queue',{...body,sessionRefill:true})).json();
+  assert.equal(f.queueBodies.length,before+1,'five unseen programs should leave room for an actual catalog refill');
+  assert.ok(refill.v2.catalogSize>=16);
+  assert.ok(refill.items.every(item=>item.identifier!==opening.items[0].identifier));
+  const after = f.queueBodies.length;
+  const quick = await f.request('queue',{...body,sessionRefill:true});
+  assert.equal(quick.headers.get('X-RealSignal-Source'),'verified-session-catalog');
+  assert.equal(f.queueBodies.length,after,'a deep verified catalog can now serve the same session immediately');
+});
+
 test('Classic Cartoons refills from its existing verified session catalog when the Archive relay is slow', async () => {
   const f = await fixture();
   const cartoon = index => {

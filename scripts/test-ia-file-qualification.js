@@ -508,6 +508,21 @@ test('a deep collection cannot monopolize foreground qualification ahead of othe
     'balance the hot shelf, not the deeper inventory');
 });
 
+test('a partial classic TV reservation is topped up from different shows', async () => {
+  const rows = ['Alpha', 'Alpha', 'Alpha', 'Beta', 'Gamma'].map((seriesId, i) => ({
+    ...verified, identifier: seriesId + '::episode-' + i + '.mp4', seriesId,
+    sourceIdentifier: seriesId, title: seriesId + ' · Episode ' + i,
+    media: { ...verified.media, url: 'https://archive.org/download/' + seriesId + '/episode-' + i + '.mp4' },
+  }));
+  const response = await relay().qualifyIaQueueResponse(Response.json({ candidateItems: rows }),
+    { iaRepair: true, channel: '10', count: 3, mediaTypes: ['movies'], diversity: { maxPerFamily: 1 },
+      hydrationPreferredIds: [rows[0].identifier] }, 'https://relay.invalid', { waitUntil() {} });
+  const payload = await response.json();
+  assert.equal(payload.items[0].identifier, rows[0].identifier);
+  assert.deepEqual(payload.items.map(item => item.seriesId), ['Alpha', 'Beta', 'Gamma']);
+  assert.equal(payload.candidateItems.filter(item => item.seriesId === 'Alpha').length, 3);
+});
+
 test('family qualification preserves explicit reservations and genuinely single-series shelves', async () => {
   const rows = Array.from({ length: 3 }, (_, i) => ({ ...verified, identifier: 'Alpha::episode-' + i + '.mp4',
     seriesId: 'Alpha', title: 'Alpha · Episode ' + i,

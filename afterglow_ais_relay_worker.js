@@ -10909,11 +10909,17 @@ async function qualifyIaQueueResponse(response, body, cacheOrigin, ctx, env) {
   // prepending their first episodes reopened the same starters on every tune.
   const candidates = (payload.candidateItems?.length ? payload.candidateItems : payload.items || []).filter(item => !excluded.has(identity(item)) && iaStationQualityGate(body.channel, item));
   let ordered = candidates.filter(item => preferred.has(identity(item))).concat(candidates.filter(item => !preferred.has(identity(item))));
-  const hydrationFamilyLimit = repairEpisodes.length && !preferred.size ? safeDiversity(body.diversity).maxPerFamily : 0;
+  const balanceRefill = ["2", "10"].includes(String(body.channel)) && preferred.size < requested;
+  const hydrationFamilyLimit = repairEpisodes.length && (balanceRefill || !preferred.size) ? safeDiversity(body.diversity).maxPerFamily : 0;
   if (hydrationFamilyLimit) {
     const balanced = familyBalancedIaWindowStrict(ordered, 0, ordered.length, hydrationFamilyLimit);
-    const firstIds = new Set(balanced.map(identity));
-    ordered = balanced.concat(ordered.filter(item => !firstIds.has(identity(item))));
+    const first = ordered.filter(item => preferred.has(identity(item)));
+    const firstIds = new Set(first.map(identity));
+    for (const item of balanced) if (!firstIds.has(identity(item))) {
+      first.push(item);
+      firstIds.add(identity(item));
+    }
+    ordered = first.concat(ordered.filter(item => !firstIds.has(identity(item))));
   }
   let qualified = await hydrateIaQueue({ ...payload,
     candidateItems: ordered, hydrationFamilyLimit,

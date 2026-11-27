@@ -322,7 +322,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     const video = { tagName: 'VIDEO', readyState: 0, style: {}, classList: { toggle() {} }, pause() {}, removeAttribute() {}, load() {}, remove() {}, setAttribute() {}, play: () => Promise.resolve(), addEventListener: (type, fn) => { handlers[type] = fn; } };
     const spare = { ...item('different-reserved-episode'), ...(sports ? { title: 'NBA Finals 1998 Game 6 Full Game' } : {}) }, primary = { identifier:'series::Season 1/Pilot.mp4',
       media:{ type:'video', url:'https://dn600301.us.archive.org/0/items/series/Season%201/Pilot.mp4' } };
-    const channel = sports ? 53 : 10, warmer = {}, load = [], mirrorLoads = [];
+    const channel = sports ? 53 : 11, warmer = {}, load = [], mirrorLoads = [];
     const spareVideo = Object.assign(new EventTarget(), {
       readyState: 0, videoWidth: 0, videoHeight: 0, duration: 0, src: spare.media.url,
     });
@@ -353,7 +353,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     assert.deepEqual(load, [], 'a fast startup should never need to load the spare');
     if (listed) {
       Object.assign(spareVideo, { readyState: 4, videoWidth: 640, videoHeight: 480, duration: 1500 });
-      warmer['10:' + spare.identifier] = { el: spareVideo };
+      warmer[channel + ':' + spare.identifier] = { el: spareVideo };
       timers[0].fn();
       assert.equal(video.src, 'https://archive.org/download/series/Season%201/Pilot.mp4');
       const retry = timers.find(timer => timer.ms === 3500);
@@ -846,7 +846,7 @@ for (const [channel, query] of [['502', '?iaProgramIdentity=1'], ['108', ''], ['
 });
 
 for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
-for (const [num, query] of [[502, '?iaProgramIdentity=1'], [108, '']]) test(file + ' ' + num + ': Next skips unresponsive warmups and plays the backup shown in the guide', async () => {
+for (const [num, query] of [[502, '?iaProgramIdentity=1'], [108, ''], [2, ''], [3, ''], [10, '']]) test(file + ' ' + num + ': Next skips unresponsive warmups and plays the backup shown in the guide', async () => {
   const reservations = ['slow-a','slow-b','early-backup','later-backup','last-backup'].map(item);
   const media = [], timers = new Map(), played = [];
   const key = row => num + ':' + row.identifier;

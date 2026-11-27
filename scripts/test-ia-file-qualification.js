@@ -87,6 +87,7 @@ test('reviewed editorial admission rejects the reproduced contamination in every
     ['2',{identifier:'beattheclock1956::beattheclock1956flash.mp4',title:'Beat the Clock — circa August 1956'},true],
     ['2',{identifier:'IMarriedJoan::Talent Scout.mp4',title:'I Married Joan · Talent Scout',year:1953,subject:'classic television sitcom'},true],
     ['2',{identifier:'FourStarPlayhouse-48Episodes::Backstage.mp4',title:'Four Star Playhouse · Backstage',year:1954},true],
+    ['2',{identifier:'brian-hendersons-bandstand-22-october-1966',title:'Brian Henderson’s Bandstand (1966)',subject:'television variety show'},false],
     ['2',{identifier:'new-newsreel',title:'Public Affairs: 2024 Elections',subject:'classic television public affairs',year:2024},false],
     ['2',{identifier:'tv-without-dates::Episode1.mp4',title:'An Episode',subject:'classic television'},false],
     ['54',{identifier:'indy-1995',title:'1995 Indianapolis 500 Full Race'},true],

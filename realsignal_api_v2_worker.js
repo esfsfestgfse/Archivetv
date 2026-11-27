@@ -1997,7 +1997,10 @@ async function handleQueue(request, env, ctx, id) {
   const warmDeferredIds = body.iaRepair === true && body.sourceCatalog !== true && body.sessionRefill === true &&
     hasReadyBackup && Array.isArray(body.warmDeferredIds)
     ? [...new Set(body.warmDeferredIds.slice(0,32).filter(id => typeof id === 'string' && id.length > 0 && id.length <= 500 && !/[\r\n]/.test(id)))] : [];
-  body = { ...body, warmDeferredIds };
+  const pendingPlaybackIds = body.iaRepair === true && body.sourceCatalog !== true && body.sessionRefill === true &&
+    ["2", "3"].includes(String(body.channel)) && Array.isArray(body.pendingPlaybackIds)
+    ? [...new Set(body.pendingPlaybackIds.slice(0, 32).filter(id => typeof id === "string" && id.length > 0 && id.length <= 500 && !/[\r\n]/.test(id)))] : [];
+  body = { ...body, warmDeferredIds, pendingPlaybackIds };
   const requestedServerCatalog = body.serverCatalog === true;
   const catalogCanary = body.catalogCanary === "v2-session";
   const useServerCatalog = requestedServerCatalog && (!catalogCanary || IA_SESSION_CATALOG_CANARY_CHANNELS.has(String(body.channel)));
@@ -2019,7 +2022,7 @@ async function handleQueue(request, env, ctx, id) {
       const response = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", body: JSON.stringify({ mode: "peek", count, rules: body }) }));
       if (!response.ok) throw Error("reservation peek " + response.status);
       const state = await response.json();
-      upstreamBody.hydrationExcludeIds = [...(state.seenIds || []), ...(state.cooldownIds || []), state.playing].filter(Boolean).slice(-1024);
+      upstreamBody.hydrationExcludeIds = [...(state.seenIds || []), ...(state.cooldownIds || []), state.playing, ...pendingPlaybackIds].filter(Boolean).slice(-1024);
       upstreamBody.hydrationPreferredIds = state.reservationIds || [];
       // Fast skips already have a qualified catalog in the session. Serving
       // it directly keeps a fresh Archive discovery request off that path.
@@ -2045,6 +2048,7 @@ async function handleQueue(request, env, ctx, id) {
   delete upstreamBody.preparedStart;
   delete upstreamBody.archiveProgramIdentity;
   delete upstreamBody.warmDeferredIds;
+  delete upstreamBody.pendingPlaybackIds;
   const canonical = canonicalPilotProfile(body.channel);
   if (body.iaRepair !== true && canonicalPilotEnabled(env, body.channel)) {
     const canonicalPayload = canonicalPilotPayload(canonical.manifest, canonical.profile, body, count);

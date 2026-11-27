@@ -49,26 +49,45 @@
       value.outbox.push({ packet: packet, revision: value.revision });
       return flush(value);
     }
+    function pendingPlaybackIds(value) {
+      return Array.from(new Set(value.outbox.map(function (entry) { return entry.packet.id; }))).slice(0, 32);
+    }
+    function waitForReports(value, overlap) {
+      var reports = flush(value);
+      if (!overlap || !value.outbox.length) return reports;
+      // Give normal acknowledgements a head start. A delayed network send
+      // cannot hold the next reservation behind the entire reporting outbox.
+      return new Promise(function (resolve) {
+        var timer = setTimeout(resolve, 250);
+        function finish() { clearTimeout(timer); resolve(); }
+        reports.then(finish, finish);
+      });
+    }
     function reserve(key, body) {
       var value = state(key);
       if (value.inflight) return value.inflight;
+      var sessionRefill = value.items.length > 0;
+      var overlap = wholeLineup && sessionRefill && ['2', '3'].includes(String(key));
       var revision;
-      value.inflight = flush(value).then(function () {
+      value.inflight = waitForReports(value, overlap).then(function () {
         revision = value.revision;
-        var sessionRefill = value.items.length > 0;
         var count = String(key) === '53' || sessionRefill && readyBackup(key) ? 5 : 3;
-        return options.queue(Object.assign({}, body, { channel: String(key), count: count, iaRepair: true, sessionRefill: sessionRefill }));
+        var request = { channel: String(key), count: count, iaRepair: true, sessionRefill: sessionRefill };
+        if (overlap) request.pendingPlaybackIds = pendingPlaybackIds(value);
+        return options.queue(Object.assign({}, body, request));
       }).then(async function (payload) {
-        // Events overlapping the request must be reconciled in their server cycle,
-        // not hidden forever or accidentally resurrected from a stale preload.
-        await flush(value);
+        if (overlap) flush(value).catch(function () {});
+        else await flush(value);
+        var unacknowledged = new Set(overlap ? value.outbox.map(function (entry) { return entry.packet.id; }) : []);
         var previousHead = id(rows(key)[0]);
         var generation = payload.v2 && payload.v2.cycleGeneration;
         var newCycle = payload.v2 && payload.v2.cycleReset || Number.isSafeInteger(generation) && generation > value.generation;
         if (Number.isSafeInteger(generation) && generation >= 0) {
           value.generation = Math.max(value.generation, generation);
-          Object.keys(value.removed).forEach(function (id) { if (value.removed[id].generation < value.generation) delete value.removed[id]; });
-        } else if (payload.v2 && payload.v2.cycleReset && revision === value.revision) value.removed = Object.create(null);
+          Object.keys(value.removed).forEach(function (id) {
+            if (!unacknowledged.has(id) && value.removed[id].generation < value.generation) delete value.removed[id];
+          });
+        } else if (payload.v2 && payload.v2.cycleReset && !unacknowledged.size && revision === value.revision) value.removed = Object.create(null);
         var ready = (payload.items || []).filter(function (item) { return item && item.media && item.media.url; });
         // Keep the program already listed while its reservation remains valid.
         var listed = !newCycle && previousHead ? ready.findIndex(function (item) { return id(item) === previousHead; }) : -1;
@@ -254,7 +273,7 @@
     var timeout = wholeLineup && path === '/ia/queue' ? 5500 : 12000;
     var controller = new AbortController(), timer = setTimeout(function () { controller.abort(); }, timeout);
     try {
-      var response = await fetch(apiBase() + path, { method: 'POST', mode: 'cors', headers: { 'content-type': 'application/json', 'x-realsignal-session': iaSessionId() }, body: JSON.stringify(sessionBody), signal: controller.signal, keepalive: path === '/ia/playback' });
+      var response = await fetch(apiBase() + path, { method: 'POST', mode: 'cors', headers: { 'content-type': 'application/json', 'x-realsignal-session': iaSessionId() }, body: JSON.stringify(sessionBody), signal: controller.signal, priority: ['2', '3'].includes(String(body.channel)) ? 'high' : 'auto', keepalive: path === '/ia/playback' });
       if (!response.ok) {
         var error = Error('IA repair ' + response.status);
         error.status = response.status;

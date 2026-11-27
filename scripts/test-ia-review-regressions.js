@@ -881,6 +881,25 @@ test('Source Suite personal history can reach older unseen rows even without ser
   }finally{f.db.close();}
 });
 
+test('Nite-Owl refills past a pending film and still accepts its late acknowledgement', async () => {
+  const f = await fixture();
+  const first = row('Sabotage.mp4',{title:'Sabotage (1936)',year:1936});
+  const copy = row('Sabotage-other.mp4',{title:'Sabotage',year:1936});
+  const next = row('The-Lodger.mp4',{title:'The Lodger (1944)',year:1944});
+  const body = { channel:'3', iaRepair:true, serverCatalog:true, sessionId:'pending-noir-start', count:3 };
+  f.incoming([first,next]);
+  const opening = await (await f.request('queue',body)).json();
+  assert.ok(opening.items.some(item=>item.identifier===first.identifier));
+  f.incoming([copy,next]);
+  const refill = await (await f.request('queue',{...body,sessionRefill:true,pendingPlaybackIds:[first.identifier]})).json();
+  assert.deepEqual(refill.items.map(item=>item.identifier),[next.identifier]);
+  assert.ok(f.queueBodies.at(-1).hydrationExcludeIds.includes(first.identifier));
+  assert.equal(f.queueBodies.at(-1).pendingPlaybackIds,undefined);
+  assert.equal(refill.v2.cycleReset,false);
+  const late=await f.request('playback',{...body,id:first.identifier,event:'started'});
+  assert.equal(late.status,202,'a provisional exclusion cannot evict the original reservation identity');
+});
+
 test('a shallow Classic Rerun session imports verified programs before its ready shelf is exhausted', async () => {
   const f = await fixture(), first = Array.from({length:6},(_,i)=>row('first-'+i+'.mp4'));
   const later = Array.from({length:15},(_,i)=>row('later-'+i+'.mp4'));

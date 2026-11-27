@@ -6156,6 +6156,7 @@ function iaReviewedFileAllowed(item, channel) {
   const station = String(channel);
   const title = String(item.title || '');
   if (station === '2') {
+    if (/^brian-hendersons-bandstand(?:-|$)/i.test(source)) return false;
     // A collection tag cannot turn a modern broadcast into vintage network TV.
     const meta = item.meta || {};
     const selected = String(title || meta.title || '').split(/\s+·\s+/).pop();

@@ -459,6 +459,8 @@ function okApiItem(row, query) {
     id: `ok:${id}`,
     rawId: id,
     title,
+    okReleaseTitle: title,
+    defaultAudioLanguage: text(okApiScalar(row.defaultAudioLanguage || row.audioLanguage || row.audio_language), 40),
     description,
     tags,
     category: text(okApiScalar(row.content_type || row.contentType || row.category), 120),
@@ -640,6 +642,7 @@ export function qualifySourceItem(profile, item) {
   if (!profile || !item) return null;
   const warFilms = reviewedWarFilms(profile.profileKey);
   if (warFilms) {
+    if (!SourcePrograms.allow(profile.profileKey, item)) return null;
     return warFilms.find(film => film.id === item.id && film.provider === item.provider && film.url === (item.embedUrl || item.url)) || null;
   }
   if (profile.derivedCatalogOnly === true && !profile.musicYears && Number(item.seriesDecade) !== Number(profile.seriesDecade)) return null;
@@ -931,6 +934,8 @@ function normalized(item, provider, query, profile) {
     provider,
     ...(provider === "NASCAR Classics" ? { officialReplay: item.officialReplay === true, verification: item.verification, verifiedAt: Number(item.verifiedAt) || 0, raceTrack: item.raceTrack, raceSeries: item.raceSeries } : {}),
     durationUnit: provider === "OK.ru" ? "seconds" : "",
+    ...(provider === "OK.ru" && item.okReleaseTitle ? { okReleaseTitle: text(item.okReleaseTitle, 500) } : {}),
+    ...(provider === "OK.ru" && item.okForeignSubtitles === true ? { okForeignSubtitles: true } : {}),
     ...(provider === "OK.ru" && Number(item.videoHeight) > 0 ? { videoHeight: Number(item.videoHeight) } : {}),
     query: text(query, 180),
     type: item.type || "video",

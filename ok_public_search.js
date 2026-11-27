@@ -48,7 +48,13 @@ export function okEmbedMetadata(html, expectedId) {
     if (movie.status !== "OK" || movie.notPublished || movie.isClip) return null;
     const width = Number(movie.width), height = Number(movie.height);
     if (!(width > 0 && height > 0)) return null;
+    const forcedForeignSubtitles = Array.isArray(movie.subtitleTracks) && movie.subtitleTracks.some(track =>
+      (track?.isDefault === true || track?.isForced === true) && !!track.language
+      && !/^(?:en(?:g|glish)?(?:[-_][a-z0-9]+)*|und|unknown)$/i.test(String(track.language).trim()));
+    const audioLanguage = String(movie.defaultAudioLanguage || movie.audioLanguage || metadata.defaultAudioLanguage || "").slice(0, 40);
     return { id: String(expectedId), title: String(movie.title || ""),
+      ...(audioLanguage ? { defaultAudioLanguage: audioLanguage } : {}),
+      ...(forcedForeignSubtitles ? { okForeignSubtitles: true } : {}),
       compilationTitle: String(metadata.compilationTitle || "").slice(0, 160),
       duration: Number(movie.duration) || 0, width, height, videoHeight: height, aspectRatio: width / height,
       embedAllowed: true, type: "embed", url: `https://ok.ru/videoembed/${expectedId}`,

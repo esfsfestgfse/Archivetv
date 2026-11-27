@@ -137,7 +137,30 @@
         rights:'Public domain U.S. government work; '+(row.credit||'NASA Johnson Space Center')});
     }
   };
+  var okSubtitleLanguage='(?:arabic|ara|arb|ar|farsi|persian|hindi|urdu|turkish|rus(?:sian)?|castellano|latino|spanish|espa[nñ]ol|french|fran[cç]ais|german|deutsch|italian|portugu[eê]s|korean|japanese|mandarin|chinese)';
+  var okForeignSubtitleLabel=new RegExp('\\b(?:'+okSubtitleLanguage+'\\s*(?:hard\\s*)?sub(?:s|bed|titles?|titled)?|sub(?:s|bed|titles?|titled)?\\s*(?:in\\s+)?'+okSubtitleLanguage+')\\b','i');
+  // Specific provider editions verified in the player or its release metadata.
+  var blockedOKEditions = /(?:^|[:/=])(?:4557434915362|6305084476145|6100553960177)(?:[?#&/]|$)/;
+  function okEditionAllowed(item) {
+    var audio=String(item?.defaultAudioLanguage||'').trim();
+    if(audio&&!/^(?:en(?:g|glish)?(?:[-_][a-z0-9]+)*|und|unknown)$/i.test(audio))return false;
+    if(item?.okForeignSubtitles===true)return false;
+    if([item?.id,item?.identifier,item?.url,item?.embedUrl].some(function(value){
+      return blockedOKEditions.test(String(value||''));
+    }))return false;
+    var title=[item?.title,item?.okReleaseTitle].map(clean).join(' | ').replace(/[._/()-]/g,' ').replace(/\s+/g,' ');
+    var notes=clean(item?.description).slice(0,1800).replace(/[._/-]/g,' ').replace(/\s+/g,' ');
+    if(/\p{Script=Arabic}/u.test(title)||okForeignSubtitleLabel.test(title)||okForeignSubtitleLabel.test(notes))return false;
+    if(/\b(?:hard\s*sub(?:s|bed|titles?|titled)?|hard\s*coded\s+subtitles?|burn(?:ed|t)?\s+in\s+subtitles?|vostfr|subesp|trdub|rudub|rusdub|ardub|arabs?dub|hindidub|my\s*cima)\b/i.test(title)
+      || /\[\s*(?:ar|ara|arb|arabic|rus|russian|turkish)\s*\]/i.test(title))return false;
+    // Bare DUB credits a dubbed release and provides no English-audio evidence.
+    // Ignore only an explicit English-dub marker, including on OK Anime.
+    var dubLabels=title.replace(/\b(?:(?:en|eng|english)\s+dub(?:bed)?|dub(?:bed)?\s+(?:en|eng|english))\b/gi,'');
+    return !/\b(?:dub|dubbed|dublado|dublaj|dual\s+audio)\b/i.test(dubLabels)
+      && !/\b(?:this|the)\s+(?:upload|release|edition|version|copy)\s+(?:is|has|contains)\s+(?:hard\s*coded|burn(?:ed|t)?\s+in|hard\s*sub)/i.test(notes);
+  }
   function allow(profileKey,item){
+    if (/^ok-/.test(String(profileKey||'')) && !item?.musicVerified && !okEditionAllowed(item)) return false;
     if (profileKey === "film-noir-desk" && !noirFilmAllowed(item)) return false;
     // These retired Archive files stalled at startup. Their replacements keep the film identities.
     if(profileKey==='ia-war-movies'){

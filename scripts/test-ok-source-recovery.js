@@ -20,6 +20,21 @@ const root = path.resolve(__dirname, '..');
   assert.equal(source.qualifySourceItem(movie, { ...item, title: 'Rambo.III.1988.BDRip.1080p.UKR.DVO' }), null);
   assert.equal(source.qualifySourceItem(movie, { ...item, title: 'Terminator.1984.1080p.AUDIO COMMENTARY ONLY' }), null);
   assert.equal(source.qualifySourceItem(tv, { ...item, title: 'BTTH S01E01 1080p', duration: 1600 }), null);
+  const wrongEditions = [
+    { ...item, title: 'The.Astronaut.2025.DUB.BDRip.x264.seleZen' },
+    { ...item, title: 'Sew.Torn.2024.DUB.BDRip.720p.x264.seleZen' },
+    { ...item, title: 'Tombstone.1993.1080p.BluRay.ENG.ARSubs' },
+    { ...item, title: 'Tombstone 1080p [AR SUB]' },
+    { ...item, title: 'Tombstone 1080p [Arabic Subtitles]' },
+    { ...item, title: 'Tombstone.1993.1080p.BluRay', okReleaseTitle: 'Tombstone.1993.1080p.BluRay.Hardsubbed' },
+    { ...item, defaultAudioLanguage: 'ru' },
+    { ...item, title: 'Devotion 2022 TRDUB 1080p' },
+    { ...item, title: 'Tombstone 1080p [AR]' },
+    { ...item, okForeignSubtitles: true },
+    { ...item, title: 'Tombstone.1993.1080p.BluRay.MyCima.TO' },
+    { ...item, title: 'Tombstone 1993 1080p', description: 'This upload has hardcoded Arabic subtitles.' }
+  ];
+  for (const edition of wrongEditions) assert.equal(source.qualifySourceItem(movie, edition), null, edition.okReleaseTitle || edition.title);
   const episode = { ...item, title: 'Taxi.S01E01.DVDRip.x264', duration: 1481, language: 'en', seriesTitle: 'Taxi', seriesId: 'tvmaze:2627', identityProvider: 'TVmaze', identityReference: 'https://www.tvmaze.com/shows/2627/taxi' };
   assert.ok(source.qualifySourceItem(tv, episode), 'episode filenames must be admitted without literal full-episode wording');
   const legacyAnimation = { ...episode, title: 'Perfect World Episode 176 #1080p', language: '', identityProvider: '', identityReference: '', seriesId: '' };
@@ -33,6 +48,11 @@ const root = path.resolve(__dirname, '..');
   const meta = helpers.okEmbedMetadata(`<div data-options="${attr({ isIframePlayer: false, flashvars: { metadata: JSON.stringify({ movie: { id: '123', status: 'OK', title: item.title, duration: 7777, width: 1920, height: 800 }, videos: [{ url: 'signed-private-link' }] }) } })}"></div>`, '123');
   assert.equal(meta.duration, 7777);
   assert.equal(meta.url, item.url);
+  const captioned = track => helpers.okEmbedMetadata(`<div data-options="${attr({ flashvars: { metadata: { movie: { id: "123", status: "OK", title: item.title, duration: 7777, width: 1920, height: 800, subtitleTracks: [track] } } } })}"></div>`, '123');
+  assert.equal(captioned({ language: 'ar', isDefault: true }).okForeignSubtitles, true);
+  assert.equal(captioned({ language: 'es', isForced: true }).okForeignSubtitles, true);
+  assert.equal(captioned({ language: 'en', isDefault: true }).okForeignSubtitles, undefined);
+  assert.equal(captioned({ language: 'ar', isDefault: false }).okForeignSubtitles, undefined);
   assert.ok(!JSON.stringify(meta).includes('signed-private-link'));
   assert.equal(helpers.okEmbedMetadata(`<div data-options="${attr({ flashvars: { metadata: { movie: { id: '123', status: 'BLOCKED', width: 1920, height: 800 } } } })}"></div>`, '123'), null);
   const balanced = helpers.okBalancedCandidates([[...Array(8)].map((_, i) => ({ id: `a${i}`, title: `Taxi S01E0${i} DVDRip` })), [{ id: 'b1', title: 'Friends S01E01 1080p' }]], 'tv', 3);
@@ -92,6 +112,9 @@ const root = path.resolve(__dirname, '..');
   }
   vm.runInNewContext(fs.readFileSync(path.join(root, 'assets/ok-embed-runtime.js'), 'utf8'), context);
   assert.equal(window.RealSignalOKEmbed.qualify(movie, item), true);
+  window.RealSignalSourcePrograms = require('../assets/source-program-policy.js');
+  for (const edition of wrongEditions) assert.equal(window.RealSignalOKEmbed.qualify(movie, edition), false, 'saved OK editions are rechecked in the browser');
+
   assert.equal(window.RealSignalOKEmbed.qualify(tv, legacyAnimation), false, 'the browser must reject contaminated legacy caches too');
   assert.equal(window.RealSignalOKEmbed.qualify(tv, episode), true);
   assert.equal(window.RealSignalOKEmbed.normalize(item).type, 'embed');

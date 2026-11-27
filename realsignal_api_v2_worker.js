@@ -471,6 +471,9 @@ function compactCatalogItem(item) {
     query: String(item.query || "").slice(0, 240),
     duration: Number(item.duration || item.runtime) || null,
     durationUnit: provider === "OK.ru" ? "seconds" : "",
+    ...(provider === "OK.ru" && item.okReleaseTitle ? { okReleaseTitle: String(item.okReleaseTitle).slice(0, 500) } : {}),
+    ...(provider === "OK.ru" && item.okForeignSubtitles === true ? { okForeignSubtitles: true } : {}),
+    ...(provider === "OK.ru" && item.defaultAudioLanguage ? { defaultAudioLanguage: String(item.defaultAudioLanguage).slice(0, 40) } : {}),
     aspectRatio: Number(item.aspectRatio) || null,
     ...(item.logicalId ? { logicalId: item.logicalId, fileName: item.fileName, width: item.width, height: item.height,
       runtimeSeconds: item.runtimeSeconds, metadataVerifiedAt: item.metadataVerifiedAt,
@@ -1649,6 +1652,8 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       language: metadata.language || metadata.defaultAudioLanguage || metadata.defaultLanguage || "",
       defaultAudioLanguage: metadata.defaultAudioLanguage || "",
       defaultLanguage: metadata.defaultLanguage || "",
+      ...(metadata.okReleaseTitle ? { okReleaseTitle: metadata.okReleaseTitle } : {}),
+      ...(metadata.okForeignSubtitles === true ? { okForeignSubtitles: true } : {}),
       seriesTitle: metadata.seriesTitle || "",
       seriesId: metadata.seriesId || "",
       ...(metadata.eventDate && catalogEventDate(metadata.eventDate) ? { eventDate: catalogEventDate(metadata.eventDate) } : {}),
@@ -2563,9 +2568,10 @@ async function handleGuide(request, env) {
   const blockedProvidersForGuide = sourceProfileForGuide ? await readSourceCooldowns(env, sourceProfileForGuide.profileKey) : new Set();
   const guideBody = sourceProfileForGuide ? sourceCatalogReadBody(sourceProfileForGuide) : { channel };
   const requalifySource = sourceProfileForGuide && !isOKSourceProfile(sourceProfileForGuide) && !/^vimeo-/.test(channel);
-  if (sourceProfileForGuide && (okCuratedChannel(sourceProfileForGuide) || sourceProfileForGuide.profileKey === "film-noir-desk")) {
+  const warFilmGuide = SourcePrograms.warFilmProfile(sourceProfileForGuide?.profileKey);
+  if (sourceProfileForGuide && (warFilmGuide || okCuratedChannel(sourceProfileForGuide) || sourceProfileForGuide.profileKey === "film-noir-desk")) {
     const catalog = await catalogFallback(env, { ...guideBody, count: limit }, SOURCE_LIMITS.SOURCE_MAX_ITEMS,
-      { blockedProviders: blockedProvidersForGuide });
+      { blockedProviders: blockedProvidersForGuide, ignoreFreshness: warFilmGuide });
     const items = catalog?.items || [];
     return json({
       apiVersion: "v3", release: V3_RELEASE, channel,
@@ -2607,7 +2613,8 @@ async function handleGuide(request, env) {
         type: row.media_type || metadata.type, url: row.media_url,
         media: { ...(metadata.media || {}), type: row.media_type || metadata.type,
           url: row.media_url || metadata.mediaUrl } };
-      const allowed = !blockedProvidersForGuide.has(sourceProviderKey(row.provider)) && (requalifySource
+      const allowed = !blockedProvidersForGuide.has(sourceProviderKey(row.provider))
+        && (!isOKSourceProfile(sourceProfileForGuide) || SourcePrograms.allow(channel, item)) && (requalifySource
         ? catalogFallbackAllowed(item, guideBody)
         : sourceProfileForGuide || (!iaKnownVideoPolicyViolation(item, guideBody) && iaReviewedFileAllowed(item, channel)));
       if (!allowed) { rejectedRows++; if (row.last_served_at == null) unseenRejected++; continue; }
@@ -2898,7 +2905,8 @@ async function handleSourceCatalog(request, env, ctx, id) {
   if (profile.derivedCatalogOnly === true) return handleDerivedSourceCatalog(env, ctx, id, body, profile, apiVersion);
   if (!profile.queries.length) return json({ error: "source profile has no discovery queries", requestId: id }, 503);
   const rotation = Number(body.rotation) || 0;
-  const personalFreshness = !maintenance && profile.personalRotation;
+  // War film balancing needs this viewer’s full era mix on a fresh tune.
+  const personalFreshness = !maintenance && (profile.personalRotation || SourcePrograms.warFilmProfile(profile.profileKey));
   const ledgerIds = personalFreshness ? [] : await readFreshnessIds(env, profile.profileKey);
   const playedIds = Array.from(new Set((Array.isArray(body.playedIds) ? body.playedIds : [])
     .map((value) => String(value || "").trim().slice(0, 500)).filter(id => id && (!noirDesk || !id.startsWith("noir:"))))).slice(0, 8);

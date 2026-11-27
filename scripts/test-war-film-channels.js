@@ -33,6 +33,15 @@ const { DatabaseSync } = require("node:sqlite");
       ["youtube-war-movies", "YouTube", 623],
       ["ia-war-movies", "Internet Archive", 624]
     ];
+    const unavailableEdition = { id: "ok:war:4557434915362", title: "Devotion (2022)", language: "en", provider: "OK.ru",
+      url: "https://ok.ru/videoembed/4557434915362", embedAllowed: true, duration: 7395, aspectRatio: 2, genreVerified: true, recoveryVerified: true };
+    assert.equal(sourcePolicy.allow("ok-war-movies", unavailableEdition), false, "a stored clean title must not resurrect the confirmed Turkish dub");
+    assert.equal(qualifySourceItem(sourceProfile({profileKey:"ok-war-movies"}), unavailableEdition), null);
+    for (const editionId of ["4557434915362", "6305084476145", "6100553960177"]) {
+      const edition = { ...unavailableEdition, id: "ok:war:"+editionId, url: "https://ok.ru/videoembed/"+editionId };
+      assert.equal(sourcePolicy.allow("ok-war-movies", edition), false, "localized editions must stay out of saved queues");
+      assert.ok(!reviewedWarFilms("ok-war-movies").some(item => item.id === edition.id));
+    }
     const archiveProfile = sourceProfile({profileKey:"ia-war-movies"});
     const archiveRepairs = [
       ["ia-war:what-price-glory-1926", ["https://archive.org/download/what-price-glory-1926/What%20Price%20Glory%20(1926).mp4"]],
@@ -208,6 +217,13 @@ const { DatabaseSync } = require("node:sqlite");
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ profileKey, count: 5, recentIds: history })
       });
+      // Playback from another viewer must not drain the modern shelf for this one.
+      for (const film of items.filter(item => item.year >= 2000)) {
+        sql.prepare("INSERT OR IGNORE INTO programs (id,provider,source_identifier,title,first_seen_at,last_seen_at) VALUES (?,?,?,?,1,1)")
+          .run(film.id,provider,film.id,film.title);
+        sql.prepare("INSERT INTO channel_freshness (channel_key,program_id,last_served_at) VALUES (?,?,?)")
+          .run(profileKey,film.id,Date.now());
+      }
       const initial = await (await worker.fetch(request([]), env, ctx)).json();
       assert.equal(initial.items.length, 5);
       assert.ok(items.every(item => Number.isInteger(item.year)), "each reviewed release must have a film year");

@@ -1037,20 +1037,30 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "youtube"
     ],
     "queries": [
-      "stand up comedy history",
-      "comedy performance documentary",
-      "comedy club film",
-      "sketch comedy archive",
-      "comic interview documentary"
+      "full stand up comedy special official",
+      "full sketch comedy show live",
+      "full improv comedy show live",
+      "stand up comedy club full set",
+      "comedy roast battle full show",
+      "classic stand up comedy full special",
+      "stand up comedy full set compilation"
     ],
     "match": [
-      "stand up comedy",
-      "comedy performance",
-      "comedy club",
+      "stand up",
+      "stand-up",
+      "standup",
       "sketch comedy",
-      "comic interview",
-      "comedy history",
-      "comedian"
+      "sketch show",
+      "comedy performance",
+      "live performance",
+      "comedy club",
+      "comedy special",
+      "full special",
+      "comedy set",
+      "comedy show",
+      "comedy sketch",
+      "comedy monologue",
+      "roast battle"
     ],
     "deny": [
       "fictional",
@@ -1061,6 +1071,13 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "prank",
       "reaction",
       "podcast"
+    ],
+    "youtubeChannelHandles": [
+      "UC7MgijK9WL_EqCo1juUERwg",
+      "UCzb-6smlTg5UPirLdsdQ_cQ",
+      "UCp1m5biWDhP6ogRCpD-qKpw",
+      "UCtw7q4SyOeoCwM1i_3x8lDg",
+      "UC3JVlyuEqD9B7VaQp7FSkIQ"
     ]
   },
   "rhythm-archives": {

@@ -138,8 +138,18 @@
       if(/^(?:pt:indymotion\.fr\/)(?:2f2b99fa-3fe2-4141-8520-14296e580125|bf85b376-fad9-41df-b97f-f9453743d0d9|db41bbcc-fb64-4526-92c1-520756c638fd)$/.test(String(item&&item.id||'')))return false;
     }
     var title=String(item&&item.title||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
-    // DebConf labels these talks as stand-up, but the opening credits identify a conference session.
-    if(profileKey==='comedy-circuit'&&/\bat:\s*debconf(?:\d{2,4})?\b/i.test(introduction))return false;
+    if(profileKey==='comedy-circuit'){
+      // A performer in the subject or description does not establish the program's format.
+      if(/\bat:\s*debconf(?:\d{2,4})?\b/i.test(introduction)
+        || /\b(?:documentary|biograph(?:y|ical)|retrospective|video essay|behind the scenes|history of (?:stand[ -]*up|comedy)|the story behind|interview(?: with)?)\b/i.test(title))return false;
+      var performance=/\b(?:stand[ -]*up|sketch (?:comedy|show)|comedy (?:sketch(?:es)?|special|set|show|monologue)|(?:improv|improvised|improvisational) comedy|roast battle)\b/i;
+      var fullSet=/\b(?:full|complete)\s+(?:special|show|set|performance)\b/i;
+      var venue=/\bcomedy club\b/i;
+      return performance.test(title)
+        || fullSet.test(title)&&performance.test([item&&item.account,introduction].join(' '))
+        || venue.test(title)&&/\b(?:performance|live at|full show)\b/i.test(title)
+        || /\bcomedian\b/i.test(title)&&/\blive performance\b/i.test(title);
+    }
     // A sitcom/cast retrospective is not a home-project or craft program.
     // Keep this title-format rule local; garden/project history remains valid.
     if(profileKey==='comfort-television'&&/\b(?:cast\s*[:|-]?\s*then\s+(?:and|&)\s+now|where\s+are\s+they\s+now|who(?:['’]s|\s+is)\s+still\s+alive)\b/i.test(title))return false;

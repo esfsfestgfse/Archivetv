@@ -63,6 +63,41 @@ test('Comedy Circuit rejects Debian conference talks framed as stand-up',async()
  const response=await worker.fetch(new Request('https://api.test/api/v3/source/status?profileKey='+key),{realsignal_catalog:db([...talks.map(row),row(good)])},{waitUntil(){}});
  assert.deepEqual((await response.json()).items.map(x=>x.id),[good.id]);
 });
+test('Comedy Circuit admits the performance itself across discovery, saved catalogs and both clients',async()=>{
+ const key='comedy-circuit',profile=sourceProfile({profileKey:key});
+ const rejected=[
+  program('What happened at court as Russell Brand found guilty of rape',{id:'yt:3N69TfL6sXs',account:'ITV News',description:'The comedian was found guilty after a trial.'}),
+  program('Dave Chappelle Walked Away From $50 Million | The Story Behind His Decision',{id:'yt:Dn8VdclvaIE',description:'In this video, we explore his career and one of the most talked-about moments in comedy history.'}),
+  program('Funny On Purpose: The History of Stand-Up Comedy',{id:'yt:e4igO97KKcs'}),
+  program('Oh, Rick! - Full Stand-Up Comedy Documentary | Comedy Cellar NYC (2017)',{id:'yt:gpbnF8Qr0Nc',account:'Oh, Rick!'}),
+  program('Comedy’s Most Controversial Moments In History | Compilation',{id:'yt:PMesy3PGWCw',account:'Weird History',description:'A compilation about controversies involving comedians.'}),
+  program('Wyatt Cenac Interview: Breaking Barriers in Late-Night TV | THE THREAD Documentary Series',{id:'yt:nTbyZe70Q28'}),
+ ];
+ const performances=[
+  program('Foil Arms and Hog: Swines - Live Sketch Comedy (FULL SHOW)',{id:'yt:3-p5Nqs-HDU'}),
+  program('Joe List: I Hate Myself - Full Special',{id:'yt:odtAJ2kPdqc',account:'Comedy Central Stand-Up'}),
+  program('WHO DID 9/11? | STAND UP COMEDY',{id:'yt:Bm5xtuK6AE8',account:'Sammy Obeid'}),
+  program("Shoot From The Hip #19 - 'stuck in a lift with a German' | FULLY IMPROVISED COMEDY SHOW",{id:'yt:ugkm8C_BsE0',account:'Shoot From The Hip'}),
+  program('Naked Video (1991) Series 5 Episode 5 | Classic BBC Scotland Sketch Show',{id:'yt:q69jyJ7un_c'}),
+ ];
+ for(const item of rejected){
+  assert.equal(policy.allow(key,item),false,item.title);
+  assert.equal(qualifySourceItem(profile,item),null,item.title);
+  assert.equal(catalogFallbackAllowed(item,{sourceCatalog:true,channel:key}),false,item.title);
+ }
+ for(const item of performances)assert.ok(qualifySourceItem(profile,item),item.title);
+ const results=[...rejected,...performances],expected=performances.map(x=>x.id);
+ for(const route of ['source/status?profileKey=','guide?channel=']){
+  const response=await worker.fetch(new Request('https://api.test/api/v3/'+route+key),{realsignal_catalog:db(results.map(row))},{waitUntil(){}});
+  assert.deepEqual((await response.json()).items.map(x=>x.id).sort(),[...expected].sort());
+ }
+ for(const file of ['the_dial_desktop.html','the_dial_mobile.html']){
+  const html=fs.readFileSync(new URL('../'+file,import.meta.url),'utf8'),scope={window:{RealSignalSourcePrograms:policy}};vm.createContext(scope);
+  vm.runInContext(['v2SourceProgramAllowed','v2PruneSourcePrograms'].map(name=>html.split('\n').find(line=>line.startsWith('function '+name+'('))).join('\n'),scope);
+  const state={items:[...results],cursor:0,currentId:rejected[0].id,pendingId:rejected[1].id};scope.v2PruneSourcePrograms(profile,state);
+  assert.deepEqual(Array.from(state.items,x=>x.id),expected);assert.equal(state.currentId,'');assert.equal(state.pendingId,'');
+ }
+});
 for(const [key,title] of observed)test(key+': observed podcast cannot enter fresh or cached playback',()=>{
  const item=program(title);assert.equal(policy.allow(key,item),false);
  assert.equal(qualifySourceItem(sourceProfile({profileKey:key}),item),null);

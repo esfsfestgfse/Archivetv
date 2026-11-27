@@ -221,10 +221,10 @@ function client(file,programs,options={}){
  let lane,providerCalls=0;
  const server=async()=>{providerCalls++;return options.serverPending||lane;};
  const profile={...sourceProfile({profileKey:key}),name:'Cartoon Time Machine',intent:'animation',providers:['youtube'],serverOnly:true,...options.profile},state={items:options.active||[],cursor:0};
- const scope={window:{RealSignalSourcePrograms:policy},v2PreviewState:{555:state},v2PreviewInflight:{},V2_SOURCE_CACHE_VERSION:50,V2_SOURCE_MIN_CATALOG:12,V2_SOURCE_CACHE_TTL:60000,V2_SOURCE_CATALOG_SIZE:96,
+ const scope={window:{RealSignalSourcePrograms:policy},location:{search:''},URLSearchParams,v2PreviewState:{555:state},v2PreviewInflight:{},V2_SOURCE_CACHE_VERSION:50,V2_SOURCE_MIN_CATALOG:12,V2_SOURCE_CACHE_TTL:60000,V2_SOURCE_CATALOG_SIZE:96,
  store:{get:k=>k==='v2source:'+profile.name?options.cached||null:null,set:(_key,value)=>saved.push(value)},v2NextRotation:()=>0,v2ServerSourceCatalog:server,v2Recent:()=>options.recent||[],
  v2Unique:xs=>[...new Map(xs.map(x=>[x.id,x])).values()],v2MergeCatalog:(_p,a,b)=>[...new Map(a.concat(b).map(x=>[x.id,x])).values()],v2CatalogOrder:(_k,x)=>x,v2Landscape:()=>true,v2ProfileRuntimeOkay:()=>true,v2SourceHealth:()=>({}),refreshGuideData(){},nlog(){},setTimeout:()=>0,Date,Promise};
- vm.createContext(scope);legacyRelevance(source,scope,profile,options.initialized);const prune=source.match(/^function v2PruneSourcePrograms\([^\n]+/m);if(prune)vm.runInContext(prune[0],scope);vm.runInContext(source.slice(start,end),scope);
+ vm.createContext(scope);legacyRelevance(source,scope,profile,options.initialized);const prune=source.match(/^function v2PruneSourcePrograms\([^\n]+/m);if(prune)vm.runInContext(prune[0],scope);const pilot=source.match(/^function v2DocumentaryPilot\([^\n]+/m);if(pilot)vm.runInContext(pilot[0],scope);vm.runInContext(source.slice(start,end),scope);
  return {state,saved,get providerCalls(){return providerCalls;},start(){lane={provider:'Server Catalog',items:programs||[item(bad,'bad'),item('Classic Cartoon Full Episode','good')]};return scope.v2LoadProfile({num:555},profile,1);},async load(){await this.start();await new Promise(r=>setImmediate(r));}};
 }
 for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': AI rows are removed from fresh server replies, saved caches and active shelves',async()=>{

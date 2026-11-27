@@ -10901,7 +10901,9 @@ async function qualifyIaQueueResponse(response, body, cacheOrigin, ctx, env) {
   };
   const excluded = new Set((Array.isArray(body.hydrationExcludeIds) ? body.hydrationExcludeIds.slice(-1024) : []).map(identity));
   const preferred = new Set((Array.isArray(body.hydrationPreferredIds) ? body.hydrationPreferredIds.slice(0, 5) : []).map(identity));
+  const fastRefill = ["2", "3", "10"].includes(String(body.channel)) && body.sessionRefill === true;
   const strictContext = { iaRepair: true, iaHydrationExcluded: excluded, iaHydrationIdentity: identity,
+    foregroundBudgetMs: fastRefill ? 1800 : 0,
     waitUntil: promise => ctx && ctx.waitUntil ? ctx.waitUntil(promise) : promise };
   const reviewedBroadcasts = ["2", "3", "10"].includes(String(body.channel)) ? IA_TARGETED_RECOVERY_BANKS[String(body.channel)] : [];
   const repairEpisodes = iaRepairCollectionSeeds(body.channel).concat(reviewedBroadcasts.filter(item => iaStationQualityGate(body.channel, item))).filter(item => item.media);
@@ -10928,7 +10930,7 @@ async function qualifyIaQueueResponse(response, body, cacheOrigin, ctx, env) {
   // Do not let already-known seed metadata race and displace the requested
   // program while its metadata resolves. Seeds recover an actual underfill.
   const learnedCatalog = qualified;
-  if (qualified.ready < requested && repairEpisodes.length) {
+  if (qualified.ready < requested && repairEpisodes.length && (!fastRefill || !qualified.ready)) {
     qualified = await hydrateIaQueue({ ...qualified, candidateItems: mergeIaCatalogCandidates(
       { candidateItems: qualified.items }, { candidateItems: repairEpisodes.filter(item => !excluded.has(identity(item))) }, { preserveOrder: true }),
     }, requested, cacheOrigin, strictContext, mediaTypes);
@@ -11069,7 +11071,11 @@ async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTy
     }
   })();
   if (ctx?.iaRepair && !ctx.isIaBackground && typeof ctx.waitUntil === "function") {
-    await Promise.race([completion, fullShelf]);
+    const waits = [completion, fullShelf];
+    let limit;
+    if (ctx.foregroundBudgetMs > 0) waits.push(new Promise(resolve => { limit = setTimeout(resolve, ctx.foregroundBudgetMs); }));
+    await Promise.race(waits);
+    clearTimeout(limit);
     ctx.waitUntil(completion.catch(error => console.warn(JSON.stringify({
       event: "ia-pending-hydration-failed", message: String(error?.message || error),
     }))));

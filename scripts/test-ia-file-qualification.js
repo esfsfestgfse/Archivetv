@@ -523,6 +523,31 @@ test('a partial classic TV reservation is topped up from different shows', async
   assert.equal(payload.candidateItems.filter(item => item.seriesId === 'Alpha').length, 3);
 });
 
+test('a classic refill returns verified programs before an unresolved route finishes', async () => {
+  let release;
+  const stalled = new Promise(resolve => { release = resolve; });
+  const f = relay({}, 206, '', async () => stalled);
+  const rows = ['Alpha', 'Beta', 'Gamma'].map((seriesId, i) => ({
+    ...verified, identifier: seriesId + '::episode.mp4', seriesId, title: seriesId + ' · Episode 1',
+    sourceIdentifier: seriesId, year: 1962, subject: 'classic television sitcom',
+    media: { ...verified.media, url: 'https://archive.org/download/' + seriesId + '/episode.mp4',
+      ...(i === 0 ? { verifiedAt: 0, verification: undefined } : {}) },
+  }));
+  const waits=[];
+  try {
+    const result = await f.qualifyIaQueueResponse(Response.json({candidateItems:rows}), {
+      iaRepair:true, channel:'2', sessionRefill:true, count:3, mediaTypes:['movies'], diversity:{maxPerFamily:1},
+    }, 'https://relay.invalid', {waitUntil:promise=>waits.push(promise)});
+    const payload=await result.json();
+    assert.deepEqual(payload.items.map(item=>item.seriesId), ['Beta','Gamma']);
+    assert.equal(payload.ready, 2);
+    assert.ok(payload.candidateItems.some(item=>item.seriesId==='Alpha'));
+  } finally {
+    release(new Response('x',{status:206,headers:{'content-type':'video/mp4'}}));
+    await Promise.all(waits);
+  }
+});
+
 test('family qualification preserves explicit reservations and genuinely single-series shelves', async () => {
   const rows = Array.from({ length: 3 }, (_, i) => ({ ...verified, identifier: 'Alpha::episode-' + i + '.mp4',
     seriesId: 'Alpha', title: 'Alpha · Episode ' + i,

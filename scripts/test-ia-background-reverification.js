@@ -18,7 +18,7 @@ function fixture(rows,delay=false,failures=[]){
  });
  const ctx={waitUntil:p=>pending.push(p)},env={REALSIGNAL_QUEUE:{get:async key=>JSON.parse(data.get(key)||'null'),put:async(key,value)=>data.set(key,value)}};
  return {calls,pending,data,release:()=>release(),run:()=>s.f.qualifyIaQueueResponse(Response.json({items:rows.slice(0,3),candidateItems:rows,ready:3,lastGoodKey:'family'}),
-  {channel:'10',iaRepair:true,count:3,mediaTypes:['movies'],diversity:{maxPerFamily:1}},'https://relay.invalid',ctx,env),drain:async()=>{for(let i=0;i<pending.length;i++)await pending[i];}};
+  {channel:'12',iaRepair:true,count:3,mediaTypes:['movies'],diversity:{maxPerFamily:1}},'https://relay.invalid',ctx,env),drain:async()=>{for(let i=0;i<pending.length;i++)await pending[i];}};
 }
 
 test('expired checks reopen a bounded balanced background batch while the hot shelf remains immediate',async()=>{

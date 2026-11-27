@@ -1042,3 +1042,20 @@ test('a return to Public Access TV excludes the last program actually shown in l
   assert.ok(!returning.items.some(row=>row.identifier===fallbackStart));
   assert.equal(returning.v2.cycleReset,false);
 });
+
+for (const [channel, variants] of [
+  ['15', [['0017_Auction','0017 Auction'], ['0016_auction','0016 auction'], ['Auction116','Auction116']]],
+  ['17', [['roseanne-michelle','The Roseanne Show - Michelle Kwan (1998)'], ['roseanne-ruby','The Roseanne Show - Ruby Dee (1998)'], ['roseanne-tammy','The Roseanne Show - Tammy Faye Bakker (1998)']]],
+]) test('channel '+channel+' preserves variety across separately uploaded episodes of one show', async () => {
+  const f = await fixture();
+  f.incoming([...variants.map(([identifier, title]) =>
+    row(identifier+'.mp4',{identifier:identifier+'::'+identifier+'.mp4',title,media:{...row(identifier+'.mp4').media,url:'https://archive.org/download/'+identifier+'/'+identifier+'.mp4'},subject:channel==='15'?'Take it to the Auction; community cable':'television talk show'})),
+    row('one.mp4',{title:'Distinct broadcast one',seriesTitle:'Series one'}),
+    row('two.mp4',{title:'Distinct broadcast two',seriesTitle:'Series two'}),
+  ]);
+  const response = await f.request('queue',{channel,iaRepair:true,serverCatalog:true,sessionId:'variety-'+channel,count:3,mediaTypes:['movies']});
+  const shelf = await response.json();
+  assert.equal(shelf.ready,3);
+  assert.equal(shelf.items.filter(item=>variants.some(([id])=>item.identifier.startsWith(id+'::'))).length,1);
+  assert.ok(shelf.v2.catalogSize>=5);
+});

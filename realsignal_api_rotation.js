@@ -213,6 +213,8 @@ function lateNightHost(item) {
     ['dick cavett', /\bdick cavett (?:show|interview)\b/],
     ['merv griffin', /\bmerv griffin show\b/],
     ['mike douglas', /\bmike douglas show\b/],
+    ['roseanne barr', /\broseanne show\b/],
+    ['phil donahue', /\b(?:phil donahue show|donahue show)\b/],
     ['tom snyder', /\b(?:tom snyder|tomorrow (?:monsters and movies|show))\b/],
     ['arsenio hall', /\barsenio(?: hall(?: show)?|199[0-9])\b/],
   ];
@@ -226,6 +228,11 @@ function lateNightHost(item) {
 
 function archiveFamilyId(item, channel) {
   if (channel === '17') return lateNightHost(item) || familyId(item);
+  if (channel === '15') {
+    const source = normalizedFamily(item.sourceIdentifier || itemId(item).split('::')[0]);
+    const label = normalizedFamily([item.title, item.subject, item.subjects, item.meta?.subject].filter(Boolean).join(' '));
+    if (/\btake it to the auction\b/.test(label) || /^(?:00\d{2}\s*auction|bcmmev auction\s*\d+)$/.test(source)) return 'take it to the auction';
+  }
   if (channel === '502') return archiveVhsSeries(item) || familyId(item);
   if (channel === '929') {
     // Title prefixes and credited performers are supplied by the recording
@@ -479,8 +486,10 @@ export class SessionRotation {
     const pilot = archiveIdentityPilot(channel, body.archiveProgramIdentity || body.rules?.archiveProgramIdentity);
     const movie = channel === '3' || archiveMovieChannel(channel);
     const copyAware = pilot || movie || channel === '17';
+    const prioritizeVariety = ['15', '17'].includes(channel);
+    const diversity = prioritizeVariety ? { ...body.diversity, maxPerFamily: 1 } : body.diversity;
     const families = new Map();
-    const familyFor = copyAware ? item => {
+    const familyFor = copyAware || prioritizeVariety ? item => {
       const id = itemId(item);
       if (!families.has(id)) families.set(id,movie ? archiveFilmKey(item) || familyId(item) : archiveFamilyId(item,channel));
       return families.get(id);
@@ -611,6 +620,11 @@ export class SessionRotation {
     const selected = reserved.map(id => byId.get(id)).filter(Boolean);
     let relaxed = false;
     if (body.mode === "reserve") {
+      if (prioritizeVariety && selected.length > 1) {
+        const balanced = [];
+        appendBalanced(balanced, selected, count, diversity, false, familyFor);
+        selected.splice(0, selected.length, ...balanced);
+      }
       const offset = current.cursor || Number(body.rotation) || (movie ? Number(body.openingSeed) || 0 : 0);
       const unseenFamilies = fresh.filter(item => !seenFamilies.has(familyFor(item)));
       const repeatFamilies = fresh.filter(item => seenFamilies.has(familyFor(item)));
@@ -657,9 +671,9 @@ export class SessionRotation {
       // filling duplicate-series slots from a genuinely constrained catalog.
       for (const pool of pools) {
         if (selected.length >= count) break;
-        appendBalanced(selected, pool, count, body.diversity, false, familyFor);
+        appendBalanced(selected, pool, count, diversity, false, familyFor);
       }
-      if (selected.length < count) relaxed = appendBalanced(selected, pools.flat(), count, body.diversity, true, familyFor);
+      if (selected.length < count) relaxed = appendBalanced(selected, pools.flat(), count, diversity, true, familyFor);
       if (sportsEnabled) selected.splice(0,selected.length,...Sports.select([...selected,...pools.flat()],{channel:sportsChannel,count,
         history:sportsHistory([...seen]),seenKeys:[...sportsSeen]}));
       reserved = selected.map(itemId);

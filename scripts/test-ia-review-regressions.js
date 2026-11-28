@@ -1061,3 +1061,23 @@ for (const [channel, variants, subject] of [
   assert.equal(shelf.items.filter(item=>variants.some(([id])=>item.identifier.startsWith(id+'::'))).length,1);
   assert.ok(shelf.v2.catalogSize>=5);
 });
+
+test('Old Nick consults the verified relay even when D1 can serve an opening three-item loop', async () => {
+  const sitcom = i => row('Benson-S01E'+i+'.mp4',{title:'Benson · Season One Episode '+i,year:1979});
+  const originals=[1,2,3].map(sitcom);
+  const f=await catalogFixture(originals);
+  f.incoming(Array.from({length:18},(_,i)=>sitcom(i+4)));
+  const body={channel:'19',count:3,iaRepair:true,serverCatalog:true,sessionId:'old-nick-unseen',mediaTypes:['movies']};
+  const shelf=await (await f.request('queue',body)).json();
+  assert.equal(shelf.ready,3);
+  assert.equal(f.queueBodies.length,1);
+  assert.ok(shelf.v2.catalogSize>=18);
+  assert.ok(shelf.items.some(item=>!originals.some(old=>old.identifier===item.identifier)));
+});
+test('vintage sitcom identity groups alternate uploads by the actual season and episode', async () => {
+  const {archiveProgramIdentity}=await import('../realsignal_api_rotation.js');
+  const original={identifier:'dobie-gillis::Dobie Gillis - S01E07.mp4',title:'The Many Loves of Dobie Gillis · Episode 7'};
+  const copy={identifier:'dobie-broadcast::Dobie Gillis S01 E07.ia.mp4',title:'Dobie Gillis'};
+  assert.equal(archiveProgramIdentity(original,'19'),archiveProgramIdentity(copy,'19'));
+  assert.notEqual(archiveProgramIdentity(original,'19'),archiveProgramIdentity({...copy,identifier:copy.identifier.replace('E07','E08')},'19'));
+});

@@ -1,6 +1,6 @@
 /* Per-session rotation state for the Version 2 API. A session+channel is the
  * coordination atom; one viewer's Next action cannot consume another's. */
-import { normalizeIaFileRecord, qualifyIaFileRecord, iaKnownVideoPolicyViolation, iaSportingLifeAllowed, iaCourtroomAllowed, iaCookingAllowed, iaHuntingAllowed, iaReviewedFileAllowed } from './ia_file_contract.js';
+import { normalizeIaFileRecord, qualifyIaFileRecord, iaKnownVideoPolicyViolation, iaSportingLifeAllowed, iaCourtroomAllowed, iaCookingAllowed, iaHuntingAllowed, iaReviewedFileAllowed, iaReviewedTvFamily } from './ia_file_contract.js';
 import { archiveFilmKey, archiveMovieChannel, balanceArchiveMovieEras } from './ia_movie_programs.js';
 import Sports from './assets/sports-programs.js';
 import { handleIaOwnedState, readIaChunkedState, writeIaChunkedState } from './ia_durable_state.js';
@@ -13,7 +13,7 @@ const MAX_ITEMS = 96;
 const MAX_RESERVATION_ITEMS = 1024;
 const ARCHIVE_IDENTITY_PILOTS = new Set(['502', '150', '929']);
 export function archiveIdentityPilot(channel, requested) { return requested === true && ARCHIVE_IDENTITY_PILOTS.has(String(channel)); }
-const REVIEWED_BROADCAST_CHANNELS = new Set(['14', '15', '17']);
+const REVIEWED_BROADCAST_CHANNELS = new Set(['14', '15', '17', '18', '19', '20']);
 
 function itemId(item) {
   const value = item && (item.identifier || item.id || (item.media && item.media.url));
@@ -227,6 +227,8 @@ function lateNightHost(item) {
 }
 
 function archiveFamilyId(item, channel) {
+  const television = iaReviewedTvFamily(item, channel);
+  if (television) return television;
   if (channel === '17') return lateNightHost(item) || familyId(item);
   if (channel === '15') {
     const source = normalizedFamily(item.sourceIdentifier || itemId(item).split('::')[0]);
@@ -281,6 +283,14 @@ function archiveProgramKey(record, channel) {
     const text = [fileName, record.title].join(' ').replace(/[_.-]+/g, ' ');
     const date = host && !/\b(?:compilation|marathon|highlights|bonus|promo)\b/i.test(text) && classicBroadcastDate(text, 2026);
     if (date) return ['archive', 'talk', host, date].join(':');
+  }
+  if (['18', '19', '20'].includes(channel)) {
+    const series = iaReviewedTvFamily(record, channel);
+    const selected = [fileName, record.title].join(' ').replace(/[_.-]+/g, ' ');
+    if (series && !/\b(?:compilation|marathon|(?:part|disc|volume)\s+\d+)\b/i.test(selected)) {
+      const episode = selected.match(/\b(?:s(?:eason)?\s*(\d{1,2})\s*e(?:pisode|p)?\s*(\d{1,4})|(\d{1,2})\s*x\s*(\d{1,4}))\b/i);
+      if (episode) return ['archive', 'tv', series, 's'+Number(episode[1] || episode[3])+'e'+Number(episode[2] || episode[4])].join(':');
+    }
   }
   if (channel === '3') return archiveFilmKey(record) || logicalId;
   return ['2', '10', '11', '12', '150'].includes(channel) ? classicProgramKey(record,channel) : logicalId;
@@ -487,8 +497,8 @@ export class SessionRotation {
     const classic = ['2', '10', '11', '12', '150'].includes(channel);
     const pilot = archiveIdentityPilot(channel, body.archiveProgramIdentity || body.rules?.archiveProgramIdentity);
     const movie = channel === '3' || archiveMovieChannel(channel);
-    const copyAware = pilot || movie || channel === '17';
-    const prioritizeVariety = ['15', '17'].includes(channel);
+    const copyAware = pilot || movie || ['17', '18', '19', '20'].includes(channel);
+    const prioritizeVariety = ['15', '17', '18', '19', '20'].includes(channel);
     const diversity = prioritizeVariety ? { ...body.diversity, maxPerFamily: 1 } : body.diversity;
     const families = new Map();
     const familyFor = copyAware || prioritizeVariety ? item => {

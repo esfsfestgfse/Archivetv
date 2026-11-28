@@ -3644,6 +3644,73 @@ const IA_PROMOTED_ARCHIVE_BANKS = Object.freeze({
 /* Exact Archive files reviewed for format, date, and byte-range delivery.
    Channel 2 keeps its existing vintage quiz episodes alongside network series. */
 const IA_TARGETED_RECOVERY_BANKS = Object.freeze({
+  // Original medical episodes, vintage sitcoms, and reviewed judge cases.
+  "18": [
+    { ...iaDirectRecovery("st.-elsewhere::Season 1 - 22 eps/St. Elsewhere S1E001 Pilot.mp4", "st.-elsewhere", "Season 1 - 22 eps/St. Elsewhere S1E001 Pilot.mp4", "St. Elsewhere · S01E01 · Pilot", "medical drama hospital drama medical television series full episode", null, "video", 2956, 720, 480), seriesTitle: "St. Elsewhere", seriesId: "st-elsewhere" },
+    { ...iaDirectRecovery("emergency-season_1::EMERGENCY 1x11.mp4", "emergency-season_1", "EMERGENCY 1x11.mp4", "Emergency! · S01E11", "medical drama hospital drama medical television series full episode", null, "video", 3053, 634, 478), seriesTitle: "Emergency!", seriesId: "emergency" },
+    { ...iaDirectRecovery("marcus-welby-md-a-matter-of-humanities::Marcus Welby MD - A Matter Of Humanities.ia.mp4", "marcus-welby-md-a-matter-of-humanities", "Marcus Welby MD - A Matter Of Humanities.ia.mp4", "Marcus Welby, M.D. · A Matter of Humanities", "medical drama hospital drama medical television series full episode", null, "video", 5874, 540, 360, {"d1":"ia800907.us.archive.org","dir":"/29/items/marcus-welby-md-a-matter-of-humanities"}), seriesTitle: "Marcus Welby, M.D.", seriesId: "marcus-welby-m-d" },
+    { ...iaDirectRecovery("chicago-hope-full-episode-with-commercials::Chicago Hope - Full Episode with commercials (VHS Rip).ia.mp4", "chicago-hope-full-episode-with-commercials", "Chicago Hope - Full Episode with commercials (VHS Rip).ia.mp4", "Chicago Hope · Full off-air episode", "medical drama hospital drama medical television series full episode", null, "video", 3324, 640, 480), seriesTitle: "Chicago Hope", seriesId: "chicago-hope" },
+    { ...iaDirectRecovery("nlqzmt::House MD Season 1 Episode 01 - Pilot.mp4", "nlqzmt", "House MD Season 1 Episode 01 - Pilot.mp4", "House, M.D. · S01E01 · Pilot", "medical drama hospital drama medical television series full episode", null, "video", 2641, 624, 352, {"d1":"ia902805.us.archive.org","dir":"/1/items/nlqzmt"}), seriesTitle: "House, M.D.", seriesId: "house-m-d" },
+    { ...iaDirectRecovery("doogie-howser-m.d.-season-1-of-4-xvid-avi::Doogie Howser, M.D. - S01E01 - Pilot.mp4", "doogie-howser-m.d.-season-1-of-4-xvid-avi", "Doogie Howser, M.D. - S01E01 - Pilot.mp4", "Doogie Howser, M.D. · S01E01 · Pilot", "medical drama hospital drama medical television series full episode", null, "video", 1457, 624, 480), seriesTitle: "Doogie Howser, M.D.", seriesId: "doogie-howser-m-d" },
+    { ...iaDirectRecovery("n-c-s-1-e-0-t-e-p::Ben Casey S01E01 To The Pure.mp4", "n-c-s-1-e-0-t-e-p", "Ben Casey S01E01 To The Pure.mp4", "Ben Casey · S01E01 · To The Pure", "medical drama hospital drama medical television series full episode", null, "video", 3045, 962, 720, {"d1":"ia600601.us.archive.org","dir":"/11/items/n-c-s-1-e-0-t-e-p"}), seriesTitle: "Ben Casey", seriesId: "ben-casey" },
+    { ...iaDirectRecovery("233760464::233760464.mp4", "233760464", "233760464.mp4", "BBC Casualty · Rabbits in Headlights", "medical drama hospital drama medical television series full episode", null, "video", 3016, 640, 360), seriesTitle: "BBC Casualty", seriesId: "bbc-casualty" },
+    { ...iaDirectRecovery("st.-elsewhere::Season 1 - 22 eps/St. Elsewhere S1E002 Bypass.mp4", "st.-elsewhere", "Season 1 - 22 eps/St. Elsewhere S1E002 Bypass.mp4", "St. Elsewhere · S01E02 · Bypass", "medical drama hospital drama medical television series full episode", null, "video", 2959, 720, 480), seriesTitle: "St. Elsewhere", seriesId: "st-elsewhere" },
+    { ...iaDirectRecovery("emergency-season_1::EMERGENCY Season 1/EMERGENCY 1x5.mp4", "emergency-season_1", "EMERGENCY Season 1/EMERGENCY 1x5.mp4", "Emergency! · S01E05", "medical drama hospital drama medical television series full episode", null, "video", 3053, 634, 480), seriesTitle: "Emergency!", seriesId: "emergency" },
+    { ...iaDirectRecovery("marcus.-welby.-m.-d.-s-04-e-06::Marcus.Welby.M.D.S04E06.ia.mp4", "marcus.-welby.-m.-d.-s-04-e-06", "Marcus.Welby.M.D.S04E06.ia.mp4", "Marcus Welby, M.D. · Season 4, Episode 6", "medical drama hospital drama medical television series full episode", null, "video", 2986, 640, 480, {"d1":"ia600101.us.archive.org","dir":"/35/items/marcus.-welby.-m.-d.-s-04-e-06"}), seriesTitle: "Marcus Welby, M.D.", seriesId: "marcus-welby-m-d" },
+    { ...iaDirectRecovery("nlqzmt::House MD Season 1 Episode 03 - Occam's Razor.mp4", "nlqzmt", "House MD Season 1 Episode 03 - Occam's Razor.mp4", "House, M.D. · S01E03 · Occam's Razor", "medical drama hospital drama medical television series full episode", null, "video", 2648, 624, 352, {"d1":"ia802805.us.archive.org","dir":"/1/items/nlqzmt"}), seriesTitle: "House, M.D.", seriesId: "house-m-d" },
+    { ...iaDirectRecovery("doogie-howser-m.d.-season-1-of-4-xvid-avi::Doogie Howser, M.D. - S01E02 - The Ice Queen Cometh.mp4", "doogie-howser-m.d.-season-1-of-4-xvid-avi", "Doogie Howser, M.D. - S01E02 - The Ice Queen Cometh.mp4", "Doogie Howser, M.D. · S01E02 · The Ice Queen Cometh", "medical drama hospital drama medical television series full episode", null, "video", 1439, 628, 480), seriesTitle: "Doogie Howser, M.D.", seriesId: "doogie-howser-m-d" },
+    { ...iaDirectRecovery("n-c-s-1-e-0-t-e-p::Ben Casey S01E02 But Linda Only Smiled.mp4", "n-c-s-1-e-0-t-e-p", "Ben Casey S01E02 But Linda Only Smiled.mp4", "Ben Casey · S01E02 · But Linda Only Smiled", "medical drama hospital drama medical television series full episode", null, "video", 3124, 962, 720, {"d1":"ia600601.us.archive.org","dir":"/11/items/n-c-s-1-e-0-t-e-p"}), seriesTitle: "Ben Casey", seriesId: "ben-casey" },
+    { ...iaDirectRecovery("st.-elsewhere::Season 1 - 22 eps/St. Elsewhere S1E006 Legionnaires Part 1.mp4", "st.-elsewhere", "Season 1 - 22 eps/St. Elsewhere S1E006 Legionnaires Part 1.mp4", "St. Elsewhere · S01E06 · Legionnaires Part 1", "medical drama hospital drama medical television series full episode", null, "video", 2956, 512, 384), seriesTitle: "St. Elsewhere", seriesId: "st-elsewhere" },
+    { ...iaDirectRecovery("emergency-season_1::EMERGENCY Season 1/EMERGENCY 1x8.mp4", "emergency-season_1", "EMERGENCY Season 1/EMERGENCY 1x8.mp4", "Emergency! · S01E08", "medical drama hospital drama medical television series full episode", null, "video", 3054, 634, 478), seriesTitle: "Emergency!", seriesId: "emergency" },
+    { ...iaDirectRecovery("marcus-welby-md-child-of-silence-s-06-e-12::Marcus Welby MD Child of Silence S06E12.ia.mp4", "marcus-welby-md-child-of-silence-s-06-e-12", "Marcus Welby MD Child of Silence S06E12.ia.mp4", "Marcus Welby, M.D. · Child of Silence", "medical drama hospital drama medical television series full episode", null, "video", 2954, 532, 360, {"d1":"ia801008.us.archive.org","dir":"/5/items/marcus-welby-md-child-of-silence-s-06-e-12"}), seriesTitle: "Marcus Welby, M.D.", seriesId: "marcus-welby-m-d" },
+    { ...iaDirectRecovery("nlqzmt::House MD Season 1 Episode 05 - Damned If You Do.mp4", "nlqzmt", "House MD Season 1 Episode 05 - Damned If You Do.mp4", "House, M.D. · S01E05 · Damned If You Do", "medical drama hospital drama medical television series full episode", null, "video", 2641, 624, 352, {"d1":"ia802805.us.archive.org","dir":"/1/items/nlqzmt"}), seriesTitle: "House, M.D.", seriesId: "house-m-d" },
+    { ...iaDirectRecovery("doogie-howser-m.d.-season-1-of-4-xvid-avi::Doogie Howser, M.D. - S01E06 - Simply Irresistible.mp4", "doogie-howser-m.d.-season-1-of-4-xvid-avi", "Doogie Howser, M.D. - S01E06 - Simply Irresistible.mp4", "Doogie Howser, M.D. · S01E06 · Simply Irresistible", "medical drama hospital drama medical television series full episode", null, "video", 1431, 624, 480), seriesTitle: "Doogie Howser, M.D.", seriesId: "doogie-howser-m-d" },
+    { ...iaDirectRecovery("n-c-s-1-e-0-t-e-p::Ben Casey S01E03 The Insolent Heart.mp4", "n-c-s-1-e-0-t-e-p", "Ben Casey S01E03 The Insolent Heart.mp4", "Ben Casey · S01E03 · The Insolent Heart", "medical drama hospital drama medical television series full episode", null, "video", 3138, 352, 264, {"d1":"ia800601.us.archive.org","dir":"/11/items/n-c-s-1-e-0-t-e-p"}), seriesTitle: "Ben Casey", seriesId: "ben-casey" },
+    { ...iaDirectRecovery("st.-elsewhere::Season 2 - 22 eps/St. Elsewhere S2E003 Newheart.mp4", "st.-elsewhere", "Season 2 - 22 eps/St. Elsewhere S2E003 Newheart.mp4", "St. Elsewhere · S02E03 · Newheart", "medical drama hospital drama medical television series full episode", null, "video", 2865, 320, 240), seriesTitle: "St. Elsewhere", seriesId: "st-elsewhere" },
+    { ...iaDirectRecovery("nlqzmt::House MD Season 4 Episode 06 - Whatever It Takes.mp4", "nlqzmt", "House MD Season 4 Episode 06 - Whatever It Takes.mp4", "House, M.D. · S04E06 · Whatever It Takes", "medical drama hospital drama medical television series full episode", null, "video", 2638, 624, 352, {"d1":"ia902805.us.archive.org","dir":"/1/items/nlqzmt"}), seriesTitle: "House, M.D.", seriesId: "house-m-d" },
+    { ...iaDirectRecovery("n-c-s-1-e-0-t-e-p::Ben Casey S02E02 The Night That Nothing Happened.ia.mp4", "n-c-s-1-e-0-t-e-p", "Ben Casey S02E02 The Night That Nothing Happened.ia.mp4", "Ben Casey · S02E02 · The Night That Nothing Happened", "medical drama hospital drama medical television series full episode", null, "video", 3019, 1462, 1080, {"d1":"ia600601.us.archive.org","dir":"/11/items/n-c-s-1-e-0-t-e-p"}), seriesTitle: "Ben Casey", seriesId: "ben-casey" },
+    { ...iaDirectRecovery("st.-elsewhere::Season 2 - 22 eps/St. Elsewhere S2E005 A Wing and a Prayer.mp4", "st.-elsewhere", "Season 2 - 22 eps/St. Elsewhere S2E005 A Wing and a Prayer.mp4", "St. Elsewhere · S02E05 · A Wing and a Prayer", "medical drama hospital drama medical television series full episode", null, "video", 2876, 320, 240), seriesTitle: "St. Elsewhere", seriesId: "st-elsewhere" },
+    { ...iaDirectRecovery("n-c-s-1-e-0-t-e-p::Ben Casey S02E04 Legacy from a Stranger.ia.mp4", "n-c-s-1-e-0-t-e-p", "Ben Casey S02E04 Legacy from a Stranger.ia.mp4", "Ben Casey · S02E04 · Legacy from a Stranger", "medical drama hospital drama medical television series full episode", null, "video", 3021, 1462, 1080, {"d1":"ia600601.us.archive.org","dir":"/11/items/n-c-s-1-e-0-t-e-p"}), seriesTitle: "Ben Casey", seriesId: "ben-casey" },
+  ],
+  "19": [
+    { ...iaDirectRecovery("the-patty-duke-show-the-complete-series-1963-1966::The Patty Duke Show (The Complete Series) [1963 - 1966]/Season 1/S01E02 - The Genius.ia.mp4", "the-patty-duke-show-the-complete-series-1963-1966", "The Patty Duke Show (The Complete Series) [1963 - 1966]/Season 1/S01E02 - The Genius.ia.mp4", "The Patty Duke Show · S01E02 · The Genius", "classic television family sitcom television series full episode", 1963, "video", 1547, 854, 480, {"d1":"ia803107.us.archive.org","dir":"/6/items/the-patty-duke-show-the-complete-series-1963-1966"}), seriesTitle: "The Patty Duke Show", seriesId: "the-patty-duke-show" },
+    { ...iaDirectRecovery("the-donna-reed-show-s-1-e-18-16mm::The Donna Reed Show S1E18 (16mm.ia.mp4", "the-donna-reed-show-s-1-e-18-16mm", "The Donna Reed Show S1E18 (16mm.ia.mp4", "The Donna Reed Show · It’s the Principle of the Thing", "classic television family sitcom television series full episode", 1959, "video", 1755, 640, 480), seriesTitle: "The Donna Reed Show", seriesId: "the-donna-reed-show" },
+    { ...iaDirectRecovery("dobie-gillis::tmlodg.s01/Dobie Gillis  - S01E01 - Caper at the Bijou.mp4", "dobie-gillis", "tmlodg.s01/Dobie Gillis  - S01E01 - Caper at the Bijou.mp4", "The Many Loves of Dobie Gillis · S01E01 · Caper at the Bijou", "classic television family sitcom television series full episode", 1959, "video", 1546, 640, 476), seriesTitle: "The Many Loves of Dobie Gillis", seriesId: "the-many-loves-of-dobie-gillis" },
+    { ...iaDirectRecovery("mister-ed-s-01::Mister Ed S01E01 The First Meeting.mp4", "mister-ed-s-01", "Mister Ed S01E01 The First Meeting.mp4", "Mister Ed · S01E01 · The First Meeting", "classic television family sitcom television series full episode", 1961, "video", 1558, 720, 480), seriesTitle: "Mister Ed", seriesId: "mister-ed" },
+    { ...iaDirectRecovery("mythreesonsseason1::My Three Sons   Season 1 Episode 1 (vidconverter.co).mp4", "mythreesonsseason1", "My Three Sons   Season 1 Episode 1 (vidconverter.co).mp4", "My Three Sons · S01E01", "classic television family sitcom television series full episode", 1960, "video", 1538, 478, 360), seriesTitle: "My Three Sons", seriesId: "my-three-sons" },
+    { ...iaDirectRecovery("the.dick.van.dyke.show.s02e04::the.dick.van.dyke.show.s02e01.mp4", "the.dick.van.dyke.show.s02e04", "the.dick.van.dyke.show.s02e01.mp4", "The Dick Van Dyke Show · S02E01", "classic television family sitcom television series full episode", null, "video", 1505, 640, 480), seriesTitle: "The Dick Van Dyke Show", seriesId: "the-dick-van-dyke-show" },
+    { ...iaDirectRecovery("GreenAcresCompleteSeries::Green Acres Season 1/Green Acres - 001 - Oliver Buys A Farm.mp4", "GreenAcresCompleteSeries", "Green Acres Season 1/Green Acres - 001 - Oliver Buys A Farm.mp4", "Green Acres · Oliver Buys A Farm", "classic television family sitcom television series full episode", 1965, "video", 1520, 643, 480), seriesTitle: "Green Acres", seriesId: "green-acres" },
+    { ...iaDirectRecovery("the-patty-duke-show-the-complete-series-1963-1966::The Patty Duke Show (The Complete Series) [1963 - 1966]/Season 1/S01E04 - The House Guest.ia.mp4", "the-patty-duke-show-the-complete-series-1963-1966", "The Patty Duke Show (The Complete Series) [1963 - 1966]/Season 1/S01E04 - The House Guest.ia.mp4", "The Patty Duke Show · S01E04 · The House Guest", "classic television family sitcom television series full episode", 1963, "video", 1528, 854, 480, {"d1":"ia803107.us.archive.org","dir":"/6/items/the-patty-duke-show-the-complete-series-1963-1966"}), seriesTitle: "The Patty Duke Show", seriesId: "the-patty-duke-show" },
+    { ...iaDirectRecovery("te-d-re-s-s-7-e-02::The Donna Reed Show S01E01 Weekend Trip, 1958.mp4", "te-d-re-s-s-7-e-02", "The Donna Reed Show S01E01 Weekend Trip, 1958.mp4", "The Donna Reed Show · S01E01 · Weekend Trip, 1958", "classic television family sitcom television series full episode", 1958, "video", 1553, 480, 360, {"d1":"ia800900.us.archive.org","dir":"/13/items/te-d-re-s-s-7-e-02"}), seriesTitle: "The Donna Reed Show", seriesId: "the-donna-reed-show" },
+    { ...iaDirectRecovery("dobie-gillis::tmlodg.s01/Dobie Gillis  - S01E02 - The Best Dressed Man.mp4", "dobie-gillis", "tmlodg.s01/Dobie Gillis  - S01E02 - The Best Dressed Man.mp4", "The Many Loves of Dobie Gillis · S01E02 · The Best Dressed Man", "classic television family sitcom television series full episode", 1959, "video", 1541, 640, 476), seriesTitle: "The Many Loves of Dobie Gillis", seriesId: "the-many-loves-of-dobie-gillis" },
+    { ...iaDirectRecovery("mister-ed-s-01::Mister Ed S01E02 The Ventriloquist.mp4", "mister-ed-s-01", "Mister Ed S01E02 The Ventriloquist.mp4", "Mister Ed · S01E02 · The Ventriloquist", "classic television family sitcom television series full episode", 1961, "video", 1540, 720, 480), seriesTitle: "Mister Ed", seriesId: "mister-ed" },
+    { ...iaDirectRecovery("mythreesonsseason1::My Three Sons   Season 1 Episode 2 (vidconverter.co).mp4", "mythreesonsseason1", "My Three Sons   Season 1 Episode 2 (vidconverter.co).mp4", "My Three Sons · S01E02", "classic television family sitcom television series full episode", 1960, "video", 1555, 854, 480), seriesTitle: "My Three Sons", seriesId: "my-three-sons" },
+    { ...iaDirectRecovery("the.dick.van.dyke.show.s02e04::the.dick.van.dyke.show.s02e04.mp4", "the.dick.van.dyke.show.s02e04", "the.dick.van.dyke.show.s02e04.mp4", "The Dick Van Dyke Show · S02E04", "classic television family sitcom television series full episode", null, "video", 1534, 720, 480), seriesTitle: "The Dick Van Dyke Show", seriesId: "the-dick-van-dyke-show" },
+    { ...iaDirectRecovery("GreenAcresCompleteSeries::Green Acres Season 1/Green Acres - 004 - The Best Laid Plans - (TV Rip).mp4", "GreenAcresCompleteSeries", "Green Acres Season 1/Green Acres - 004 - The Best Laid Plans - (TV Rip).mp4", "Green Acres · The Best Laid Plans - (TV Rip)", "classic television family sitcom television series full episode", 1965, "video", 1295, 643, 480), seriesTitle: "Green Acres", seriesId: "green-acres" },
+    { ...iaDirectRecovery("the-patty-duke-show-the-complete-series-1963-1966::The Patty Duke Show (The Complete Series) [1963 - 1966]/Season 1/S01E07 - The Babysitters.ia.mp4", "the-patty-duke-show-the-complete-series-1963-1966", "The Patty Duke Show (The Complete Series) [1963 - 1966]/Season 1/S01E07 - The Babysitters.ia.mp4", "The Patty Duke Show · S01E07 · The Babysitters", "classic television family sitcom television series full episode", 1963, "video", 1507, 854, 480, {"d1":"ia903107.us.archive.org","dir":"/6/items/the-patty-duke-show-the-complete-series-1963-1966"}), seriesTitle: "The Patty Duke Show", seriesId: "the-patty-duke-show" },
+    { ...iaDirectRecovery("dobie-gillis::tmlodg.s01/Dobie Gillis  - S01E05 - Maynard's Farewell to the Troops.mp4", "dobie-gillis", "tmlodg.s01/Dobie Gillis  - S01E05 - Maynard's Farewell to the Troops.mp4", "The Many Loves of Dobie Gillis · S01E05 · Maynard's Farewell to the Troops", "classic television family sitcom television series full episode", 1959, "video", 1546, 632, 480), seriesTitle: "The Many Loves of Dobie Gillis", seriesId: "the-many-loves-of-dobie-gillis" },
+    { ...iaDirectRecovery("mister-ed-s-01::Mister Ed S01E07 Ed the Lover.mp4", "mister-ed-s-01", "Mister Ed S01E07 Ed the Lover.mp4", "Mister Ed · S01E07 · Ed the Lover", "classic television family sitcom television series full episode", 1961, "video", 1327, 720, 480), seriesTitle: "Mister Ed", seriesId: "mister-ed" },
+    { ...iaDirectRecovery("mythreesonsseason1::My Three Sons   Season 1 Episode 3.mp4", "mythreesonsseason1", "My Three Sons   Season 1 Episode 3.mp4", "My Three Sons · S01E03", "classic television family sitcom television series full episode", 1960, "video", 1495, 480, 360), seriesTitle: "My Three Sons", seriesId: "my-three-sons" },
+    { ...iaDirectRecovery("GreenAcresCompleteSeries::Green Acres Season 1/Green Acres - 006 - Furniture, Furniture, Who's Got the Furniture.mp4", "GreenAcresCompleteSeries", "Green Acres Season 1/Green Acres - 006 - Furniture, Furniture, Who's Got the Furniture.mp4", "Green Acres · Furniture, Furniture, Who's Got the Furniture", "classic television family sitcom television series full episode", 1965, "video", 1524, 656, 480), seriesTitle: "Green Acres", seriesId: "green-acres" },
+    { ...iaDirectRecovery("the-patty-duke-show-the-complete-series-1963-1966::The Patty Duke Show (The Complete Series) [1963 - 1966]/Season 2/S02E02 - Practice Makes Perfect.ia.mp4", "the-patty-duke-show-the-complete-series-1963-1966", "The Patty Duke Show (The Complete Series) [1963 - 1966]/Season 2/S02E02 - Practice Makes Perfect.ia.mp4", "The Patty Duke Show · S02E02 · Practice Makes Perfect", "classic television family sitcom television series full episode", null, "video", 1542, 854, 480, {"d1":"ia903107.us.archive.org","dir":"/6/items/the-patty-duke-show-the-complete-series-1963-1966"}), seriesTitle: "The Patty Duke Show", seriesId: "the-patty-duke-show" },
+    { ...iaDirectRecovery("dobie-gillis::tmlodg.s02/Dobie Gillis  - S02E03 - Baby Talk.mp4", "dobie-gillis", "tmlodg.s02/Dobie Gillis  - S02E03 - Baby Talk.mp4", "The Many Loves of Dobie Gillis · S02E03 · Baby Talk", "classic television family sitcom television series full episode", null, "video", 1543, 640, 480), seriesTitle: "The Many Loves of Dobie Gillis", seriesId: "the-many-loves-of-dobie-gillis" },
+  ],
+  "20": [
+    { ...iaDirectRecovery("capture-a-8016::CaptureA_8016.mp4", "capture-a-8016", "CaptureA_8016.mp4", "Judge Joe Brown · August 10, 2004 (first broadcast)", "judge show court show televised small claims full episode", 2004, "video", 1797, 640, 480), seriesTitle: "Judge Joe Brown", seriesId: "judge-joe-brown" },
+    { ...iaDirectRecovery("judge-mathis-season-14-episode-89::videoplayback (2).mp4", "judge-mathis-season-14-episode-89", "videoplayback (2).mp4", "Judge Mathis · Season 14, Episode 89", "judge show court show televised small claims full episode", 2013, "video", 2545, 640, 360, {"d1":"ia800908.us.archive.org","dir":"/30/items/judge-mathis-season-14-episode-89"}), seriesTitle: "Judge Mathis", seriesId: "judge-mathis" },
+    { ...iaDirectRecovery("WSBK_20010913_180000_The_Peoples_Court::WSBK_20010913_180000_The_Peoples_Court.mp4", "WSBK_20010913_180000_The_Peoples_Court", "WSBK_20010913_180000_The_Peoples_Court.mp4", "The People's Court · September 13, 2001", "judge show court show televised small claims full episode", 2001, "video", 3597, 640, 480), seriesTitle: "The People's Court", seriesId: "the-people-s-court" },
+    { ...iaDirectRecovery("WSBK_20010914_213000_Judge_Judy::WSBK_20010914_213000_Judge_Judy.mp4", "WSBK_20010914_213000_Judge_Judy", "WSBK_20010914_213000_Judge_Judy.mp4", "Judge Judy · September 14, 2001", "judge show court show televised small claims full episode", 2001, "video", 1800, 640, 480), seriesTitle: "Judge Judy", seriesId: "judge-judy" },
+    { ...iaDirectRecovery("divorce-court-september-2008::Divorce Court (September 2008).mp4", "divorce-court-september-2008", "Divorce Court (September 2008).mp4", "Divorce Court · September 2008", "judge show court show televised small claims full episode", 2008, "video", 1753, 480, 360), seriesTitle: "Divorce Court", seriesId: "divorce-court" },
+    { ...iaDirectRecovery("JJBEC_202501::Judge Joe Brown S10 E2505.ia.mp4", "JJBEC_202501", "Judge Joe Brown S10 E2505.ia.mp4", "Judge Joe Brown · S10E2505", "judge show court show televised small claims full episode", null, "video", 1203, 640, 480), seriesTitle: "Judge Joe Brown", seriesId: "judge-joe-brown" },
+    { ...iaDirectRecovery("judge-mathis-season-19-premiere::MA-1901_WB-Nosey_JudgeMathis_YR19_Ep19001_HD_1080i_2997df_2ch_2352192_final.mp4", "judge-mathis-season-19-premiere", "MA-1901_WB-Nosey_JudgeMathis_YR19_Ep19001_HD_1080i_2997df_2ch_2352192_final.mp4", "Judge Mathis · Season 19 Premiere", "judge show court show televised small claims full episode", 2017, "video", 2474, 1920, 1080, {"d1":"ia800100.us.archive.org","dir":"/34/items/judge-mathis-season-19-premiere"}), seriesTitle: "Judge Mathis", seriesId: "judge-mathis" },
+    { ...iaDirectRecovery("WSBK_20010914_180000_The_Peoples_Court::WSBK_20010914_180000_The_Peoples_Court.mp4", "WSBK_20010914_180000_The_Peoples_Court", "WSBK_20010914_180000_The_Peoples_Court.mp4", "The People's Court · September 14, 2001", "judge show court show televised small claims full episode", 2001, "video", 3599, 640, 480), seriesTitle: "The People's Court", seriesId: "the-people-s-court" },
+    { ...iaDirectRecovery("WSBK_20010917_213000_Judge_Judy::WSBK_20010917_213000_Judge_Judy.mp4", "WSBK_20010917_213000_Judge_Judy", "WSBK_20010917_213000_Judge_Judy.mp4", "Judge Judy · September 17, 2001", "judge show court show televised small claims full episode", 2001, "video", 1801, 640, 480), seriesTitle: "Judge Judy", seriesId: "judge-judy" },
+    { ...iaDirectRecovery("JJBEC_202501::Judge Joe Brown S13 E170.ia.mp4", "JJBEC_202501", "Judge Joe Brown S13 E170.ia.mp4", "Judge Joe Brown · S13E170", "judge show court show televised small claims full episode", null, "video", 1201, 640, 480), seriesTitle: "Judge Joe Brown", seriesId: "judge-joe-brown" },
+    { ...iaDirectRecovery("WSBK_20010917_180000_The_Peoples_Court::WSBK_20010917_180000_The_Peoples_Court.mp4", "WSBK_20010917_180000_The_Peoples_Court", "WSBK_20010917_180000_The_Peoples_Court.mp4", "The People's Court · September 17, 2001", "judge show court show televised small claims full episode", 2001, "video", 3602, 640, 480), seriesTitle: "The People's Court", seriesId: "the-people-s-court" },
+    { ...iaDirectRecovery("WSBK_20010910_213000_Judge_Judy::WSBK_20010910_213000_Judge_Judy.mp4", "WSBK_20010910_213000_Judge_Judy", "WSBK_20010910_213000_Judge_Judy.mp4", "Judge Judy · September 10, 2001", "judge show court show televised small claims full episode", 2001, "video", 1803, 640, 480), seriesTitle: "Judge Judy", seriesId: "judge-judy" },
+    { ...iaDirectRecovery("JJBEC_202501::Judge Joe Brown S15 E178.ia.mp4", "JJBEC_202501", "Judge Joe Brown S15 E178.ia.mp4", "Judge Joe Brown · S15E178", "judge show court show televised small claims full episode", null, "video", 1184, 1280, 720), seriesTitle: "Judge Joe Brown", seriesId: "judge-joe-brown" },
+    { ...iaDirectRecovery("judge-judy-southern-cross-29-08-2002::Judge Judy (Southern Cross, 29-08-2002).ia.mp4", "judge-judy-southern-cross-29-08-2002", "Judge Judy (Southern Cross, 29-08-2002).ia.mp4", "Judge Judy · Southern Cross broadcast · August 29, 2002", "judge show court show televised small claims full episode", 2002, "video", 1482, 640, 480), seriesTitle: "Judge Judy", seriesId: "judge-judy" },
+  ],
   // Reviewed original computing episodes, community broadcasts, and late-night files.
   "14": [
     iaDirectRecovery("TheMacin1985::TheMacin1985.mp4", "TheMacin1985", "TheMacin1985.mp4", "Computer Chronicles · The Macintosh Computer", "computer chronicles computing history personal computer technology television", 1985, "video", 1773, 640, 480),
@@ -6258,6 +6325,32 @@ function iaReviewedFileAllowed(item, channel) {
 
   const station = String(channel);
   const title = String(item.title || '');
+  if (station === '18') {
+    const selected = [source, title, file].join(' ').replace(/[_-]+/g, ' ');
+    if (!iaReviewedTvFamily(item, station) ||
+        /\b(?:emergency call|rescue 911|clinical training|surgical training|medical tutorial|full movie|feature film|behind the scenes|deleted scenes|short clip|title sequence)\b/i.test(selected)) return false;
+  }
+  if (station === '19') {
+    const selected = [source, title, file].join(' ').replace(/[_-]+/g, ' ');
+    if (/\b(?:animated series|animation collection|anime|fan remake|reunion special|behind the scenes|deleted scenes|title sequence)\b/i.test(selected)) return false;
+    const year = Number(item.broadcastYear || item.meta?.broadcastYear || item.year || item.meta?.year);
+    const sitcom = /\b(?:classic (?:television|tv) sitcom|(?:family|domestic|workplace|ensemble) sitcom|situation comedy)\b/i;
+    const evidence = [title, file, item.subject, item.subjects, item.meta?.subject].join(' ');
+    if (!iaReviewedTvFamily(item, station) && !(year >= 1950 && year <= 1985 && sitcom.test(evidence))) return false;
+  }
+  if (station === '20') {
+    // September's scheduled TV listings survived news preemptions. Admit
+    // only reviewed tapes from that stretch of the TV News Archive.
+    if (/^judge[_-]rinder[_-]\d{8}[_-]0500$/i.test(source)) return false;
+    if (/^[a-z0-9]+[_-]200109(?:1[1-9]|20)[_-]\d{6}(?:[_-]|$)/i.test(source)) {
+      const reviewed = [
+        'wsbk_20010913_180000_the_peoples_court', 'wsbk_20010914_180000_the_peoples_court',
+        'wsbk_20010917_180000_the_peoples_court', 'wsbk_20010914_213000_judge_judy',
+        'wsbk_20010917_213000_judge_judy',
+      ];
+      if (!reviewed.includes(source.toLowerCase())) return false;
+    }
+  }
   if (station === '14') {
     // Require original collection provenance or a reviewed companion upload.
     const collections = [item.collection, item.collections, item.meta?.collection, item.meta?.collections]
@@ -6546,6 +6639,29 @@ function iaReviewedFileAllowed(item, channel) {
     || (source === 'were-people-too' && /^were_people_too8\.mp4$/i.test(file)))) return false;
   return !(String(channel) === '212' && source === 'the_blue_planet' && /^the_blue_planet_(?:09|1[0-3])(?:[_. -]|$)/i.test(file));
 }
+function iaReviewedTvFamily(item, channel) {
+  const media = item.media || {};
+  const label = [item.seriesTitle, item.title, media.fileName || item.fileName,
+    item.identifier || item.id, item.sourceIdentifier, media.sourceTitle, item.meta?.title]
+    .filter(Boolean).join(' ').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  if (channel === '18') {
+    const named = label.match(/\b(doogie howser|st elsewhere|marcus welby|ben casey|chicago hope|house (?:m d|md)|grey s anatomy|holby city|trapper john|the good doctor)\b/);
+    if (named) return named[1].startsWith('house ') ? 'house md' : named[1];
+    if (/\b(?:bbc casualty|casualty (?:series|season|episode))\b/.test(label)) return 'casualty';
+    if (/\bemergency (?:season\s*\d+|episode\s*\d+|s\d{1,2}(?:e\d{1,3})?|[1-6]x\d{1,3}|the wedsworth townsend act)\b/.test(label)) return 'emergency';
+    const marked = label.match(/\b(er|e r|medical center|scrubs|the resident|new amsterdam|general hospital|m a s h) (?:season|series|episode|s\d+e\d+|19\d{2}|20\d{2})\b/);
+    return marked?.[1] === 'e r' ? 'er' : marked?.[1] || '';
+  }
+  if (channel === '19') {
+    return label.match(/\b(ozzie and harriet|beverly hillbillies|andy griffith|dick van dyke|donna reed|patty duke|dobie gillis|my three sons|mister ed|green acres|addams family|i love lucy|the lucy show|here s lucy|leave it to beaver|car 54 where are you|phil silvers|sgt bilko|our miss brooks|father knows best|burns and allen|jack benny|my favorite martian|petticoat junction|gomer pyle|hogans heroes|hogan s heroes|the munsters|the honeymooners|bewitched|i dream of jeannie|the brady bunch|the partridge family|the mary tyler moore show|the bob newhart show|the jeffersons|all in the family|three s company|good times|happy days|family ties|the facts of life|diff rent strokes|different strokes|benson|get smart|i married joan|that girl|hazel s\d+e\d+)\b/)?.[1] || '';
+  }
+  if (channel === '20') {
+    const name = label.match(/\b(judge (?:judy|joe brown|greg mathis|mathis|wapner|milian|hatchett|alex|faith|jerry|rinder|mablean|ross|eboni k williams|steve harvey|christina perez|cristina perez)|people s court|peoples court|divorce court|hot bench|paternity court|judy justice|tribunal justice|relative justice|cutlers court|cutler s court|protection court|justice for all with judge|equal justice with judge|we the people with judge|america s court with judge)\b/)?.[1];
+    return ({'peoples court':'people s court','judge greg mathis':'judge mathis','cutler s court':'cutlers court'})[name] || name || '';
+  }
+  return '';
+}
+
 function iaHuntingAllowed(item = {}) {
   if (!item || typeof item !== 'object') return false;
   if (/^HuntingSeason(?:::|$)/i.test(String(item.sourceIdentifier || item.identifier || item.id || ''))) return false;
@@ -6573,8 +6689,8 @@ function iaCourtroomAllowed(item = {}) {
   const text = [item.title, item.seriesTitle, item.fileName, item.media?.sourceTitle,
     item.sourceIdentifier, item.identifier || item.id, item.meta?.title]
     .filter(Boolean).join(' ').toLowerCase().replace(/[_./-]+/g, ' ');
-  if (/\b(?:washington week|city council|press conference|political speech|political rally|podcast)\b/.test(text)) return false;
-  return /\b(?:judge (?:judy|joe brown|(?:greg )?mathis|wapner|milian|hatchett|alex|faith|jerry)|people'?s court|divorce court|hot bench|small claims (?:court|tv))\b/.test(text);
+  if (/\b(?:washington week|city council|press conference|political speech|political rally|podcast|legal honoree|leadership awards|interview after|certified master bbq judge|court of public opinion)\b/.test(text)) return false;
+  return Boolean(iaReviewedTvFamily(item, '20')) || /\bsmall claims tv (?:show|episode)\b/.test(text);
 }
 function iaFinalSportsAllowed(item = {}, channel = '') {
   const media=item.media||{},meta=item.meta||{},id=String(item.identifier||item.id||'');
@@ -9589,7 +9705,7 @@ function orderedIaEmergencySeeds(channel, rotation) {
   for (let i = 0; i < Math.max(0,...vaultBanks.map(bank => bank.length)); i++) for (const bank of vaultBanks) if (bank[i]) vaultFiles.push(bank[i]);
   const ownedFiles = ["77","78","79"].includes(String(channel)) ? IA_VERIFIED_FILE_DEPTH_RAILS[String(channel)] || [] : [];
   const ownedParents = new Set(ownedFiles.map(item => item.sourceIdentifier)), ownedIds = new Set(ownedFiles.map(item => item.identifier));
-  const openingRail = ["2", "3", "13", "14", "15", "17"].includes(String(channel)) ? IA_TARGETED_RECOVERY_BANKS[String(channel)] : [];
+  const openingRail = ["2", "3", "13", "14", "15", "17", "18", "19", "20"].includes(String(channel)) ? IA_TARGETED_RECOVERY_BANKS[String(channel)] : [];
   const rawSeeds = ownedFiles.concat(vaultFiles, openingRail)
     .concat(IA_REVIEWED_ERA_FEATURES.filter(film => film.channels.includes(String(channel))).map(film => film.item))
     .concat(IA_HOLIDAY_CONTAINER_SEEDS[String(channel)] || [])
@@ -11058,13 +11174,13 @@ async function qualifyIaQueueResponse(response, body, cacheOrigin, ctx, env) {
   const strictContext = { iaRepair: true, iaHydrationExcluded: excluded, iaHydrationIdentity: identity,
     foregroundBudgetMs: fastRefill ? 1800 : 0,
     waitUntil: promise => ctx && ctx.waitUntil ? ctx.waitUntil(promise) : promise };
-  const reviewedBroadcasts = ["2", "3", "10", "11", "12", "13", "14", "15", "17"].includes(String(body.channel)) ? IA_TARGETED_RECOVERY_BANKS[String(body.channel)] : [];
+  const reviewedBroadcasts = ["2", "3", "10", "11", "12", "13", "14", "15", "17", "18", "19", "20"].includes(String(body.channel)) ? IA_TARGETED_RECOVERY_BANKS[String(body.channel)] : [];
   const repairEpisodes = iaRepairCollectionSeeds(body.channel).concat(reviewedBroadcasts.filter(item => iaStationQualityGate(body.channel, item))).filter(item => item.media);
   // Preserve the selected catalog order. Recovery rails add depth behind it;
   // prepending their first episodes reopened the same starters on every tune.
   const candidates = (payload.candidateItems?.length ? payload.candidateItems : payload.items || []).filter(item => !excluded.has(identity(item)) && iaStationQualityGate(body.channel, item));
   let ordered = candidates.filter(item => preferred.has(identity(item))).concat(candidates.filter(item => !preferred.has(identity(item))));
-  const balanceRefill = ["2", "10", "11", "12", "15", "17"].includes(String(body.channel)) && preferred.size < requested;
+  const balanceRefill = ["2", "10", "11", "12", "15", "17", "18", "19", "20"].includes(String(body.channel)) && preferred.size < requested;
   const hydrationFamilyLimit = repairEpisodes.length && (balanceRefill || !preferred.size) ? safeDiversity(body.diversity).maxPerFamily : 0;
   if (hydrationFamilyLimit) {
     const balanced = familyBalancedIaWindowStrict(ordered, 0, ordered.length, hydrationFamilyLimit);
@@ -11947,6 +12063,7 @@ async function getIaQueue(request, url, env, ctx) {
     ...(channel === "14" ? { stationPolicy: "computing-provenance-766" } : {}),
     ...(channel === "17" ? { stationPolicy: "late-night-series-766" } : {}),
     ...(channel === "15" ? { stationPolicy: "computer-access-latenight-763" } : {}),
+    ...(["18", "19", "20"].includes(channel) ? { stationPolicy: "scripted-reruns-and-judges-767" } : {}),
     ...(channel === "22" ? { stationPolicy: "adult-game-shows-2" } : {}) };
   const familyFingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count, contentPolicy: IA_GLOBAL_VIDEO_POLICY_VERSION, ...fileContract });
   const lastGoodDigest = await stableKey(familyFingerprint);

@@ -221,7 +221,7 @@
     return enabled && query.get('iaProgramIdentity') === '1' && query.get('castReceiver') !== '1' &&
       ['150', '502', '929'].includes(String(channel));
   }
-  function reviewedBroadcastChannel(channel) { return ['14', '15', '17'].includes(String(channel)); }
+  function reviewedBroadcastChannel(channel) { return ['14', '15', '17', '18', '19', '20'].includes(String(channel)); }
   function readyBackup(channel) {
     if (['2', '3', '10', '108'].includes(String(channel)) || reviewedBroadcastChannel(channel)) {
       return enabled && (wholeLineup || optIn === '1' || promoted.includes(String(channel))) && query.get('castReceiver') !== '1';

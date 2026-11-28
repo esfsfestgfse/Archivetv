@@ -119,7 +119,7 @@ const IA_MIN_ROLLING_CATALOG_DEPTH = 15;
    D1 cache is useful as emergency playback, but it is not deep enough to own
    the station. Below this floor, fall through to the relay's full verified
    union so the response and the durable catalog can grow in the same tune. */
-const IA_BROAD_STATION_FAST_DEPTH = new Map([["10", 24], ["12", 48], ["22", 48]]);
+const IA_BROAD_STATION_FAST_DEPTH = new Map([["10", 24], ["12", 48], ["19", 24], ["22", 48]]);
 /* These lanes additionally need stale-row re-scoring because their measured
    D1 history contained old genreVerified flags from before the current rules. */
 const IA_DEPTH_REPAIR_LANES = new Set([
@@ -1994,12 +1994,12 @@ async function handleQueue(request, env, ctx, id) {
       return prepared;
     }
   }
-  const hasReadyBackup = ['2', '3', '10', '14', '15', '17', '108'].includes(String(body.channel)) || (String(body.channel) === '502' && archiveIdentityPilot(body.channel, body.archiveProgramIdentity));
+  const hasReadyBackup = ['2', '3', '10', '14', '15', '17', '18', '19', '20', '108'].includes(String(body.channel)) || (String(body.channel) === '502' && archiveIdentityPilot(body.channel, body.archiveProgramIdentity));
   const warmDeferredIds = body.iaRepair === true && body.sourceCatalog !== true && body.sessionRefill === true &&
     hasReadyBackup && Array.isArray(body.warmDeferredIds)
     ? [...new Set(body.warmDeferredIds.slice(0,32).filter(id => typeof id === 'string' && id.length > 0 && id.length <= 500 && !/[\r\n]/.test(id)))] : [];
   const pendingPlaybackIds = body.iaRepair === true && body.sourceCatalog !== true && body.sessionRefill === true &&
-    ["2", "3", "10", "14", "15", "17"].includes(String(body.channel)) && Array.isArray(body.pendingPlaybackIds)
+    ["2", "3", "10", "14", "15", "17", "18", "19", "20"].includes(String(body.channel)) && Array.isArray(body.pendingPlaybackIds)
     ? [...new Set(body.pendingPlaybackIds.slice(0, 32).filter(id => typeof id === "string" && id.length > 0 && id.length <= 500 && !/[\r\n]/.test(id)))] : [];
   body = { ...body, warmDeferredIds, pendingPlaybackIds };
   const requestedServerCatalog = body.serverCatalog === true;
@@ -2027,7 +2027,7 @@ async function handleQueue(request, env, ctx, id) {
       upstreamBody.hydrationPreferredIds = state.reservationIds || [];
       // Fast skips already have a qualified catalog in the session. Serving
       // it directly keeps a fresh Archive discovery request off that path.
-      const reviewedBroadcastBatch = ["2", "3", "10", "14", "15", "17"].includes(String(body.channel));
+      const reviewedBroadcastBatch = ["2", "3", "10", "14", "15", "17", "18", "19", "20"].includes(String(body.channel));
       const hasDeepSession = reviewedBroadcastBatch ? state.catalogSize >= 16 : warmDeferredIds.length > 0 || (preparedStart
         ? state.catalogSize > IA_PREPARED_START_MAX_ITEMS : String(body.channel) === "150");
       const readyTarget = warmDeferredIds.length ? 2 : count;
@@ -2074,9 +2074,9 @@ async function handleQueue(request, env, ctx, id) {
       const fastCatalog = await catalogFallback(env, body, catalogLimit, { ignoreFreshness: true });
       const fastDepthFloor = IA_BROAD_STATION_FAST_DEPTH.get(String(body.channel)) || IA_MIN_ROLLING_CATALOG_DEPTH;
       const fastDepth = Array.isArray(fastCatalog && fastCatalog.candidateItems) ? fastCatalog.candidateItems.filter(queueItemPlayable).length : 0;
-      // Commercials used to recycle a three-title D1 emergency shelf indefinitely.
-      const deepenCommercials = String(body.channel) === "13" && body.sessionRefill === true;
-      const emergencyShelfOnly = fastDepth > 0 && fastDepth <= count + 1 && !deepenCommercials;
+      // Three last-good titles kept Old Nick reopening and replaying the same loop.
+      const requireDepth = String(body.channel) === "19" || String(body.channel) === "13" && body.sessionRefill === true;
+      const emergencyShelfOnly = fastDepth > 0 && fastDepth <= count + 1 && !requireDepth;
       if (fastCatalog && Array.isArray(fastCatalog.items) && fastCatalog.items.length
         && Array.isArray(fastCatalog.candidateItems) && (emergencyShelfOnly || fastDepth >= fastDepthFloor)) {
         // Fifteen ready records prove availability, not catalog completeness.

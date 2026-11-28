@@ -276,6 +276,32 @@ export function iaReviewedFileAllowed(item, channel) {
 
   const station = String(channel);
   const title = String(item.title || '');
+  if (station === '18') {
+    const selected = [source, title, file].join(' ').replace(/[_-]+/g, ' ');
+    if (!iaReviewedTvFamily(item, station) ||
+        /\b(?:emergency call|rescue 911|clinical training|surgical training|medical tutorial|full movie|feature film|behind the scenes|deleted scenes|short clip|title sequence)\b/i.test(selected)) return false;
+  }
+  if (station === '19') {
+    const selected = [source, title, file].join(' ').replace(/[_-]+/g, ' ');
+    if (/\b(?:animated series|animation collection|anime|fan remake|reunion special|behind the scenes|deleted scenes|title sequence)\b/i.test(selected)) return false;
+    const year = Number(item.broadcastYear || item.meta?.broadcastYear || item.year || item.meta?.year);
+    const sitcom = /\b(?:classic (?:television|tv) sitcom|(?:family|domestic|workplace|ensemble) sitcom|situation comedy)\b/i;
+    const evidence = [title, file, item.subject, item.subjects, item.meta?.subject].join(' ');
+    if (!iaReviewedTvFamily(item, station) && !(year >= 1950 && year <= 1985 && sitcom.test(evidence))) return false;
+  }
+  if (station === '20') {
+    // September's scheduled TV listings survived news preemptions. Admit
+    // only reviewed tapes from that stretch of the TV News Archive.
+    if (/^judge[_-]rinder[_-]\d{8}[_-]0500$/i.test(source)) return false;
+    if (/^[a-z0-9]+[_-]200109(?:1[1-9]|20)[_-]\d{6}(?:[_-]|$)/i.test(source)) {
+      const reviewed = [
+        'wsbk_20010913_180000_the_peoples_court', 'wsbk_20010914_180000_the_peoples_court',
+        'wsbk_20010917_180000_the_peoples_court', 'wsbk_20010914_213000_judge_judy',
+        'wsbk_20010917_213000_judge_judy',
+      ];
+      if (!reviewed.includes(source.toLowerCase())) return false;
+    }
+  }
   if (station === '14') {
     // Require original collection provenance or a reviewed companion upload.
     const collections = [item.collection, item.collections, item.meta?.collection, item.meta?.collections]
@@ -565,6 +591,29 @@ export function iaReviewedFileAllowed(item, channel) {
     || (source === 'were-people-too' && /^were_people_too8\.mp4$/i.test(file)))) return false;
   return !(String(channel) === '212' && source === 'the_blue_planet' && /^the_blue_planet_(?:09|1[0-3])(?:[_. -]|$)/i.test(file));
 }
+export function iaReviewedTvFamily(item, channel) {
+  const media = item.media || {};
+  const label = [item.seriesTitle, item.title, media.fileName || item.fileName,
+    item.identifier || item.id, item.sourceIdentifier, media.sourceTitle, item.meta?.title]
+    .filter(Boolean).join(' ').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  if (channel === '18') {
+    const named = label.match(/\b(doogie howser|st elsewhere|marcus welby|ben casey|chicago hope|house (?:m d|md)|grey s anatomy|holby city|trapper john|the good doctor)\b/);
+    if (named) return named[1].startsWith('house ') ? 'house md' : named[1];
+    if (/\b(?:bbc casualty|casualty (?:series|season|episode))\b/.test(label)) return 'casualty';
+    if (/\bemergency (?:season\s*\d+|episode\s*\d+|s\d{1,2}(?:e\d{1,3})?|[1-6]x\d{1,3}|the wedsworth townsend act)\b/.test(label)) return 'emergency';
+    const marked = label.match(/\b(er|e r|medical center|scrubs|the resident|new amsterdam|general hospital|m a s h) (?:season|series|episode|s\d+e\d+|19\d{2}|20\d{2})\b/);
+    return marked?.[1] === 'e r' ? 'er' : marked?.[1] || '';
+  }
+  if (channel === '19') {
+    return label.match(/\b(ozzie and harriet|beverly hillbillies|andy griffith|dick van dyke|donna reed|patty duke|dobie gillis|my three sons|mister ed|green acres|addams family|i love lucy|the lucy show|here s lucy|leave it to beaver|car 54 where are you|phil silvers|sgt bilko|our miss brooks|father knows best|burns and allen|jack benny|my favorite martian|petticoat junction|gomer pyle|hogans heroes|hogan s heroes|the munsters|the honeymooners|bewitched|i dream of jeannie|the brady bunch|the partridge family|the mary tyler moore show|the bob newhart show|the jeffersons|all in the family|three s company|good times|happy days|family ties|the facts of life|diff rent strokes|different strokes|benson|get smart|i married joan|that girl|hazel s\d+e\d+)\b/)?.[1] || '';
+  }
+  if (channel === '20') {
+    const name = label.match(/\b(judge (?:judy|joe brown|greg mathis|mathis|wapner|milian|hatchett|alex|faith|jerry|rinder|mablean|ross|eboni k williams|steve harvey|christina perez|cristina perez)|people s court|peoples court|divorce court|hot bench|paternity court|judy justice|tribunal justice|relative justice|cutlers court|cutler s court|protection court|justice for all with judge|equal justice with judge|we the people with judge|america s court with judge)\b/)?.[1];
+    return ({'peoples court':'people s court','judge greg mathis':'judge mathis','cutler s court':'cutlers court'})[name] || name || '';
+  }
+  return '';
+}
+
 export function iaHuntingAllowed(item = {}) {
   if (!item || typeof item !== 'object') return false;
   if (/^HuntingSeason(?:::|$)/i.test(String(item.sourceIdentifier || item.identifier || item.id || ''))) return false;
@@ -592,8 +641,8 @@ export function iaCourtroomAllowed(item = {}) {
   const text = [item.title, item.seriesTitle, item.fileName, item.media?.sourceTitle,
     item.sourceIdentifier, item.identifier || item.id, item.meta?.title]
     .filter(Boolean).join(' ').toLowerCase().replace(/[_./-]+/g, ' ');
-  if (/\b(?:washington week|city council|press conference|political speech|political rally|podcast)\b/.test(text)) return false;
-  return /\b(?:judge (?:judy|joe brown|(?:greg )?mathis|wapner|milian|hatchett|alex|faith|jerry)|people'?s court|divorce court|hot bench|small claims (?:court|tv))\b/.test(text);
+  if (/\b(?:washington week|city council|press conference|political speech|political rally|podcast|legal honoree|leadership awards|interview after|certified master bbq judge|court of public opinion)\b/.test(text)) return false;
+  return Boolean(iaReviewedTvFamily(item, '20')) || /\bsmall claims tv (?:show|episode)\b/.test(text);
 }
 export function iaSportingLifeAllowed(item = {}) {
   if (!item || typeof item !== 'object') return false;

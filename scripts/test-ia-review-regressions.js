@@ -241,6 +241,28 @@ test('standard Modern Game Shows cannot inherit kids from its previous session c
   await Promise.all(f.pending);
 });
 
+test('Modern Game Shows rotates series and treats a dated Jeopardy file as one broadcast across uploads', async () => {
+  const {SessionRotation,archiveProgramIdentity}=await import('../realsignal_api_rotation.js');
+  const one=row('j20011015.mp4',{title:'Jeopardy! October 15, 2001',year:2001});
+  const copy=row('Jeopardy October 15, 2001.mp4',{identifier:'jeopardy-off-air::Jeopardy October 15, 2001.mp4',sourceIdentifier:'jeopardy-off-air',title:'Jeopardy! · October 15, 2001',year:2001});
+  assert.equal(archiveProgramIdentity(one,'22'),archiveProgramIdentity(copy,'22'));
+  const next=row('j20011016.mp4',{title:'Jeopardy! October 16, 2001',year:2001});
+  assert.notEqual(archiveProgramIdentity(one,'22'),archiveProgramIdentity(next,'22'));
+  const rows=[one,copy,next,row('price.mp4',{title:'The Price Is Right · June 12, 2024',year:2024}),
+    row('deal.mp4',{title:'Deal or No Deal · ITV December 8, 2023',year:2023})];
+  const object=new SessionRotation(rotationContext(),{});
+  const input={items:rows,count:3,mode:'reserve',rules:{channel:'22',mediaTypes:['movies']}};
+  const select=body=>object.fetch(new Request('https://rotation.internal/select',{method:'POST',body:JSON.stringify(body)})).then(r=>r.json());
+  const first=await select(input);
+  assert.equal(first.items.length,3);
+  assert.equal(first.items.filter(item=>/Jeopardy/i.test(item.title)).length,1);
+  const played=first.items.find(item=>/Jeopardy/i.test(item.title));
+  await select({mode:'commit',event:'started',id:played.identifier});
+  const second=await select(input);
+  assert.ok(second.items.every(item=>archiveProgramIdentity(item,'22')!==archiveProgramIdentity(played,'22')));
+  assert.ok(second.items.some(item=>/Jeopardy/i.test(item.title)));
+});
+
 test('played-only IA history excludes another encoding but keeps unseen sibling episodes',async()=>{
   const [{SessionRotation}]=await modules,object=new SessionRotation(rotationContext(),{});
   const rows=['01','02','03'].map(n=>row('James Holzhauer Game '+n+'.mp4',{title:'Jeopardy! full episode 2019',year:2019}));

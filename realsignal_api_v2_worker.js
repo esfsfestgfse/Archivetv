@@ -283,10 +283,47 @@ async function durableRateLimit(request, env, kind) {
   }
 }
 
+const ESPN_SCOREBOARD_LEAGUES = new Set([
+  'football/nfl', 'football/college-football', 'basketball/nba', 'basketball/mens-college-basketball',
+  'baseball/mlb', 'hockey/nhl', 'basketball/wnba', 'basketball/womens-college-basketball',
+  'baseball/college-baseball', 'soccer/all', 'soccer/usa.1', 'racing/f1', 'racing/nascar-premier',
+  'racing/irl', 'mma/ufc', 'golf/pga', 'golf/lpga', 'tennis/atp', 'tennis/wta',
+]);
+
+async function handleSportsScoreboard(url) {
+  const league = url.searchParams.get('league');
+  const date = url.searchParams.get('dates');
+  if (!ESPN_SCOREBOARD_LEAGUES.has(league)) return json({ error: 'Unsupported scoreboard' }, 400);
+  const upstream = new URL('https://site.api.espn.com/apis/site/v2/sports/' + league + '/scoreboard');
+  if (date !== null) {
+    const match = /^(\d{4})(\d{2})(\d{2})$/.exec(date);
+    const parsed = match && Date.parse(match.slice(1).join('-') + 'T00:00:00Z');
+    if (!match || !Number.isFinite(parsed) || new Date(parsed).toISOString().slice(0,10).replaceAll('-','') !== date ||
+        Math.abs(Date.now() - parsed) > 3 * 86_400_000) return json({ error: 'Invalid scoreboard date' }, 400);
+    upstream.searchParams.set('dates', date);
+  }
+  try {
+    const result = await fetch(upstream, {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(6500),
+      redirect: 'error',
+      cf: { cacheEverything: true, cacheTtlByStatus: { '200': 20, '300-599': -1 } },
+    });
+    if (result.ok && result.body && (result.headers.get('Content-Type') || '').includes('application/json')) {
+      return new Response(result.body, {
+        headers: { ...corsHeaders(), 'Cache-Control': 'public, max-age=20' },
+      });
+    }
+    await result.body?.cancel();
+  } catch (_) {}
+  return json({ error: 'Scoreboard provider unavailable' }, 502, { 'Cache-Control': 'no-store' });
+}
+
 function routeFor(pathname) {
   for (const [prefix, apiVersion] of [[API_PREFIX, "v2"], [V3_PREFIX, "v3"]]) {
     if (pathname === `${prefix}/health`) return { kind: "health", apiVersion };
     if (pathname === `${prefix}/youtube/uploads`) return { kind: "youtube-uploads", apiVersion };
+    if (pathname === `${prefix}/sports/scoreboard`) return { kind: "sports-scoreboard", apiVersion };
     if (pathname === `${prefix}/telemetry`) return { kind: "telemetry", apiVersion };
     if (pathname === `${prefix}/health/channels`) return { kind: "channel-health", apiVersion };
     if (pathname === `${prefix}/health/summary`) return { kind: "health-summary", apiVersion };
@@ -783,7 +820,7 @@ async function rotateShelf(env, body, payload, request) {
   const reservationMode = body.iaRepair === true && body.sourceCatalog !== true;
   // Previous standard game-show sessions may contain now-excluded kids' shows.
   // Change only that catalog namespace; viewer playback history still applies.
-  const stationPolicy = !reservationMode && body.sourceCatalog !== true && channel === "22" ? ":adult-game-shows-2" : "";
+  const stationPolicy = !reservationMode && body.sourceCatalog !== true && channel === "22" ? ":adult-game-shows-768" : "";
   const stub = env.ROTATION.getByName(reservationMode ? iaReservationName(session, channel, body.archiveProgramIdentity) : `session:${session}:channel:${channel}${stationPolicy}`);
   const rawCandidates = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
     ? payload.candidateItems
@@ -3165,6 +3202,10 @@ const worker = {
       if (route && route.kind === "guide") {
         if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });
         return await cachedPublicRead(request, env, ctx, handleGuide);
+      }
+      if (route && route.kind === "sports-scoreboard") {
+        if (request.method !== "GET") return json({ error: "method not allowed" }, 405, { Allow: "GET,OPTIONS" });
+        return await handleSportsScoreboard(url);
       }
       if (route && route.kind === "canonical-shadow") {
         if (request.method !== "POST") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "POST,OPTIONS" });

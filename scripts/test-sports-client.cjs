@@ -228,6 +228,17 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     assert.doesNotMatch(switched.body.innerHTML, /Yesterday Match/);
   });
 
+  test(file + ': a future competition marked in-progress does not appear live', async () => {
+    const desk = sportsDesk(file,{fetchSportsData:async url=>({events:url.includes('football/a')?[{
+      date:'2026-11-22T18:00:00Z', name:'Future session',
+      competitions:[{date:'2026-11-22T20:00:00Z',status:{type:{state:'in'}}}]
+    }]:[]})});
+    desk.tab('today');
+    await flushSports();
+    assert.match(desk.body.innerHTML,/sports-today-card pre[^>]*>[\s\S]*Future session/);
+    assert.doesNotMatch(desk.body.innerHTML,/sports-today-card live/);
+  });
+
   test(file + ': Live Now separates current, empty, partial, expired and failed XMLTV coverage', async () => {
     for (const [response, expected, absent] of [
       [guideResponse(currentProgramme('one') + currentProgramme('two')), /Live Match/, /Partial guide coverage/],

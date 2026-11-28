@@ -9,14 +9,14 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 7.6.7</title>
+<title>REALSIGNAL · Retro Cable 7.6.8</title>
 <meta name="realsignal-ia-repair-channels" content="*">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=7.5.10"></script>
 <script src="assets/ia-playback-shelf.js?v=7.6.7"></script>
-<script src="assets/sports-programs.js?v=7.0.0"></script>
+<script src="assets/sports-programs.js?v=7.6.8"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
 <script src="assets/youtube-embed-runtime.js?v=7.2.1"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
@@ -1702,7 +1702,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="7.6.7-desktop-retro-cable";
+window.__ATV_BUILD="7.6.8-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7458,22 +7458,19 @@ function fetchTextResilient(url,tag){ /* CYCLE-8: same direct->relay chain, for 
   }
   return direct().catch(function(e){ return relay(); });
 }
-function sportsCacheBase(){
-  /* The previous cache worker is currently returning 502. Keep the direct -> relay chain as the
-     default until a healthy cache endpoint is available; this avoids adding a failing first hop to
-     every live score request. */
-  return "";
-}
 async function fetchSportsData(url,tag,signal){
-  /* Optional caching + stale-on-error resilience layer for ESPN/TheSportsDB, same shape as the
-     stream proxy. Unset by default -- store.get returns "" until configured in SETTINGS, so this
-     falls straight through to the existing direct->CORS-relay chain and nothing changes for
-     anyone who hasn't deployed the worker. Once set, it's tried first; any failure there
-     (unconfigured KV, cold start, network) falls back to the same proven path as before. */
-  var base=sportsCacheBase();
-  if(base){
-    try{ return await fetchJSON(base+"/?url="+encodeURIComponent(url),signal); }
-    catch(e){ nlog(tag||"sportscache",false,"cache proxy failed ("+((e&&e.message)||e)+"), falling back"); }
+  var scoreboard=/^https:\/\/site\.api\.espn\.com\/apis\/site\/v2\/sports\/([a-z]+\/[a-z0-9.-]+)\/scoreboard(?:\?dates=(\d{8}))?$/.exec(url);
+  if(scoreboard&&(tag==="today"||tag==="sports")){
+    var endpoint=IA_API_BASE+"/sports/scoreboard?league="+encodeURIComponent(scoreboard[1]);
+    if(scoreboard[2])endpoint+="&dates="+scoreboard[2];
+    try{
+      var data=await fetchJSON(endpoint,signal);
+      if(data&&Array.isArray(data.events))return data;
+    }catch(e){
+      if(signal&&signal.aborted)throw e;
+      nlog(tag,false,"Scoreboard relay failed, trying the provider directly");
+    }
+    return fetchJSON(url,signal);
   }
   return fetchJSONResilient(url,tag,signal);
 }
@@ -8669,6 +8666,13 @@ async function iaQueueRequest(ch,sl,count){
 }
 function iaArchiveDirectURL(url){return /(?:dn|ia)\d+\.[a-z0-9.-]*archive\.org\/\d+\/items\//i.test(String(url||""));}
 function iaDisplayTitle(it,ch){var title=String((it&&((it.title)||(it.meta&&it.meta.title)))||"").trim(),name=String((ch&&ch.nm)||"").trim(),low=title.toLowerCase();var identity=String((it&&(it.identifier||it.id))||""),parts=title.split(/\s+·\s+/);
+  if(ch&&Number(ch.num)===22&&/\bjeopardy\b/i.test(title)){
+    var jeopardyFile=(identity.split("::")[1]||"").split("/").pop();
+    var airdate=/^j((?:19|20)\d{2})(\d{2})(\d{2})(?:[_. -]|$)/i.exec(jeopardyFile);
+    if(airdate)return "Jeopardy! · "+airdate.slice(1).join("-");
+    var streak=/\bJames Holzhauer Game\s+0*(\d+)\b/i.exec(jeopardyFile);
+    if(streak)return "Jeopardy! · James Holzhauer, Game "+streak[1];
+  }
   if(name==="Computer Chronicles"){
     if(/^VCF5JohnTooleComputerHistoryMuseum::/i.test(identity))return "Vintage Computer Festival · John Toole";
     if(/^VCF5JeriEllsworth--CommodoreOne::/i.test(identity))return "Vintage Computer Festival · Commodore One";
@@ -14203,6 +14207,7 @@ async function tuneSports(ch,sl,my){
     if(state==="in"){
       /* A stale provider can leave an event marked in-progress indefinitely. Keep
          genuinely long golf/racing cards, but do not call yesterday's ghost LIVE. */
+      if(ts&&ts>Date.now())return "pre";
       if(ts&&Date.now()-ts>30*60*60*1000)return "off";
       return "in";
     }
@@ -14271,7 +14276,7 @@ async function tuneSports(ch,sl,my){
         if(!comps.length) comps=[{competitors:[]}];
         comps.forEach(function(c){
           var st=(c.status||ev.status||{});
-          var when=ev.date||c.date||"";
+          var when=c.date||ev.date||"";
           var t=todayEventState(st,when);
           if(t==="off")return;
           var nm=ev.shortName||ev.name||"";
@@ -14297,7 +14302,7 @@ async function tuneSports(ch,sl,my){
        same title (seen live: "Palermo Ladies Open" listed twice). Key on sport+label+time. */
     var seenRow={};
     rows=rows.filter(function(r){
-      var k=todaySportFamily(r.sport)+"|"+r.label+"|"+(r.detail||"");
+      var k=todaySportFamily(r.sport)+"|"+r.label+"|"+(r.ts||r.detail||"");
       if(seenRow[k]) return false; seenRow[k]=1; return true;
     });
     rows.sort(function(a,b){

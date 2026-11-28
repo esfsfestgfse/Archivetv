@@ -322,7 +322,7 @@ test('a reviewed modern game-show bank reaches transport admission before any co
   const env={REALSIGNAL_QUEUE:{get:async()=>null,put:async()=>{}},IA_HARVEST_QUEUE:{send:async()=>{}}},pending=[];
   const response=await f.worker.fetch(new Request('https://relay.invalid/ia/queue',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({channel:'22',iaRepair:true,count:3,queries:['mediatype:movies AND title:game'],themeTerms:['game show'],mediaTypes:['movies']})}),env,{waitUntil:p=>pending.push(p)});
   const payload=await response.json();
-  assert.equal(payload.ready,3);
+  assert.equal(payload.ready,3,JSON.stringify(payload));
   assert.equal(searches,0,'existing file-level depth must not wait behind synchronous discovery');
   await Promise.all(pending);
 });

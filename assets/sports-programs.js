@@ -287,6 +287,14 @@
     if(episode)result.eventId='sports:action-skate:411vm:'+episode;
    }
   }
+  if(Number(channel)===51){
+   var nflLabel=clean([raw,item.title].filter(Boolean).join(' '));
+   if(/\b(?:yearbook|retrospective|history|forever)\b/.test(nflLabel)){
+    var teams=new Set(nflLabel.match(/\b(?:cardinals|falcons|ravens|bills|panthers|bears|bengals|browns|cowboys|broncos|lions|packers|texans|colts|jaguars|chiefs|raiders|chargers|rams|dolphins|vikings|patriots|saints|giants|jets|eagles|steelers|49ers|seahawks|buccaneers|titans|oilers|redskins|commanders)\b/g)||[]);
+    if(teams.size===1)result.programFamily='nfl:'+teams.values().next().value;
+   }
+   if(result.programFamily||/\bnfl s greatest games\b/.test(nflLabel)){result.format='documentary';return result;}
+  }
   if(!enabled(channel))return result;
   if(/\b(?:documentary|documentaries|history|biography|retrospective|nfl films|a football life|behind the scenes)\b/.test(text)){result.format='documentary';return result;}
   var formatText=Number(channel)===59?text.replace(/\b(?:with|without|no) post ?game\b/g,''):text;
@@ -365,6 +373,11 @@
      if(cueAvailable&&!cue.includes(info.competition))score+=40;
      if(matchAvailable&&cue.includes(info.competition)&&info.format!=='event')score+=32;
     }if(Number(channel)===65){var media=group.rows[0].media||group.rows[0];if(Number(media.width)>1920||Number(media.height)>1080)score+=16;}recent.slice(-8).forEach(function(prior){if(Number(channel)===53&&prior.sport&&prior.sport===info.sport)score+=16;if(Number(channel)===66&&prior.programFamily&&prior.programFamily===info.programFamily)score+=12;if(prior.competition===info.competition)score+=4;if(prior.era&&prior.era===info.era)score+=1;info.participants.forEach(function(p){if(prior.participants.includes(p))score+=3;});});
+    if(Number(channel)===51&&info.programFamily){
+     var last=recent[recent.length-1];
+     if(last&&last.programFamily===info.programFamily)score+=64;
+     recent.slice(-8).forEach(function(prior){if(prior.programFamily===info.programFamily)score+=12;});
+    }
     if(![68,69,78,80,81,82,83].includes(Number(channel))&&info.format==='documentary')score+=docDue?-8:8;
     if(score<bestScore){best=index;bestScore=score;}
    });

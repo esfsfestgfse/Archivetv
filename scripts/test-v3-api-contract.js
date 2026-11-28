@@ -30,6 +30,32 @@ const { pathToFileURL } = require('node:url');
   };
   const ctx = { waitUntil(promise) { return promise; } };
 
+  const originalFetch = globalThis.fetch;
+  const scoreCalls = [];
+  globalThis.fetch = async (url, options) => {
+    scoreCalls.push({ url: String(url), options });
+    if (scoreCalls.length === 2) return new Response('upstream unavailable', { status: 503 });
+    return Response.json({ events: [{ id: 'match' }] });
+  };
+  try {
+    const scoreboard = 'https://api.example/api/v3/sports/scoreboard';
+    const today = new Date().toISOString().slice(0,10).replaceAll('-', '');
+    const stats = await worker.fetch(new Request(scoreboard + '?league=basketball%2Fnba&dates=' + today), env, ctx);
+    assert.equal(stats.status, 200);
+    assert.equal(stats.headers.get('Access-Control-Allow-Origin'), '*');
+    assert.deepEqual(await stats.json(), { events: [{ id: 'match' }] });
+    assert.equal(scoreCalls[0].url, 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=' + today);
+    assert.equal(scoreCalls[0].options.redirect, 'error');
+    const invalid = await worker.fetch(new Request(scoreboard + '?league=https%3A%2F%2Fexample.org'), env, ctx);
+    const invalidDate = await worker.fetch(new Request(scoreboard + '?league=basketball%2Fnba&dates=20261345'), env, ctx);
+    assert.equal(invalid.status, 400);
+    assert.equal(invalidDate.status, 400);
+    assert.equal(scoreCalls.length,1);
+    const outage = await worker.fetch(new Request(scoreboard + '?league=basketball%2Fnba'), env, ctx);
+    assert.equal(outage.status, 502);
+    assert.equal(outage.headers.get('Cache-Control'), 'no-store');
+  } finally { globalThis.fetch = originalFetch; }
+
   // The cache must short-circuit the database, not just replace a response
   // after paying for its queries. Playback POSTs must bypass this cache.
   const originalCaches = globalThis.caches;

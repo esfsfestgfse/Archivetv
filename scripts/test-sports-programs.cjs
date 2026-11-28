@@ -76,6 +76,20 @@ test('shelves group duplicate events while preserving full recovery records and 
  assert.equal(daytona.sportsCopies[0].media.url,b.media.url);
  assert.equal(sports.select([race('x','Unknown basketball game'),race('y','Unknown basketball game')],{channel:58,count:5}).length,2);
 });
+test('Hard Count balances franchise retrospectives without merging their separate programs',()=>{
+ const old=race('world-champs','New York Giants Yearbook: World Champions (1986)');
+ const next=race('bound','New York Giants Yearbook: Bound for Glory (1985)');
+ const history=race('forever','Giants Forever: History of the New York Giants (1988)');
+ const newYorkOther=race('true-blue','New York Giants Yearbook: True Blue (1990)');
+ const other=race('strike-force','NFL Films: Strike Force (1989)');
+ assert.equal(sports.describe(old,51).programFamily,'nfl:giants');
+ assert.equal(sports.describe(history,51).programFamily,'nfl:giants');
+ assert.notEqual(sports.key(next,51),sports.key(history,51));
+ const chosen=sports.select([next,history,newYorkOther,other],{channel:51,count:4,history:[old]});
+ assert.equal(chosen[0].identifier,'strike-force');
+ assert.equal(chosen.length,4);
+});
+
 test('rotation spreads competitions, participants and eras without hiding sparse inventory',()=>{
  assert.equal(typeof sports.select,'function');
  const rows=[game('a','1998-01-01','Chicago Bulls vs Utah Jazz'),game('b','1998-01-02','Chicago Bulls vs Detroit Pistons'),game('c','2016-01-01','Golden State Warriors vs Cleveland Cavaliers'),race('d','UFC 100 Full Event')];

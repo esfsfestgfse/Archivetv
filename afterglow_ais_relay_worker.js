@@ -3644,6 +3644,19 @@ const IA_PROMOTED_ARCHIVE_BANKS = Object.freeze({
 /* Exact Archive files reviewed for format, date, and byte-range delivery.
    Channel 2 keeps its existing vintage quiz episodes alongside network series. */
 const IA_TARGETED_RECOVERY_BANKS = Object.freeze({
+  "22": [
+    // Original broadcast labels, landscape episode files and verified Archive transport.
+    { ...iaDirectRecovery("family_feud_season_49_-_episode_26___5a7df6b98faf3::family_feud_season_49_-_episode_26___5a7df6b98faf3.mp4", "family_feud_season_49_-_episode_26___5a7df6b98faf3", "family_feud_season_49_-_episode_26___5a7df6b98faf3.mp4", "Family Feud · Maples vs. Mink", "adult television game show episode Family Feud", 2023, "video", 1287.25, 640, 360, {"d1":"dn720302.ca.archive.org","dir":"/0/items/family_feud_season_49_-_episode_26___5a7df6b98faf3"}), seriesTitle: "Family Feud", seriesId: "family-feud", language: "eng" },
+    { ...iaDirectRecovery("dealornodealitv::2023-11-20 - S001 E001.mp4", "dealornodealitv", "2023-11-20 - S001 E001.mp4", "Deal or No Deal · 2023-11-20 (ITV)", "adult television game show episode Deal or No Deal", 2023, "video", 2772.37, 1280, 720, {"d1":"dn721805.ca.archive.org","dir":"/0/items/dealornodealitv"}), seriesTitle: "Deal or No Deal", seriesId: "deal-or-no-deal", language: "eng" },
+    { ...iaDirectRecovery("dealornodealitv::2023-11-21 - S001 E002.mp4", "dealornodealitv", "2023-11-21 - S001 E002.mp4", "Deal or No Deal · 2023-11-21 (ITV)", "adult television game show episode Deal or No Deal", 2023, "video", 2796.12, 1280, 720, {"d1":"dn721805.ca.archive.org","dir":"/0/items/dealornodealitv"}), seriesTitle: "Deal or No Deal", seriesId: "deal-or-no-deal", language: "eng" },
+    { ...iaDirectRecovery("dealornodealitv::2023-11-22 - S001 E003.mp4", "dealornodealitv", "2023-11-22 - S001 E003.mp4", "Deal or No Deal · 2023-11-22 (ITV)", "adult television game show episode Deal or No Deal", 2023, "video", 2582.78, 1280, 720, {"d1":"dn721805.ca.archive.org","dir":"/0/items/dealornodealitv"}), seriesTitle: "Deal or No Deal", seriesId: "deal-or-no-deal", language: "eng" },
+    { ...iaDirectRecovery("dealornodealitv::2023-11-24 - S001 E005.mp4", "dealornodealitv", "2023-11-24 - S001 E005.mp4", "Deal or No Deal · 2023-11-24 (ITV)", "adult television game show episode Deal or No Deal", 2023, "video", 2632.05, 1280, 720, {"d1":"dn721805.ca.archive.org","dir":"/0/items/dealornodealitv"}), seriesTitle: "Deal or No Deal", seriesId: "deal-or-no-deal", language: "eng" },
+    { ...iaDirectRecovery("dealornodealitv::2023-11-27 - S001 E006.mp4", "dealornodealitv", "2023-11-27 - S001 E006.mp4", "Deal or No Deal · 2023-11-27 (ITV)", "adult television game show episode Deal or No Deal", 2023, "video", 2763.06, 1280, 720, {"d1":"dn721805.ca.archive.org","dir":"/0/items/dealornodealitv"}), seriesTitle: "Deal or No Deal", seriesId: "deal-or-no-deal", language: "eng" },
+    { ...iaDirectRecovery("dealornodealitv::2023-11-28 - S001 E007.mp4", "dealornodealitv", "2023-11-28 - S001 E007.mp4", "Deal or No Deal · 2023-11-28 (ITV)", "adult television game show episode Deal or No Deal", 2023, "video", 2776.06, 1280, 720, {"d1":"dn721805.ca.archive.org","dir":"/0/items/dealornodealitv"}), seriesTitle: "Deal or No Deal", seriesId: "deal-or-no-deal", language: "eng" },
+    { ...iaDirectRecovery("pyl-s04e01::The New Press Your Luck 2019 (Season 4 Episode 1)_ It's Gettin Hot In Here.mp4", "pyl-s04e01", "The New Press Your Luck 2019 (Season 4 Episode 1)_ It's Gettin Hot In Here.mp4", "Press Your Luck · S04E01 · It’s Gettin’ Hot in Here", "adult television game show episode Press Your Luck", 2022, "video", 2553.68, 1280, 720, {"d1":"dn721607.ca.archive.org","dir":"/0/items/pyl-s04e01"}), seriesTitle: "Press Your Luck", seriesId: "press-your-luck", language: "eng" },
+    { ...iaDirectRecovery("theweakestlinkoctober292001tvhostsspecialconvertvideoonline.com::The Weakest Link- October 29, 2001 (TV Hosts special) (convert-video-online.com).mp4", "theweakestlinkoctober292001tvhostsspecialconvertvideoonline.com", "The Weakest Link- October 29, 2001 (TV Hosts special) (convert-video-online.com).mp4", "The Weakest Link · TV Hosts Special (October 29, 2001)", "adult television game show episode The Weakest Link", 2001, "video", 2526.44, 640, 480, {"d1":"dn710301.ca.archive.org","dir":"/0/items/theweakestlinkoctober292001tvhostsspecialconvertvideoonline.com"}), seriesTitle: "The Weakest Link", seriesId: "weakest-link", language: "eng" },
+    { ...iaDirectRecovery("weakest-link-1000th-episode-special-18th-december-2006::Weakest Link - 1000th Episode Special - 18th December 2006.mp4", "weakest-link-1000th-episode-special-18th-december-2006", "Weakest Link - 1000th Episode Special - 18th December 2006.mp4", "The Weakest Link · 1000th Episode (December 18, 2006)", "adult television game show episode The Weakest Link", 2006, "video", 2825.12, 640, 360, {"d1":"dn720303.ca.archive.org","dir":"/0/items/weakest-link-1000th-episode-special-18th-december-2006"}), seriesTitle: "The Weakest Link", seriesId: "weakest-link", language: "eng" },
+  ],
   // Original medical episodes, vintage sitcoms, and reviewed judge cases.
   "18": [
     { ...iaDirectRecovery("st.-elsewhere::Season 1 - 22 eps/St. Elsewhere S1E001 Pilot.mp4", "st.-elsewhere", "Season 1 - 22 eps/St. Elsewhere S1E001 Pilot.mp4", "St. Elsewhere · S01E01 · Pilot", "medical drama hospital drama medical television series full episode", null, "video", 2956, 720, 480), seriesTitle: "St. Elsewhere", seriesId: "st-elsewhere" },
@@ -4004,6 +4017,11 @@ const IA_DEEP_HARVEST_BANKS = Object.freeze({
     iaDirectRecovery("formula-canadian-grand-prix-2023::Formula Canadian Grand Prix 2023.mp4", "formula-canadian-grand-prix-2023", "Formula Canadian Grand Prix 2023.mp4", "2023 FORMULA ONE CANADIAN GRAND PRIX ROUND 8 (FULL RACE)", "auto racing motorsport full race broadcast formula one", 2023, "video", 7414.68, 1280, 720),
   ],
   "51": [
+    // NFL Films features and complete Greatest Games presentations.
+    iaDirectRecovery("nflfilmsstrikeforce1989_201906::NFL-Films-Strike-Force-_1989_.mp4", "nflfilmsstrikeforce1989_201906", "NFL-Films-Strike-Force-_1989_.mp4", "NFL Films · Strike Force (1989)", "nfl professional football nfl films nfl history sports television", 1989, "video", 1784.2, 640, 480, {"d1":"dn710305.ca.archive.org","dir":"/0/items/nflfilmsstrikeforce1989_201906"}),
+    iaDirectRecovery("dvd-transfer-51::VTS_01_1.mp4", "dvd-transfer-51", "VTS_01_1.mp4", "NFL’s Greatest Games · 49ers vs. Cowboys, 1981 NFC Championship", "nfl professional football nfl films nfl history sports television", 1981, "video", 5175.17, 640, 480, {"d1":"dn720306.ca.archive.org","dir":"/0/items/dvd-transfer-51"}),
+    iaDirectRecovery("dvd-transfer-51::VTS_01_2.mp4", "dvd-transfer-51", "VTS_01_2.mp4", "NFL’s Greatest Games · Dolphins vs. Chargers, 1981 AFC Divisional Playoff", "nfl professional football nfl films nfl history sports television", 1981, "video", 5194.49, 640, 480, {"d1":"dn720306.ca.archive.org","dir":"/0/items/dvd-transfer-51"}),
+    iaDirectRecovery("dvd-transfer-51::VTS_01_3.mp4", "dvd-transfer-51", "VTS_01_3.mp4", "NFL’s Greatest Games · Browns vs. Broncos, 1987 AFC Championship", "nfl professional football nfl films nfl history sports television", 1987, "video", 4596.19, 640, 480, {"d1":"dn720306.ca.archive.org","dir":"/0/items/dvd-transfer-51"}),
     // v6.0.46: exact, transport-checked long-form NFL files; no DVD continuation chunks.
     iaDirectRecovery("youtube-s1EBPLDBv5w::s1EBPLDBv5w.ia.mp4", "youtube-s1EBPLDBv5w", "s1EBPLDBv5w.ia.mp4", "Tom Brady vs. Peyton Manning: 2006 AFC Championship | Patriots vs Colts | NFL Full Game", "nfl professional football full game playoffs nfl history sports television", 2007, "video", 8155.78, 1920, 1080),
     iaDirectRecovery("youtube-qMmcIR9maQs::qMmcIR9maQs.ia.mp4", "youtube-qMmcIR9maQs", "qMmcIR9maQs.ia.mp4", "Super Bowl XXVII: \"The Start of a Dynasty\" | Dallas Cowboys vs. Buffalo Bills | NFL Full Game", "nfl professional football full game playoffs nfl history sports television", 1993, "video", 8003.29, 854, 480),
@@ -9705,7 +9723,7 @@ function orderedIaEmergencySeeds(channel, rotation) {
   for (let i = 0; i < Math.max(0,...vaultBanks.map(bank => bank.length)); i++) for (const bank of vaultBanks) if (bank[i]) vaultFiles.push(bank[i]);
   const ownedFiles = ["77","78","79"].includes(String(channel)) ? IA_VERIFIED_FILE_DEPTH_RAILS[String(channel)] || [] : [];
   const ownedParents = new Set(ownedFiles.map(item => item.sourceIdentifier)), ownedIds = new Set(ownedFiles.map(item => item.identifier));
-  const openingRail = ["2", "3", "13", "14", "15", "17", "18", "19", "20"].includes(String(channel)) ? IA_TARGETED_RECOVERY_BANKS[String(channel)] : [];
+  const openingRail = ["2", "3", "13", "14", "15", "17", "18", "19", "20", "22"].includes(String(channel)) ? IA_TARGETED_RECOVERY_BANKS[String(channel)] || [] : [];
   const rawSeeds = ownedFiles.concat(vaultFiles, openingRail)
     .concat(IA_REVIEWED_ERA_FEATURES.filter(film => film.channels.includes(String(channel))).map(film => film.item))
     .concat(IA_HOLIDAY_CONTAINER_SEEDS[String(channel)] || [])
@@ -12036,6 +12054,7 @@ async function getIaQueue(request, url, env, ctx) {
     ...(IA_MEASURED_DEPTH_CHANNELS.has(channel) ? { stationDepthPolicy: channel === "83" ? "reviewed-files-5629" : ["81", "128"].includes(channel) ? "reviewed-files-5626" : ["66", "80", "212"].includes(channel) ? "reviewed-files-5624" : ["200", "201"].includes(channel) ? "reviewed-files-5623" : "reviewed-files-5622" } : {}),
     ...(channel === "705" ? { stationFileIdentity: "exact-halloween-files-5627" } : {}),
     ...(["60","71","72"].includes(channel) ? { stationSportsPolicy: "broadcast-depth-611" } : {}),
+    ...(channel === "51" ? { stationSportsPolicy: "nfl-programs-768" } : {}),
     ...(channel === "56" ? { stationSportsPolicy: "boxing-programs-613" } : {}),
     ...(channel === "52" ? { stationSportsPolicy: "mma-programs-614" } : {}),
     ...(channel === "55" ? { stationSportsPolicy: "derby-wrestling-615" } : {}),
@@ -12064,7 +12083,7 @@ async function getIaQueue(request, url, env, ctx) {
     ...(channel === "17" ? { stationPolicy: "late-night-series-766" } : {}),
     ...(channel === "15" ? { stationPolicy: "computer-access-latenight-763" } : {}),
     ...(["18", "19", "20"].includes(channel) ? { stationPolicy: "scripted-reruns-and-judges-767" } : {}),
-    ...(channel === "22" ? { stationPolicy: "adult-game-shows-2" } : {}) };
+    ...(channel === "22" ? { stationPolicy: "adult-game-shows-768" } : {}) };
   const familyFingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count, contentPolicy: IA_GLOBAL_VIDEO_POLICY_VERSION, ...fileContract });
   const lastGoodDigest = await stableKey(familyFingerprint);
   const fingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count, rotation, catalogBudget: IA_CATALOG_BUDGET_VERSION, contentPolicy: IA_GLOBAL_VIDEO_POLICY_VERSION, ...fileContract });

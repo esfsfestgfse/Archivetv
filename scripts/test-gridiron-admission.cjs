@@ -19,6 +19,9 @@ test('gridiron recovery carries deep checked files and preserves selected-file i
 test('Hard Count excludes Madden simulations and admits reviewed NFL Films chapters',async()=>{
  const {iaReviewedFileAllowed}=await import('../ia_file_contract.js');
  const fake=row('buccaneers-vs-packers-nfc-championship-2021-madden-21','Buccaneers vs Packers NFL Playoffs 2021 Madden 21');
+ const strategy=row('1960s-decade-nfl-championship-pro-strategy-football-2021','1960s Decade NFL Championship Pro Strategy Football 2021',{subject:'1960s, NFL'});
+ assert.equal(context.gridiron.gate('51',strategy),false);
+ assert.equal(iaReviewedFileAllowed(strategy,'51'),false);
  const real=row('john-madden','NFL Films: John Madden 2004 interview');
  assert.equal(context.gridiron.gate('51',fake),false);
  assert.equal(iaReviewedFileAllowed(fake,'51'),false);

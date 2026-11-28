@@ -499,12 +499,13 @@ export function iaReviewedFileAllowed(item, channel) {
   if (source === 'vts-01-1_20231104' && (!file || /^VTS_\d+_\d+(?:\.ia)?\.mp4$/i.test(file))) return false;
   const identity = [item.title, source, file].join(' ').toLowerCase().replace(/[_-]+/g, ' ');
   if (String(channel) === '51') {
-    if (/\b(?:podcast|reactions?|video game|simulation|fantasy football|city council|county commission meeting|pro strategy football|action!? pc football|strat o matic|football mogul|axis football|tecmo (?:super )?bowl|retro bowl|nfl 2k)|(?<!\bjohn )\bmadden\s+(?:(?:nfl\s+)?\d{2,4}|gameplay|playthrough)\b/i.test(identity)) return false;
+    if (/\b(?:podcast|reactions?|video game|simulation|full audio only|radio only|draft talk|fantasy football|city council|county commission meeting|pro strategy football|action!? pc football|strat o matic|football mogul|axis football|tecmo (?:super )?bowl|retro bowl|nfl 2k)|(?<!\bjohn )\bmadden\s+(?:(?:nfl\s+)?\d{2,4}|gameplay|playthrough)\b/i.test(identity)) return false;
     const broadcast = source.match(/^([a-z0-9]{3,12})_(?:19|20)\d{6}_\d{6}_(.+)$/i);
     if (broadcast && !/^nfl/i.test(broadcast[1]) && !/\b(?:nfl|football|super bowl|hard knocks|gridiron|america'?s game|america s game)\b/i.test(broadcast[2].replace(/_/g,' '))) return false;
     const topic = /\b(?:nfl|football|super bowl|hard knocks|gridiron|sabol|facenda|a football life|inside the nfl|america'?s game|america s game|steel curtain|doomsday defense|fearsome foursome|monsters of the midway|purple people eaters|new york sack exchange|greatest show on turf|giants (?:yearbook|forever)|jersey guys rooting for big blue)\b|\bwk\s*\d{1,2}\b.*\bgotw\b/i;
     const parts = String(item.title || item.meta && item.meta.title || '').replace(/[_-]+/g,' ').split(/\s+(?:\u00c2)?·\s+/), selectedTitle = parts[parts.length-1];
     const fileTitle = file.replace(/(?:\.ia)?\.[^.]+$/,'').replace(/[._-]+/g,' ');
+    if (/\b(?:nba|wnba|76ers|college basketball|mlb|nhl|premier league|rugby|ufc)\b/i.test(selectedTitle + ' ' + fileTitle)) return false;
     const genericName = /^(?:vts\s*\d+(?:\s+\d+)*|(?:episode|ep|part|reel|disc|disk|video|chapter)\s*\d+[a-z]?|\d+)$/i, generic = genericName.test(fileTitle || selectedTitle) && genericName.test(selectedTitle);
     if (!topic.test(selectedTitle) && !topic.test(fileTitle) && !(generic && topic.test(parts.slice(0,-1).join(' ')))) return false;
   }

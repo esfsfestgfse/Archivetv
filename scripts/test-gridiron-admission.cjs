@@ -25,6 +25,16 @@ test('Hard Count excludes Madden simulations and admits reviewed NFL Films chapt
  const civic=row('city-council-welcomes-the-nfl-draft-back-to-philadelphia-4-27-2017','City Council Welcomes the NFL Draft Back to Philadelphia 4-27-2017');
  assert.equal(context.gridiron.gate('51',civic),false);
  assert.equal(iaReviewedFileAllowed(civic,'51'),false);
+ const unsuitable=[
+   row('multi-sport','76ers, College Basketball, NFL Championship Games, and the Super Bowl 1-22-18'),
+   row('draft-chat','6KPP16-191 | NFL Draft Talk | Twister was on TV'),
+   row('audio-record','NFL · 1960-12-26 Championship Packers at Eagles · Full Audio Only'),
+ ];
+ for(const item of unsuitable){
+   assert.equal(context.gridiron.gate('51',item),false,item.title);
+   assert.equal(iaReviewedFileAllowed(item,'51'),false,item.title);
+ }
+ assert.equal(context.gridiron.gate('51',row('nfl-draft','2023 NFL Draft Live From Kansas City (Full Event)')),true);
  const real=row('john-madden','NFL Films: John Madden 2004 interview');
  assert.equal(context.gridiron.gate('51',fake),false);
  assert.equal(iaReviewedFileAllowed(fake,'51'),false);

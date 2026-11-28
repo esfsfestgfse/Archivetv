@@ -62,6 +62,14 @@ test('Auto Racing reuses the verified Archive race bank across eras without fill
   assert.ok(races.some(x=>/CART.*Detroit Grand Prix/i.test(x.title)));
 });
 
+test('Friday Night Fights opens with more than one era from the reviewed bank',()=>{
+  const {recoverySeeds,iaStationQualityGate}=relay();
+  const slate=recoverySeeds('56',0).filter(x=>x.media?.url&&iaStationQualityGate('56',x)).slice(0,6);
+  assert.ok(slate.some(x=>x.year<1950));
+  assert.ok(slate.some(x=>x.year>=2000));
+  assert.ok(new Set(slate.map(x=>Math.floor(x.year/10))).size>=4);
+});
+
 test('Auto Racing keeps verification through client warming and saved shelves', () => {
   const item=relay().recoverySeeds('76',0).find(x=>/Motorcraft Quality/.test(x.title));
   assert.ok(item);

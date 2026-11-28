@@ -9,14 +9,14 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 7.6.14</title>
+<title>REALSIGNAL · Retro Cable 7.6.15</title>
 <meta name="realsignal-ia-repair-channels" content="*">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=7.5.10"></script>
-<script src="assets/ia-playback-shelf.js?v=7.6.7"></script>
-<script src="assets/sports-programs.js?v=7.6.14"></script>
+<script src="assets/ia-playback-shelf.js?v=7.6.15"></script>
+<script src="assets/sports-programs.js?v=7.6.15"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
 <script src="assets/youtube-embed-runtime.js?v=7.2.1"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
@@ -1702,7 +1702,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="7.6.14-desktop-retro-cable";
+window.__ATV_BUILD="7.6.15-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -10428,7 +10428,7 @@ function playFile(it,ch,sl,my,isFallback,archiveHandoff){
     return Object.assign({},row,{id:row.identifier||row.id,type:media.type||row.type||"video",url:media.url||row.url,
       runtime:media.runtime||row.runtime||row.duration,width:media.width||row.width,height:media.height||row.height,
       alts:[],meta:meta});}
-  var sportsHandoff=Number(ch.num)===53?archiveHandoff:null;
+  var sportsHandoff=[53,57].includes(Number(ch.num))?archiveHandoff:null;
   var openingDeadline=sportsHandoff?.allowBuffered?performance.now()+3500:0,opened=false;
   var session=sports.recovery(it,{channel:ch.num,isCurrent:function(){return my===token&&powered&&curNum===ch.num&&!sportsHandoff?.buffered;},
     allowed:function(row){var copy=playable(row);return ch.source==="v2preview"?v2RightsOkay(copy.rights,copy.provider,copy):iaCachedProgramAllowed(ch,copy,sl);},

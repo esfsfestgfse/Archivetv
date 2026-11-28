@@ -107,7 +107,7 @@
    if(/\b(?:lingerie football league|legends football league|lfl)\b/.test(text))return 'lfl';
    if(/\b(?:high school football|school football|varsity football)\b/.test(text))return 'high-school';
    var footballLeague=text.match(/\b(cfl|usfl|xfl|ufl)\b/);if(footballLeague)return footballLeague[1];
-   if(/\b(?:ncaa|college football|rose bowl|sugar bowl|orange bowl|cotton bowl|fiesta bowl|peach bowl)\b/.test(text))return 'ncaa';
+   if(/\b(?:ncaa|college football|rose bowl|sugar bowl|orange bowl|cotton bowl|fiesta bowl|peach bowl|camellia bowl)\b/.test(text))return 'ncaa';
   }
   if(Number(channel)===59){
    if(/\blittle league\b/.test(text))return 'little-league';
@@ -311,6 +311,20 @@
    if(result.programFamily||/\bnfl s greatest games\b/.test(nflLabel)){result.format='documentary';return result;}
    if(/\bsuper bowl highlights recording\b/.test(nflLabel))result.programFamily='nfl:super-bowl-highlights-recording';
   }
+  if(Number(channel)===56){
+   var boutLabel=clean(item.title||raw);
+   var knownBouts=[
+    ['joe-louis-max-schmeling',/^(?:max schmeling (?:vs?|versus) joe louis|joe louis (?:vs?|versus) max schmeling)(?: \d{4})?$/,[1936,1938]],
+    ['roberto-duran-wilfred-benitez',/^(?:roberto duran (?:vs?|versus) wilfred(?:o)? benitez|wilfred(?:o)? benitez (?:vs?|versus) roberto duran)(?: |$)/,[1982]],
+    ['mike-tyson-peter-mcneeley',/^(?:\d+ )?mike tyson (?:vs?|versus) peter (?:mc ?neeley|mcneely)(?: |$)/,[1995]]
+   ];
+   for(var b=0;b<knownBouts.length;b++){
+    var reviewed=knownBouts[b];
+    if(reviewed[2].includes(year)&&reviewed[1].test(boutLabel)&&!/\b(?:countdown|weigh in|documentary|recap|part \d+)\b/.test(boutLabel)){
+     result.eventId='sports:boxing:'+year+':'+reviewed[0];result.format='bout';return result;
+    }
+   }
+  }
   if(!enabled(channel))return result;
   if(/\b(?:documentary|documentaries|history|biography|retrospective|nfl films|a football life|behind the scenes)\b/.test(text)){result.format='documentary';return result;}
   var formatText=Number(channel)===59?text.replace(/\b(?:with|without|no) post ?game\b/g,''):text;
@@ -398,11 +412,15 @@
   var unseen=inventory.filter(function(group){return !seen.has(group.key);}),pool=(unseen.length?unseen:inventory).slice(),selected=[],recent=history.slice(-12).map(function(row){return describe(row,channel);});
   while(pool.length&&selected.length<count){
    var best=0,bestScore=Infinity,docDue=(recent.length+1)%5===0;
+   var derbyDue=Number(channel)===55&&recent.length>=3&&recent.slice(-3).every(function(r){return r.competition!=='roller-derby';});
    pool.forEach(function(group,index){var info=group.info,score=0;if(Number(channel)===79&&!['recreation-pool','recreation-snooker'].includes(info.competition)&&pool.some(g=>['recreation-pool','recreation-snooker'].includes(g.info.competition))&&recent.slice(-4).some(r=>!['recreation-pool','recreation-snooker'].includes(r.competition)))score+=100;if(Number(channel)===79){
      var cue=['recreation-pool','recreation-snooker'],cueAvailable=pool.some(g=>cue.includes(g.info.competition)),matchAvailable=pool.some(g=>cue.includes(g.info.competition)&&g.info.format==='event');
      if(cueAvailable&&!cue.includes(info.competition))score+=40;
      if(matchAvailable&&cue.includes(info.competition)&&info.format!=='event')score+=32;
     }if(Number(channel)===65){var media=group.rows[0].media||group.rows[0];if(Number(media.width)>1920||Number(media.height)>1080)score+=16;}recent.slice(-8).forEach(function(prior){if(Number(channel)===53&&prior.sport&&prior.sport===info.sport)score+=16;if(Number(channel)===66&&prior.programFamily&&prior.programFamily===info.programFamily)score+=12;if(prior.competition===info.competition)score+=4;if(prior.era&&prior.era===info.era)score+=1;info.participants.forEach(function(p){if(prior.participants.includes(p))score+=3;});});
+    if(derbyDue&&info.competition==='roller-derby')score-=100;
+    // These broadcasts repeatedly stalled during initial browser playback.
+    if(Number(channel)===57&&['sports:ncaa:camellia-bowl:2018-12-15','sports:ncaa:cotton-bowl:2012-01-04','sports:ncaa:sugar-bowl:2013-01-02'].includes(group.key))score+=80;
     if(Number(channel)===51&&info.programFamily){
      var last=recent[recent.length-1];
      if(last&&last.programFamily===info.programFamily)score+=64;

@@ -13,7 +13,7 @@ const MAX_ITEMS = 96;
 const MAX_RESERVATION_ITEMS = 1024;
 const ARCHIVE_IDENTITY_PILOTS = new Set(['502', '150', '929']);
 export function archiveIdentityPilot(channel, requested) { return requested === true && ARCHIVE_IDENTITY_PILOTS.has(String(channel)); }
-const REVIEWED_BROADCAST_CHANNELS = new Set(['14', '15', '17', '18', '19', '20']);
+const REVIEWED_BROADCAST_CHANNELS = new Set(['14', '15', '17', '18', '19', '20', '57']);
 
 function itemId(item) {
   const value = item && (item.identifier || item.id || (item.media && item.media.url));

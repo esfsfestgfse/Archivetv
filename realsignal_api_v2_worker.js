@@ -2064,7 +2064,7 @@ async function handleQueue(request, env, ctx, id) {
       upstreamBody.hydrationPreferredIds = state.reservationIds || [];
       // Fast skips already have a qualified catalog in the session. Serving
       // it directly keeps a fresh Archive discovery request off that path.
-      const reviewedBroadcastBatch = ["2", "3", "10", "14", "15", "17", "18", "19", "20"].includes(String(body.channel));
+      const reviewedBroadcastBatch = ["2", "3", "10", "14", "15", "17", "18", "19", "20", "57"].includes(String(body.channel));
       const hasDeepSession = reviewedBroadcastBatch ? state.catalogSize >= 16 : warmDeferredIds.length > 0 || (preparedStart
         ? state.catalogSize > IA_PREPARED_START_MAX_ITEMS : String(body.channel) === "150");
       const readyTarget = warmDeferredIds.length ? 2 : count;

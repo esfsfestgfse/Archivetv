@@ -100,6 +100,36 @@ test('Auto Racing recognizes the series behind sparse Archive filenames',()=>{
  assert.equal(sports.select([nascar,imsa],{channel:54,count:1,history:[nascar]})[0].id,'imsa');
 });
 
+test('the combined wrestling channel gives derby a turn after three wrestling cards',()=>{
+ const history=['WCW Monday Nitro','WWF Shotgun Saturday Night','NJPW Pro Wrestling Full Show'].map((title,i)=>race('watched'+i,title));
+ const wrestling=race('fresh-wrestling','Wrestling Society X Episode 2');
+ const derby=race('fresh-derby','Roller Derby: Old Capitol City vs Minnesota (2015)');
+ assert.equal(sports.select([wrestling,derby],{channel:55,count:1,history})[0].id,'fresh-derby');
+ assert.equal(sports.select([wrestling],{channel:55,count:1,history})[0].id,'fresh-wrestling');
+});
+test('Friday Night Fights groups reviewed copies of the same bout and keeps rematches distinct',()=>{
+ const first=race('schmeling-radio','Max Schmeling vs Joe Louis',{year:1936});
+ const copy=race('schmeling-tv','Joe Louis versus Max Schmeling (1936)');
+ const rematch=race('rematch','Joe Louis vs Max Schmeling (1938)');
+ const another=race('benitez','Wilfred Benitez vs Roberto Durán (1982)');
+ const anotherCopy=race('duran','Roberto Duran vs Wilfredo Benitez',{year:1982});
+ assert.equal(sports.key(first,56),sports.key(copy,56));
+ assert.notEqual(sports.key(first,56),sports.key(rematch,56));
+ assert.equal(sports.key(another,56),sports.key(anotherCopy,56));
+ const selected=sports.select([first,copy,rematch],{channel:56,count:2,history:[first]});
+ assert.deepEqual(selected.map(item=>item.id),['rematch']);
+});
+test('Gridiron plays another ready game before the Camellia Bowl files that needed repeated startup recovery',()=>{
+ const title='2018 Week 16 - Camellia Bowl - Georgia Southern vs Eastern Michigan';
+ const tv=race('2018Week16GeorgiaSouthernVsEasternMichigan::tv.mp4',title,{eventDate:'2018-12-15'});
+ const radio=race('2018week16georgiasouthernvseasternmichigangsradio::radio.mp4',title+' (GS Radio)',{eventDate:'2018-12-15'});
+ const rival=race('other-bowl','2012 Rose Bowl Oregon vs Wisconsin Full Game');
+ assert.equal(sports.key(radio,57),sports.key(tv,57));
+ const selected=sports.select([radio,tv,rival],{channel:57,count:2});
+ assert.equal(selected[0].id,rival.id);
+ assert.equal(sports.key(selected[1],57),sports.key(tv,57));
+ assert.equal(selected[1].sportsCopies.length,1);
+});
 test('Hard Count balances franchise retrospectives without merging their separate programs',()=>{
  const old=race('world-champs','New York Giants Yearbook: World Champions (1986)');
  const next=race('bound','New York Giants Yearbook: Bound for Glory (1985)');

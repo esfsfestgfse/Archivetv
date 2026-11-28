@@ -861,13 +861,13 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file 
   assert.equal(await scope.playFile(watched, ch), true, 'the normal fallback keeps its current behavior');
 });
 
-for (const [channel, query] of [['502', '?iaProgramIdentity=1'], ['108', ''], ['2', ''], ['3', ''], ['10', ''], ['14', ''], ['15', ''], ['17', '']]) test(channel + ': opens with three reservations and fills backup slots in the background', async () => {
+for (const [channel, query] of [['502', '?iaProgramIdentity=1'], ['108', ''], ['2', ''], ['3', ''], ['10', ''], ['14', ''], ['15', ''], ['17', ''], ['57', '']]) test(channel + ': opens with three reservations and fills backup slots in the background', async () => {
   const requests = [];
   const pilot = runtime(query, '*');
   assert.equal(runtime('?castReceiver=1', '*').readyBackup(channel), false);
   assert.equal(runtime('?iaRepair=0', '*').readyBackup(channel), false);
   const shelf = pilot.create({ viewerRecentIds: key => [key+'-watched'], queue: async body => {
-    if (['14','15','17'].includes(channel)) assert.deepEqual(Array.from(body.viewerRecentIds), [channel+'-watched']);
+    if (['14','15','17','57'].includes(channel)) assert.deepEqual(Array.from(body.viewerRecentIds), [channel+'-watched']);
     requests.push([body.count, body.sessionRefill]);
     return { items: [item('opening')] };
   } });
@@ -946,12 +946,13 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file 
   assert.equal(scope.iaMediaWarmers['502:vhs-backup'],undefined);
 });
 
-test('reviewed local-access recovery excludes programs already shown to this viewer', () => {
-  const watched = 'cable-access::episode.mp4';
+for (const channel of ['15', '57']) test('legacy recovery on ' + channel + ' excludes programs already shown to this viewer', () => {
+  const watched = 'archive-program::recording.mp4';
   const shelf = runtime('', '*', undefined, undefined, Date,
-    key => key === 'identity:15' ? [watched] : []);
-  assert.equal(shelf.repeatInIdentityFallback('15', watched), false);
-  assert.equal(shelf.fallbackForChannel('15'), true);
-  assert.equal(shelf.repeatInIdentityFallback('15', watched), true);
-  assert.equal(shelf.repeatInIdentityFallback('15', 'another-episode.mp4'), false);
+    key => key === 'identity:' + channel ? [watched] : []);
+  assert.equal(shelf.readyBackup(channel), true);
+  assert.equal(shelf.repeatInIdentityFallback(channel, watched), false);
+  assert.equal(shelf.fallbackForChannel(channel), true);
+  assert.equal(shelf.repeatInIdentityFallback(channel, watched), true);
+  assert.equal(shelf.repeatInIdentityFallback(channel, 'another-recording.mp4'), false);
 });

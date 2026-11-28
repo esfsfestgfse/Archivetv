@@ -49,11 +49,11 @@ for(const file of ['the_dial_desktop.html','the_dial_mobile.html']){
  });
 }
 
-for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file + ': an unlisted Sports Vault event shares a single start deadline across routes', async () => {
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) for (const channel of [53, 57]) test(file + ': an unlisted event on ' + channel + ' shares a single start deadline across routes', async () => {
   const source = fs.readFileSync(file, 'utf8');
   const calls = [];
   let now = 0;
-  const scope = { window: { RealSignalSports: Sports }, token: 7, powered: true, curNum: 53,
+  const scope = { window: { RealSignalSports: Sports }, token: 7, powered: true, curNum: channel,
     performance: { now: () => now }, iaCachedProgramAllowed: () => true, nlog() {},
     async playFileOnce(item, ch, sl, token, fallback, control) {
       calls.push(control.startTimeout);
@@ -65,10 +65,10 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file 
   const program = { id: 'event', type: 'video', title: '1989 NHL All Star Game Full Game',
     url: 'https://ia800100.us.archive.org/0/items/event/game.mp4',
     alts: ['https://archive.org/download/event/game.mp4', 'https://ia800101.us.archive.org/0/items/event/game.mp4'] };
-  assert.equal(await scope.playFile(program, { num: 53 }, {}, 7, 0, { allowBuffered: true }), false);
+  assert.equal(await scope.playFile(program, { num: channel }, {}, 7, 0, { allowBuffered: true }), false);
   assert.deepEqual(calls, [2500, 1000], 'three URLs cannot spend three full startup windows');
   now = 0; calls.length = 0;
-  assert.equal(await scope.playFile(program, { num: 53 }, {}, 7, 0, { listed: true }), false);
+  assert.equal(await scope.playFile(program, { num: channel }, {}, 7, 0, { listed: true }), false);
   assert.deepEqual(calls, [undefined, undefined, undefined], 'a listed game keeps its same-event recovery budget');
 });
 

@@ -294,7 +294,7 @@ async function handleSportsScoreboard(url) {
   const league = url.searchParams.get('league');
   const date = url.searchParams.get('dates');
   if (!ESPN_SCOREBOARD_LEAGUES.has(league)) return json({ error: 'Unsupported scoreboard' }, 400);
-  const upstream = new URL('https://site.api.espn.com/apis/site/v2/sports/' + league + '/scoreboard');
+  const upstream = new URL('https://site.web.api.espn.com/apis/site/v2/sports/' + league + '/scoreboard');
   if (date !== null) {
     const match = /^(\d{4})(\d{2})(\d{2})$/.exec(date);
     const parsed = match && Date.parse(match.slice(1).join('-') + 'T00:00:00Z');

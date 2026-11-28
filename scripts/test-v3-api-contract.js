@@ -44,7 +44,7 @@ const { pathToFileURL } = require('node:url');
     assert.equal(stats.status, 200);
     assert.equal(stats.headers.get('Access-Control-Allow-Origin'), '*');
     assert.deepEqual(await stats.json(), { events: [{ id: 'match' }] });
-    assert.equal(scoreCalls[0].url, 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=' + today);
+    assert.equal(scoreCalls[0].url, 'https://site.web.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=' + today);
     assert.equal(scoreCalls[0].options.redirect, 'error');
     const invalid = await worker.fetch(new Request(scoreboard + '?league=https%3A%2F%2Fexample.org'), env, ctx);
     const invalidDate = await worker.fetch(new Request(scoreboard + '?league=basketball%2Fnba&dates=20261345'), env, ctx);

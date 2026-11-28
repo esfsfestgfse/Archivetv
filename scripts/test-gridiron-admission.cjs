@@ -26,6 +26,8 @@ test('Hard Count excludes Madden simulations and admits reviewed NFL Films chapt
  assert.equal(context.gridiron.gate('51',civic),false);
  assert.equal(iaReviewedFileAllowed(civic,'51'),false);
  const unsuitable=[
+   row('draft-prank','I Pranked The NFL Draft! (Fred Beyer)'),
+   row('bcs-mixed','BCS Championship Game and NFL Playoffs 1-8-18'),
    row('multi-sport','76ers, College Basketball, NFL Championship Games, and the Super Bowl 1-22-18'),
    row('draft-chat','6KPP16-191 | NFL Draft Talk | Twister was on TV'),
    row('audio-record','NFL · 1960-12-26 Championship Packers at Eagles · Full Audio Only'),

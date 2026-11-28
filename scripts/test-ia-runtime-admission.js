@@ -40,6 +40,14 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     assert.equal(await scope.playFile(bad,{num:51},{},1,false),false);
     assert.equal(calls.created,0);assert.equal(calls.published,0);
   });
+  test(file + ': a saved Madden simulation cannot play on Hard Count', async () => {
+    const {scope,calls}=client(file);
+    const bad=program({title:'Buccaneers vs Packers NFL Playoffs 2021 Madden 21',runtime:5400});
+    assert.equal(scope.iaCachedProgramAllowed({num:51},bad,{}),false);
+    assert.equal(await scope.playFile(bad,{num:51},{},1,false),false);
+    assert.equal(calls.created,0);
+    assert.equal(calls.published,0);
+  });
   test(file + ': off-genre Aviation cannot escape through a saved shelf or direct Cast publication', async () => {
     const {scope,calls}=client(file);
     const bad=program({id:'filmography::Peeping Tom.mp4',title:'Complete Filmography · Peeping Tom',subject:'aircraft',genreVerified:true,url:'https://archive.org/download/filmography/Peeping%20Tom.mp4',runtime:5400});

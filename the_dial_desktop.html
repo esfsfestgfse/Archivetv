@@ -8161,7 +8161,7 @@ function iaReviewedFileAllowed(item, channel) {
   if (source === 'vts-01-1_20231104' && (!file || /^VTS_\d+_\d+(?:\.ia)?\.mp4$/i.test(file))) return false;
   const identity = [item.title, source, file].join(' ').toLowerCase().replace(/[_-]+/g, ' ');
   if (String(channel) === '51') {
-    if (/\b(?:podcast|reactions?|video game|simulation|fantasy football)|\bmadden\s+(?:nfl\s+\d{2,4}|gameplay|playthrough)\b/i.test(identity)) return false;
+    if (/\b(?:podcast|reactions?|video game|simulation|fantasy football)|(?<!\bjohn )\bmadden\s+(?:(?:nfl\s+)?\d{2,4}|gameplay|playthrough)\b/i.test(identity)) return false;
     const broadcast = source.match(/^([a-z0-9]{3,12})_(?:19|20)\d{6}_\d{6}_(.+)$/i);
     if (broadcast && !/^nfl/i.test(broadcast[1]) && !/\b(?:nfl|football|super bowl|hard knocks|gridiron|america'?s game|america s game)\b/i.test(broadcast[2].replace(/_/g,' '))) return false;
     const topic = /\b(?:nfl|football|super bowl|hard knocks|gridiron|sabol|facenda|a football life|inside the nfl|america'?s game|america s game|steel curtain|doomsday defense|fearsome foursome|monsters of the midway|purple people eaters|new york sack exchange|greatest show on turf|giants (?:yearbook|forever)|jersey guys rooting for big blue)\b|\bwk\s*\d{1,2}\b.*\bgotw\b/i;
@@ -14138,7 +14138,7 @@ async function tuneSports(ch,sl,my){
   function sportsNotice(message){ return '<div class="pop-empty" role="status" style="grid-column:1/-1">'+message+'</div>'; }
 
   function renderSubPicker(){
-    var views=[["today","ON TODAY"],["scores","SCORES"],["standings","STANDINGS"],["news","NEWS"],["injuries","INJURIES"],["highlights","HIGHLIGHTS"],["livetv","LIVE TV"]];
+    var views=[["today","ON TODAY"],["livetv","LIVE TV"],["scores","SCORES"],["standings","STANDINGS"],["news","NEWS"],["injuries","INJURIES"],["highlights","HIGHLIGHTS"]];
     subPickerEl.innerHTML=views.map(function(v){
       return '<button class="catchip" data-sv="'+v[0]+'" style="border-color:#8fff5c;color:#8fff5c'+(sportsSubView===v[0]?';background:rgba(143,255,92,.18)':'')+'">'+v[1]+'</button>';
     }).join("");

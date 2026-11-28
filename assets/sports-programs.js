@@ -24,6 +24,12 @@
   return parent+(part&&!/\b(?:part|pt|disc)\s*\d+\b/i.test(parent)?' Part '+part[1]:'');
  }
  function competition(text,channel){
+  if(Number(channel)===52){
+   var promotions=[['pfl',/\bpfl vs bellator\b/],['ufc',/\b(?:ufc|ultimate fighting championship)\b/],['pride',/\bpride (?:fc|fighting|\d)\b/],['bellator',/\bbellator\b/],['pancrase',/\bpancrase\b/],['strikeforce',/\bstrikeforce\b/],['k1',/\bk ?1\b/],['glory',/\bglory kickboxing\b/],['one',/\bone championship\b/],['pfl',/\bpfl\b/],['iafc',/\biafc\b/]];
+   for(var p=0;p<promotions.length;p++)if(promotions[p][1].test(text))return promotions[p][0];
+   return /\b(?:kickboxing|muay thai|lethwei)\b/.test(text)?'kickboxing':'mma';
+  }
+  if(Number(channel)===54&&/\b(?:supercross|motocross)\b/.test(text))return 'supercross';
   if(Number(channel)===77){
    if(/\b(?:imsa|alms|le mans|endurance|rolex 24)\b/.test(text))return 'grandprix-endurance';
    if(/\b(?:indy ?car|indianapolis|indy 500|irl|cart|champ ?car)\b/.test(text))return 'grandprix-indycar';
@@ -195,11 +201,20 @@
   }
   if(Number(channel)===53){
    var vaultText=clean([selectedTitle(item,53),item.title,item.seriesTitle].filter(Boolean).join(' '));
-   var vaultLanes=[[58,'basketball',/\b(?:basketball|nba|wnba|aba)\b/],[59,'baseball',/\b(?:baseball|mlb|world series|negro leagues)\b/],[60,'hockey',/\b(?:hockey|nhl|stanley cup)\b/],[52,'mma',/\b(?:mma|ufc|pride fc|bellator|kickboxing|mixed martial arts)\b/],[55,'wrestling-derby',/\b(?:wrestling|wwf|wwe|wcw|njpw|awa|nwa|roller ?derby|rollergames)\b/],[56,'boxing',/\b(?:boxing|muhammad ali|floyd patterson|joe louis|joe frazier|mike tyson)\b/],[63,'soccer',/\b(?:soccer|fifa|uefa|premier league|champions league)\b/],[57,'football',/\b(?:football|gridiron|nfl|cfl|usfl|xfl|ufl|super bowl|rose bowl|sugar bowl|orange bowl|cotton bowl|fiesta bowl|peach bowl|camellia bowl)\b/],[71,'golf',/\b(?:golf|pga|masters tournament)\b/],[72,'tennis',/\b(?:tennis|wimbledon|atp|wta)\b/],[54,'racing',/\b(?:nascar|indycar|formula (?:one|[123e])|grand prix)\b/]];
+   var vaultLanes=[[58,'basketball',/\b(?:basketball|nba|wnba|aba)\b/],[59,'baseball',/\b(?:baseball|mlb|world series|negro leagues)\b/],[60,'hockey',/\b(?:hockey|nhl|stanley cup)\b/],[52,'mma',/\b(?:mma|ufc|pride fc|bellator|pancrase|strikeforce|pfl|one championship|k ?1|kickboxing|muay thai|mixed martial arts)\b/],[55,'wrestling-derby',/\b(?:wrestling|wwf|wwe|wcw|njpw|awa|nwa|roller ?derby|rollergames)\b/],[56,'boxing',/\b(?:boxing|muhammad ali|floyd patterson|joe louis|joe frazier|mike tyson)\b/],[63,'soccer',/\b(?:soccer|fifa|uefa|premier league|champions league)\b/],[57,'football',/\b(?:football|gridiron|nfl|cfl|usfl|xfl|ufl|super bowl|rose bowl|sugar bowl|orange bowl|cotton bowl|fiesta bowl|peach bowl|camellia bowl)\b/],[71,'golf',/\b(?:golf|pga|masters tournament)\b/],[72,'tennis',/\b(?:tennis|wimbledon|atp|wta)\b/],[54,'racing',/\b(?:nascar|indycar|indy 500|indianapolis 500|formula ?(?:one|[123e])|grand prix|imsa|alms|le mans|supercross|nhra)\b/]];
    for(var v=0;v<vaultLanes.length;v++)if(vaultLanes[v][2].test(vaultText))return Object.assign(describe(item,vaultLanes[v][0]),{sport:vaultLanes[v][1]});
   }
-  var raw=selectedTitle(item,channel),text=clean(raw),yearMatch=raw.match(/\b((?:19|20)\d{2})\b/),year=Number(yearMatch?yearMatch[1]:String(item.year||'').slice(0,4))||0;
+  var raw=selectedTitle(item,channel);
+  if(Number(channel)===54&&/^\d{4}(?: \d{2}){5}$/.test(clean(raw))&&item.title)raw=String(item.title);
+  var text=clean(raw),yearMatch=raw.match(/\b((?:19|20)\d{2})\b/),year=Number(yearMatch?yearMatch[1]:String(item.year||'').slice(0,4))||0;
   var competitionText=[55,57,58,59,61,65,66,68,69,70,73,74,75,76,77,78,79].includes(Number(channel))?text+' '+clean(item.title)+' '+clean(item.seriesTitle):text;
+  if(Number(channel)===52||Number(channel)===54)competitionText=clean([raw,item.title,item.seriesTitle].filter(Boolean).join(' '));
+  if(Number(channel)===52&&competition(competitionText,channel)==='mma')competitionText+=' '+clean(item.sourceIdentifier||id(item).split('::')[0]);
+  if(Number(channel)===54){
+   var racingSource=String(item.sourceIdentifier||id(item).split('::')[0]).toLowerCase();
+   if(['01-1990-daytona-500-full-broadcast','nascar-cup-series-full-races-archival'].includes(racingSource))competitionText+=' nascar';
+   competitionText=competitionText.replace(/\bformula([123e])\b/g,'formula $1');
+  }
   if([74,75,76,77,78,79].includes(Number(channel)))competitionText+=' '+clean(item.fileName||id(item).split('::')[1]||'')+(Number(channel)===76?' '+clean(item.sourceIdentifier||id(item).split('::')[0]):'');
   var result={eventId:'',competition:competition(competitionText,channel),year:year,era:year?Math.floor(year/10)*10:0,participants:[],format:'program'};
   if([77,78,79].includes(Number(channel))){
@@ -330,6 +345,20 @@
   var matchupText=Number(channel)===57&&date&&text.startsWith(date.slice(2).replace(/-/g,'')+' ')?text.slice(7):text;
   var versus=matchupText.replace(/\b(?:nfl|nba|wnba|nhl|mlb|ncaa|fifa|ufc|pride|full|complete|game|match|fight|bout|event|broadcast|replay|season|playoffs?)\b/g,' ').replace(/\b(?:19|20)\d{2}(?: \d{2} \d{2})?\b/g,' ').replace(/\s+/g,' ').trim().match(/^(.+?)\s+(?:vs?|versus|at)\s+(.+)$/);
   if(versus)result.participants=[clean(versus[1]),clean(versus[2])].filter(Boolean).map(function(v){return v.slice(0,90);}).sort();
+  if(Number(channel)===52){
+   var cardLabel=clean([raw,item.title].filter(Boolean).join(' '));
+   var numberedCard=cardLabel.match(/\b(ufc|pride(?: fc)?|bellator) (\d{1,3})\b/);
+   var segment=cardLabel.match(/\b(early prelims|prelims|preliminary card|preliminary fights)\b/);
+   var tournament=cardLabel.match(/\bpfl vs bellator\b/);
+   var singleBout=/\b(?:full fight|full bout|single fight|single bout)\b/.test(cardLabel);
+   var completeCard=seconds(item)>=5400||full&&!versus||/\b(?:main card|preliminary card|prelims)\b/.test(cardLabel);
+   if(!singleBout&&completeCard&&(numberedCard||tournament&&date)){
+    result.format='event';
+    var cardId=numberedCard?numberedCard[1].split(' ')[0]+':'+Number(numberedCard[2]):'pfl-bellator:'+date;
+    result.eventId='sports:'+cardId+(segment?(segment[1]==='early prelims'?':early-prelims':':prelims'):'')+suffix;
+    return result;
+   }
+  }
   var card=text.match(/\b(ufc|pride)\s+(\d{1,3})\b/);
   if(card&&full){result.format=versus?'bout':'event';result.eventId='sports:'+card[1]+':'+card[2]+(versus?':bout:'+result.participants.join('-vs-'):'')+suffix;}
   else if(Number(channel)!==75&&!racing&&date&&result.participants.length===2&&(full||seconds(item)>=900))result.eventId='sports:'+result.competition+':'+date+':'+result.participants.join('-vs-')+suffix;

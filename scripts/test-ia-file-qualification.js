@@ -50,6 +50,18 @@ test('Auto Racing cold recovery contains actual race broadcasts before it can re
   assert.ok(stockCar.every(x=>x.recoveryVerified&&r.iaStationQualityGate('54',x)),'Auto Racing retains its verified complete NASCAR broadcasts independently of Stock Car Nation catalog growth');
 });
 
+test('Auto Racing reuses the verified Archive race bank across eras without filling the shelf with stock cars',()=>{
+  const {recoverySeeds,iaStationQualityGate}=relay();
+  const races=recoverySeeds('54',0).filter(x=>x.media?.url&&iaStationQualityGate('54',x));
+  assert.ok(races.length>=45);
+  const { describe } = require('../assets/sports-programs.js');
+  const openingSeries = new Set(races.slice(0,5).map(r => describe(r,54).competition.replace(/^formula-1$/,'formula')));
+  assert.ok(openingSeries.size>=4, 'the verified opening shelf should include several racing series');
+  assert.ok(races.some(x=>x.year<1985));
+  assert.ok(races.some(x=>x.year>=2020));
+  assert.ok(races.some(x=>/CART.*Detroit Grand Prix/i.test(x.title)));
+});
+
 test('Auto Racing keeps verification through client warming and saved shelves', () => {
   const item=relay().recoverySeeds('76',0).find(x=>/Motorcraft Quality/.test(x.title));
   assert.ok(item);

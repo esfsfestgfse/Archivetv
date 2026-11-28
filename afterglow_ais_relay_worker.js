@@ -3644,6 +3644,14 @@ const IA_PROMOTED_ARCHIVE_BANKS = Object.freeze({
 /* Exact Archive files reviewed for format, date, and byte-range delivery.
    Channel 2 keeps its existing vintage quiz episodes alongside network series. */
 const IA_TARGETED_RECOVERY_BANKS = Object.freeze({
+  "52": [
+    iaDirectRecovery("1993.09.21-pancrase-yes-we-are-hybrid-wrestlers-1::1993.11.08 - Pancrase - Yes, We Are Hybrid Wrestlers 3.mp4", "1993.09.21-pancrase-yes-we-are-hybrid-wrestlers-1", "1993.11.08 - Pancrase - Yes, We Are Hybrid Wrestlers 3.mp4", "Pancrase: Yes, We Are Hybrid Wrestlers 3 — Full Event (1993)", "mixed martial arts MMA combat sports full event broadcast", 1993, "video", 5361.5, 640, 480, {"d1":"ia600703.us.archive.org","dir":"/28/items/1993.09.21-pancrase-yes-we-are-hybrid-wrestlers-1"}),
+    { ...iaDirectRecovery("pfl-vs-bellator-prelims-feb-24-2024::1. PFL vs Bellator PRELIMS     Feb 24 2024.ia.mp4", "pfl-vs-bellator-prelims-feb-24-2024", "1. PFL vs Bellator PRELIMS     Feb 24 2024.ia.mp4", "PFL vs. Bellator · Champions vs. Champions — Prelims (2024)", "mixed martial arts MMA combat sports full event broadcast", 2024, "video", 9050.12, 854, 480), eventDate: "2024-02-24" },
+    { ...iaDirectRecovery("pfl-vs-bellator-prelims-feb-24-2024::2 PFL vs Bellator MAIN CARD     Feb 24 2024.ia.mp4", "pfl-vs-bellator-prelims-feb-24-2024", "2 PFL vs Bellator MAIN CARD     Feb 24 2024.ia.mp4", "PFL vs. Bellator · Champions vs. Champions — Main Card (2024)", "mixed martial arts MMA combat sports full event broadcast", 2024, "video", 7991.3, 854, 480, {"d1":"ia801605.us.archive.org","dir":"/6/items/pfl-vs-bellator-prelims-feb-24-2024"}), eventDate: "2024-02-24" },
+  ],
+  "54": [
+    iaDirectRecovery("1996-cart-itt-automotive-grand-prix-of-detroit-indycar-classic-full-race-rewind::1996 CART ITT Automotive Grand Prix of Detroit _ INDYCAR Classic Full-Race Rewind.mp4", "1996-cart-itt-automotive-grand-prix-of-detroit-indycar-classic-full-race-rewind", "1996 CART ITT Automotive Grand Prix of Detroit _ INDYCAR Classic Full-Race Rewind.mp4", "1996 CART IndyCar Detroit Grand Prix — Full Race", "IndyCar CART open wheel auto racing full race broadcast", 1996, "video", 7841.24, 640, 360, {"d1":"ia600703.us.archive.org","dir":"/4/items/1996-cart-itt-automotive-grand-prix-of-detroit-indycar-classic-full-race-rewind"}),
+  ],
   "22": [
     // Original broadcast labels, landscape episode files and verified Archive transport.
     { ...iaDirectRecovery("family_feud_season_49_-_episode_26___5a7df6b98faf3::family_feud_season_49_-_episode_26___5a7df6b98faf3.mp4", "family_feud_season_49_-_episode_26___5a7df6b98faf3", "family_feud_season_49_-_episode_26___5a7df6b98faf3.mp4", "Family Feud · Maples vs. Mink", "adult television game show episode Family Feud", 2023, "video", 1287.25, 640, 360, {"d1":"dn720302.ca.archive.org","dir":"/0/items/family_feud_season_49_-_episode_26___5a7df6b98faf3"}), seriesTitle: "Family Feud", seriesId: "family-feud", language: "eng" },
@@ -6168,7 +6176,7 @@ function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const identity = [selected,item.identifier || item.id,item.sourceIdentifier,media.sourceIdentifier,meta.sourceIdentifier].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
     const classification = [item.subject,item.subjects,item.collection,meta.subject,meta.subjects,meta.collection].filter(Boolean).join(' ').toLowerCase();
     if (/\b(?:countdown clock|torch relay|medal display|olympic medals|home movies?|training|tutorials?|practice|workout|ski with a ranger|highlights?|clips?|recaps?|condensed|quick ?cut|abridged|incomplete|partial|previews?|trailers?|podcasts?|press conference|security update|ceremonies|parades?|watch[ -]?along|watch party|no (?:game|event|fight) footage|commentary only|audio only|reaction streams?|gameplay|longplay|playthrough|simulation|video games?|madden|ncaa football (?:0[0-9]|1[0-4])|ea sports college football \d{2}|nintendo|playstation|xbox)\b/.test(identity)) return true;
-    if (/\b(?:cartoons?|animation|anime|sitcom|feature film|fiction film|fictional|video ?games?|sports simulation)\b/.test(classification) || /\b(?:full (?:hd )?movie|rocky balboa|peeping tom|basketball diaries|golf specialist)\b/.test(selected)) return true;
+    if (/\b(?:cartoons?|animation|anime|sitcom|feature film|fiction film|fictional|video ?games?|sports simulation|variety show|reality (?:tv|television|series))\b/.test(classification) || /\b(?:full (?:hd )?movie|rocky balboa|peeping tom|basketball diaries|golf specialist|invincible baseball)\b/.test(selected)) return true;
     const topic = /\b(?:baseball|basketball|football|gridiron|cfl|usfl|xfl|ufl|grey cup|pancrase|strikeforce|pfl|invicta|one championship|muay thai|vale tudo|glory kickboxing|hockey|boxing|mma|ufc|pride fc|bellator|kickboxing|wrestling|roller ?derby|rollergames|olympic(?:s)?|golf|masters tournament|tennis|soccer|rugby|cricket|cycling|athletics|track and field|swimming|skiing|skating|snowboarding|volleyball|rodeo|nascar|indycar|formula (?:one|[123e])|grand prix|nfl|nba|wnba|aba|mlb|nhl|fifa|world series|rose bowl|sugar bowl|orange bowl|cotton bowl|fiesta bowl|peach bowl|camellia bowl|super bowl|sports documentary)\b/.test(selected+' '+classification);
     if (!topic) return true;
   }
@@ -9717,14 +9725,35 @@ function familyBalancedIaWindowInternal(candidates, start, requested, maxPerFami
   return selected;
 }
 
+// Balance before the cold shelf cuts its first five files, while all race series are available.
+function interleaveRaceSeries(items) {
+  const buckets = new Map();
+  for (const item of items) {
+    const label = queueKey([item.title, item.fileName, item.sourceIdentifier].filter(Boolean).join(" "));
+    let series = "other";
+    if (/\b(?:imsa|alms|le mans|sebring)\b/.test(label)) series = "endurance";
+    else if (/\b(?:indy ?car|indy 500|indianapolis 500|cart)\b/.test(label)) series = "indycar";
+    else if (/\b(?:nascar|stock car|daytona 500|winston cup)\b/.test(label)) series = "stock-car";
+    else if (/\b(?:formula ?(?:one|[123e])|grand prix)\b/.test(label)) series = "formula";
+    if (!buckets.has(series)) buckets.set(series, []);
+    buckets.get(series).push(item);
+  }
+  const ordered = [], groups = [...buckets.values()];
+  for (let i = 0; i < Math.max(0, ...groups.map(group => group.length)); i++) {
+    for (const group of groups) if (group[i]) ordered.push(group[i]);
+  }
+  return ordered;
+}
+
 function orderedIaEmergencySeeds(channel, rotation) {
-  const memberChannels = String(channel) === "53" ? [52,55,56,57,58,59,60,71,72] : String(channel) === "62" ? [62,57,58,59] : String(channel) === "63" ? [63,62] : String(channel) === "64" ? [64,61] : String(channel) === "65" ? [65,80,81,83] : [];
-  const vaultBanks = memberChannels.map(member => iaRepairCollectionSeeds(String(member)).filter(item => item.media && iaStationQualityGate(String(member),item) && (!["62","63","64","65"].includes(String(channel)) || iaStationQualityGate(channel,item))));
+  const memberChannels = String(channel) === "53" ? [52,54,55,56,57,58,59,60,71,72] : String(channel) === "62" ? [62,57,58,59] : String(channel) === "63" ? [63,62] : String(channel) === "64" ? [64,61] : String(channel) === "65" ? [65,80,81,83] : [];
+  const vaultBanks = memberChannels.map(member => (member === 54 ? IA_TARGETED_RECOVERY_BANKS["54"].concat(IA_DEEP_HARVEST_BANKS["54"]) : iaRepairCollectionSeeds(String(member))).filter(item => item.media && iaStationQualityGate(String(member),item) && (!["62","63","64","65"].includes(String(channel)) || iaStationQualityGate(channel,item))));
   const vaultFiles = [];
   for (let i = 0; i < Math.max(0,...vaultBanks.map(bank => bank.length)); i++) for (const bank of vaultBanks) if (bank[i]) vaultFiles.push(bank[i]);
   const ownedFiles = ["77","78","79"].includes(String(channel)) ? IA_VERIFIED_FILE_DEPTH_RAILS[String(channel)] || [] : [];
   const ownedParents = new Set(ownedFiles.map(item => item.sourceIdentifier)), ownedIds = new Set(ownedFiles.map(item => item.identifier));
   const openingRail = ["2", "3", "13", "14", "15", "17", "18", "19", "20", "22"].includes(String(channel)) ? IA_TARGETED_RECOVERY_BANKS[String(channel)] || [] : [];
+  const borrowedRaces = String(channel) === "54" ? IA_VERIFIED_FILE_DEPTH_RAILS["77"].filter(item => iaStationQualityGate("54", item)) : [];
   const rawSeeds = ownedFiles.concat(vaultFiles, openingRail)
     .concat(IA_REVIEWED_ERA_FEATURES.filter(film => film.channels.includes(String(channel))).map(film => film.item))
     .concat(IA_HOLIDAY_CONTAINER_SEEDS[String(channel)] || [])
@@ -9733,7 +9762,7 @@ function orderedIaEmergencySeeds(channel, rotation) {
     .concat(IA_LONG_TAIL_EXPANSIONS[String(channel)] || [])
     .concat(IA_LONG_TAIL_EXPANSIONS_EXTRA[String(channel)] || [])
      .concat(IA_PROMOTED_ARCHIVE_BANKS[String(channel)] || [])
-     .concat(IA_DEEP_HARVEST_BANKS[String(channel)] || [])
+     .concat(IA_DEEP_HARVEST_BANKS[String(channel)] || [], borrowedRaces)
      .concat(IA_UNDERFILL_DEPTH_BANKS[String(channel)] || [])
      .concat(IA_VERIFIED_FILE_DEPTH_RAILS[String(channel)] || [])
      .concat(IA_BROAD_FRESHNESS_FILE_RAILS[String(channel)] || [])
@@ -9779,6 +9808,7 @@ function orderedIaEmergencySeeds(channel, rotation) {
     return true;
   });
   if (!seeds.length) return [];
+  const ordered = String(channel) === "54" ? interleaveRaceSeries(seeds) : seeds;
   /* Animation cold starts already own verified, file-level banks.
      Advance those banks by one complete public shelf so a channel change
      does not replay four of the previous five programs while Archive's
@@ -9786,8 +9816,8 @@ function orderedIaEmergencySeeds(channel, rotation) {
    use the same full-shelf step; all other lanes retain the one-record offset. */
   const fullWindow = IA_FULL_WINDOW_ANIMATION_CHANNELS.has(String(channel)) || IA_HOLIDAY_TV_CHANNELS.has(String(channel)) || IA_FULL_WINDOW_ROTATION_CHANNELS.has(String(channel));
   const shelfStep = fullWindow ? 5 : 1;
-  const offset = (Math.abs(Number(rotation) || 0) * shelfStep) % seeds.length;
-  return seeds.slice(offset).concat(seeds.slice(0, offset));
+  const offset = (Math.abs(Number(rotation) || 0) * shelfStep) % ordered.length;
+  return ordered.slice(offset).concat(ordered.slice(0, offset));
 }
 
 const iaStrictRecoveryBankCache = new Map();
@@ -12057,12 +12087,13 @@ async function getIaQueue(request, url, env, ctx) {
     ...(["60","71","72"].includes(channel) ? { stationSportsPolicy: "broadcast-depth-611" } : {}),
     ...(channel === "51" ? { stationSportsPolicy: "nfl-programs-7613" } : {}),
     ...(channel === "56" ? { stationSportsPolicy: "boxing-programs-613" } : {}),
-    ...(channel === "52" ? { stationSportsPolicy: "mma-programs-614" } : {}),
+    ...(channel === "52" ? { stationSportsPolicy: "mma-programs-7614" } : {}),
+    ...(channel === "54" ? { stationSportsPolicy: "racing-programs-7614" } : {}),
     ...(channel === "55" ? { stationSportsPolicy: "derby-wrestling-615" } : {}),
     ...(channel === "58" ? { stationSportsPolicy: "basketball-programs-616" } : {}),
     ...(channel === "59" ? { stationSportsPolicy: "baseball-programs-617" } : {}),
     ...(channel === "57" ? { stationSportsPolicy: "gridiron-programs-618" } : {}),
-    ...(channel === "53" ? { stationSportsPolicy: "vault-programs-619" } : {}),
+    ...(channel === "53" ? { stationSportsPolicy: "vault-programs-7614" } : {}),
     ...(channel === "61" ? { stationSportsPolicy: "olympic-programs-6110" } : {}),
     ...(channel === "62" ? { stationSportsPolicy: "college-programs-6111" } : {}),
     ...(channel === "63" ? { stationSportsPolicy: "soccer-programs-6112" } : {}),

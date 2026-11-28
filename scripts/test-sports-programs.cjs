@@ -76,6 +76,30 @@ test('shelves group duplicate events while preserving full recovery records and 
  assert.equal(daytona.sportsCopies[0].media.url,b.media.url);
  assert.equal(sports.select([race('x','Unknown basketball game'),race('y','Unknown basketball game')],{channel:58,count:5}).length,2);
 });
+test('The Octagon keeps MMA promotions and kickboxing distinct and groups only equivalent cards',()=>{
+ const k1=race('k1','K-1 World Grand Prix 2001 Semifinals in Las Vegas');
+ const ufc=race('ufc272','UFC 272 — Colby Covington vs Jorge Masvidal');
+ const ufcCopy=race('ufc272-copy','UFC 272 Main Card');
+ const prelims=race('ufc272-prelims','UFC 272 Preliminary Card');
+ const bout=race('ufc272-bout','UFC 272 Colby Covington vs Jorge Masvidal Full Fight',{runtime:1800,media:{type:'video',runtime:1800}});
+ assert.equal(sports.describe(k1,52).competition,'k1');
+ assert.equal(sports.describe(k1,53).sport,'mma');
+ assert.equal(sports.key(ufc,52),'sports:ufc:272');
+ assert.equal(sports.key(ufc,52),sports.key(ufcCopy,52));
+ assert.notEqual(sports.key(prelims,52),sports.key(ufc,52));
+ assert.notEqual(sports.key(bout,52),sports.key(ufc,52));
+});
+test('Auto Racing recognizes the series behind sparse Archive filenames',()=>{
+ const nascar=race('01-1990-daytona-500-full-broadcast::03 1990 GM Goodwrench 500.mp4','GM Goodwrench 500 (1990)');
+ const f1=race('2024-01-26-20-39-59::2024-01-26 20-39-59.ia.mp4','2023 Formula One Canadian Grand Prix Full Race');
+ const imsa=race('imsa','2011 Baltimore Grand Prix ALMS Full Race');
+ assert.equal(sports.describe(nascar,54).competition,'nascar');
+ assert.equal(sports.describe(imsa,54).competition,'imsa');
+ assert.equal(sports.describe(f1,54).year,2023);
+ assert.equal(sports.describe(imsa,53).sport,'racing');
+ assert.equal(sports.select([nascar,imsa],{channel:54,count:1,history:[nascar]})[0].id,'imsa');
+});
+
 test('Hard Count balances franchise retrospectives without merging their separate programs',()=>{
  const old=race('world-champs','New York Giants Yearbook: World Champions (1986)');
  const next=race('bound','New York Giants Yearbook: Bound for Glory (1985)');

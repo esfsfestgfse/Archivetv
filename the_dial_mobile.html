@@ -16,14 +16,14 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · Retro Cable 7.6.13</title>
+<title>REALSIGNAL · Retro Cable 7.6.14</title>
 <meta name="realsignal-ia-repair-channels" content="*">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=7.5.10"></script>
 <script src="assets/ia-playback-shelf.js?v=7.6.7"></script>
-<script src="assets/sports-programs.js?v=7.6.11"></script>
+<script src="assets/sports-programs.js?v=7.6.14"></script>
 <script src="assets/vimeo-embed-runtime.js?v=7.2.1"></script>
 <script src="assets/youtube-embed-runtime.js?v=7.2.19"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
@@ -1741,7 +1741,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="7.6.13-mobile-retro-cable";
+window.__ATV_BUILD="7.6.14-mobile-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7801,7 +7801,7 @@ function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const identity = [selected,item.identifier || item.id,item.sourceIdentifier,media.sourceIdentifier,meta.sourceIdentifier].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
     const classification = [item.subject,item.subjects,item.collection,meta.subject,meta.subjects,meta.collection].filter(Boolean).join(' ').toLowerCase();
     if (/\b(?:countdown clock|torch relay|medal display|olympic medals|home movies?|training|tutorials?|practice|workout|ski with a ranger|highlights?|clips?|recaps?|condensed|quick ?cut|abridged|incomplete|partial|previews?|trailers?|podcasts?|press conference|security update|ceremonies|parades?|watch[ -]?along|watch party|no (?:game|event|fight) footage|commentary only|audio only|reaction streams?|gameplay|longplay|playthrough|simulation|video games?|madden|ncaa football (?:0[0-9]|1[0-4])|ea sports college football \d{2}|nintendo|playstation|xbox)\b/.test(identity)) return true;
-    if (/\b(?:cartoons?|animation|anime|sitcom|feature film|fiction film|fictional|video ?games?|sports simulation)\b/.test(classification) || /\b(?:full (?:hd )?movie|rocky balboa|peeping tom|basketball diaries|golf specialist)\b/.test(selected)) return true;
+    if (/\b(?:cartoons?|animation|anime|sitcom|feature film|fiction film|fictional|video ?games?|sports simulation|variety show|reality (?:tv|television|series))\b/.test(classification) || /\b(?:full (?:hd )?movie|rocky balboa|peeping tom|basketball diaries|golf specialist|invincible baseball)\b/.test(selected)) return true;
     const topic = /\b(?:baseball|basketball|football|gridiron|cfl|usfl|xfl|ufl|grey cup|pancrase|strikeforce|pfl|invicta|one championship|muay thai|vale tudo|glory kickboxing|hockey|boxing|mma|ufc|pride fc|bellator|kickboxing|wrestling|roller ?derby|rollergames|olympic(?:s)?|golf|masters tournament|tennis|soccer|rugby|cricket|cycling|athletics|track and field|swimming|skiing|skating|snowboarding|volleyball|rodeo|nascar|indycar|formula (?:one|[123e])|grand prix|nfl|nba|wnba|aba|mlb|nhl|fifa|world series|rose bowl|sugar bowl|orange bowl|cotton bowl|fiesta bowl|peach bowl|camellia bowl|super bowl|sports documentary)\b/.test(selected+' '+classification);
     if (!topic) return true;
   }

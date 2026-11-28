@@ -22,6 +22,9 @@ test('Hard Count excludes Madden simulations and admits reviewed NFL Films chapt
  const strategy=row('1960s-decade-nfl-championship-pro-strategy-football-2021','1960s Decade NFL Championship Pro Strategy Football 2021',{subject:'1960s, NFL'});
  assert.equal(context.gridiron.gate('51',strategy),false);
  assert.equal(iaReviewedFileAllowed(strategy,'51'),false);
+ const civic=row('city-council-welcomes-the-nfl-draft-back-to-philadelphia-4-27-2017','City Council Welcomes the NFL Draft Back to Philadelphia 4-27-2017');
+ assert.equal(context.gridiron.gate('51',civic),false);
+ assert.equal(iaReviewedFileAllowed(civic,'51'),false);
  const real=row('john-madden','NFL Films: John Madden 2004 interview');
  assert.equal(context.gridiron.gate('51',fake),false);
  assert.equal(iaReviewedFileAllowed(fake,'51'),false);

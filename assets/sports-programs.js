@@ -294,6 +294,7 @@
     if(teams.size===1)result.programFamily='nfl:'+teams.values().next().value;
    }
    if(result.programFamily||/\bnfl s greatest games\b/.test(nflLabel)){result.format='documentary';return result;}
+   if(/\bsuper bowl highlights recording\b/.test(nflLabel))result.programFamily='nfl:super-bowl-highlights-recording';
   }
   if(!enabled(channel))return result;
   if(/\b(?:documentary|documentaries|history|biography|retrospective|nfl films|a football life|behind the scenes)\b/.test(text)){result.format='documentary';return result;}

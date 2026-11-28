@@ -90,6 +90,15 @@ test('Hard Count balances franchise retrospectives without merging their separat
  assert.equal(chosen.length,4);
 });
 
+test('Hard Count separates the parts of one Super Bowl highlights tape when other games are available',()=>{
+ const parts=[1,2,3].map(n=>race('nfl-network-'+n,'Super Bowl Highlights Recording (2008) · Part '+n));
+ assert.ok(parts.every(item=>sports.describe(item,51).programFamily==='nfl:super-bowl-highlights-recording'));
+ const game=race('super-bowl-xii','Super Bowl XII: Cowboys vs. Broncos (1978)');
+ const slate=sports.select([...parts,game],{channel:51,count:3,history:[parts[0]]});
+ assert.equal(slate[0].identifier,'super-bowl-xii');
+ assert.equal(slate.length,3);
+});
+
 test('rotation spreads competitions, participants and eras without hiding sparse inventory',()=>{
  assert.equal(typeof sports.select,'function');
  const rows=[game('a','1998-01-01','Chicago Bulls vs Utah Jazz'),game('b','1998-01-02','Chicago Bulls vs Detroit Pistons'),game('c','2016-01-01','Golden State Warriors vs Cleveland Cavaliers'),race('d','UFC 100 Full Event')];
